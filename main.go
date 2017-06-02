@@ -8,7 +8,11 @@ import (
 	"log"
 	"net"
 	"net/url"
-	"github.com/ogier/pflag"
+	"flag"
+	"time"
+	"sync"
+	"io"
+	"github.com/krig/go-pacemaker"
 )
 
 
@@ -121,16 +125,75 @@ func ListenAndServeWithRedirect(addr string, mux *http.ServeMux, cert string, ke
 	srv.Serve(listener)
 }
 
+type AsyncCib struct {
+	xmldoc string
+	lock sync.Mutex
+}
+
+func (acib* AsyncCib) Start() {
+	cibFetcher := func () {
+		for {
+			cib, err := pacemaker.OpenCib()
+			if err != nil {
+				log.Printf("Failed to connect to Pacemaker: %s", err)
+				time.Sleep(5 * time.Second)
+			}
+			for cib != nil {
+				func() {
+					cibxml, err := cib.Query()
+					if err != nil {
+						log.Printf("Failed to query CIB: %s", err)
+					}
+					log.Print("Got new CIB, writing to xmldoc...")
+					acib.lock.Lock()
+					acib.xmldoc = cibxml
+					acib.lock.Unlock()
+				}()
+
+				waiter := make(chan int)
+				_, err = cib.Subscribe(func(event pacemaker.CibEvent, cib string) {
+					if event == pacemaker.UpdateEvent {
+						log.Print("Got new CIB UpdateEvent, writing to xmldoc...")
+						acib.lock.Lock()
+						acib.xmldoc = cib
+						acib.lock.Unlock()
+					} else {
+						log.Printf("lost connection: %s\n", event)
+						waiter <- 1
+					}
+				})
+				if err != nil {
+					log.Printf("Failed to subscribe, rechecking every 5 seconds")
+					time.Sleep(5 * time.Second)
+				} else {
+					<-waiter
+				}
+			}
+		}
+	}
+
+	go cibFetcher()
+	go pacemaker.Mainloop()
+}
+
+func (acib *AsyncCib) Get() string {
+	acib.lock.Lock()
+	defer acib.lock.Unlock()
+	return acib.xmldoc
+}
 
 func main() {
 	// verbose := pflag.BoolP("verbose", "v", false, "Show verbose debug information")
-	port := pflag.IntP("port", "p", 17630, "Port to listen to")
-	key := pflag.String("key", "harmonies.key", "TLS key file")
-	cert := pflag.String("cert", "harmonies.pem", "TLS cert file")
+	port := flag.Int("port", 17630, "Port to listen to")
+	key := flag.String("key", "harmonies.key", "TLS key file")
+	cert := flag.String("cert", "harmonies.pem", "TLS cert file")
 
-	pflag.Parse()
+	flag.Parse()
 	
 	mux := http.NewServeMux()
+
+	asyncCib := AsyncCib{}
+	asyncCib.Start()
 
 	mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "img/favicon.ico")
@@ -140,7 +203,13 @@ func main() {
 		http.ServeFile(w, r, "html/index.html")
 	})
 
-	fmt.Printf("Listening to https://localhost:%d\n", *port)
+	mux.HandleFunc("/api/cib", func(w http.ResponseWriter, r *http.Request) {
+		xmldoc := asyncCib.Get()
+		w.Header().Set("Content-Type", "application/xml")
+		io.WriteString(w, xmldoc)
+	})
+
+	fmt.Printf("Listening to https://0.0.0.0:%d\n", *port)
 	ListenAndServeWithRedirect(fmt.Sprintf(":%d", *port), mux, *cert, *key)
 }
 
