@@ -146,16 +146,16 @@ func (acib* AsyncCib) Start() {
 					}
 					log.Print("Got new CIB, writing to xmldoc...")
 					acib.lock.Lock()
-					acib.xmldoc = cibxml
+					acib.xmldoc = cibxml.ToString()
 					acib.lock.Unlock()
 				}()
 
 				waiter := make(chan int)
-				_, err = cib.Subscribe(func(event pacemaker.CibEvent, cib string) {
+				_, err = cib.Subscribe(func(event pacemaker.CibEvent, doc *pacemaker.CibDocument) {
 					if event == pacemaker.UpdateEvent {
 						log.Print("Got new CIB UpdateEvent, writing to xmldoc...")
 						acib.lock.Lock()
-						acib.xmldoc = cib
+						acib.xmldoc = doc.ToString()
 						acib.lock.Unlock()
 					} else {
 						log.Printf("lost connection: %s\n", event)
