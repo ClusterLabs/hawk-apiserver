@@ -4,14 +4,19 @@ import (
 	"bufio"
 	"crypto/tls"
 	"github.com/krig/go-pacemaker"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
+	"os"
 	"os/exec"
+	"path"
 	"strings"
 	"sync"
 	"time"
@@ -184,40 +189,169 @@ func (acib *AsyncCib) Get() string {
 	return acib.xmldoc
 }
 
+type Config struct {
+    Port int    `json:"port"`
+    Key string `json:"key"`
+    Cert string `json:"cert"`
+	Route []ConfigRoute `json:"route"`
+}
+
+type ConfigRoute struct {
+	Handler string `json:"handler"`
+	Path string `json:"path"`
+	Target *string `json:"target"`
+}
+
+type routeHandler struct {
+	cib AsyncCib
+	config *Config
+	proxies map[*ConfigRoute]*httputil.ReverseProxy
+}
+
+func (handler *routeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	for _, route := range handler.config.Route {
+		if !strings.HasPrefix(r.URL.Path, route.Path) {
+			continue
+		}
+		if route.Handler == "api/v1" {
+			log.Printf("Serving API for %v", route.Path)
+			handler.serveAPI(w, r, route.Path)
+			return
+		} else if route.Handler == "file" && route.Target != nil {
+			filename := path.Clean(fmt.Sprintf("%v%v", *route.Target, r.URL.Path))
+			info, err := os.Stat(filename)
+			if !os.IsNotExist(err) && !info.IsDir() {
+				log.Printf("Serving file %s", filename)
+				http.ServeFile(w, r, filename)
+				return
+			}
+		} else if route.Handler == "proxy" && route.Target != nil {
+			log.Printf("Proxying %s to %s", r.URL.Path, *route.Target)
+			rproxy := handler.proxyForRoute(&route)
+			if rproxy == nil {
+				http.Error(w, "Bad web server configuration.", 500)
+			}
+			rproxy.ServeHTTP(w, r)
+			return
+		}
+	}
+	http.Error(w, fmt.Sprintf("Unmatched request: %v.", r.URL.Path), 500)
+	return
+}
+
+func (handler *routeHandler) proxyForRoute(route *ConfigRoute) *httputil.ReverseProxy {
+	proxy, ok := handler.proxies[route]
+	if ok {
+		return proxy
+	}
+	url, err := url.Parse(*route.Target)
+	if err != nil {
+		log.Print(err)
+		return nil
+	}
+	proxy = httputil.NewSingleHostReverseProxy(url)
+	handler.proxies[route] = proxy
+	return proxy
+}
+
+func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, apiroot string) {
+	if !checkAuth(r) {
+		http.Error(w, "Unauthorized request.", 401)
+		return
+	}
+	if r.Method == "GET" {
+		if strings.HasPrefix(r.URL.Path, fmt.Sprintf("%s/cib", apiroot)) {
+			xmldoc := handler.cib.Get()
+			w.Header().Set("Content-Type", "application/xml")
+			io.WriteString(w, xmldoc)
+			return
+		}
+	}
+	http.Error(w, "Unmatched request.", 500)
+}
+
+type offsetContext struct {
+	start int
+	end int
+	line int
+	pos int
+}
+
+func contextAtOffset(str string, offset int64) offsetContext {
+	start, end := strings.LastIndex(str[:offset], "\n")+1, len(str)
+	if idx := strings.Index(str[start:], "\n"); idx >= 0 {
+		end = start + idx
+	}
+	line, pos := strings.Count(str[:start], "\n"), int(offset) - start - 1
+	return offsetContext{
+		start: start,
+		end: end,
+		line: line,
+		pos: pos,
+	}
+}
+
+func fatalSyntaxError(js string, err error) {
+	syntax, ok := err.(*json.SyntaxError)
+	if !ok {
+		log.Fatal(err)
+		return
+	}
+	ctx := contextAtOffset(js, syntax.Offset)
+	log.Printf("Error in line %d: %s", ctx.line, err)
+	log.Printf("%s", js[ctx.start:ctx.end])
+	log.Fatalf("%s^", strings.Repeat(" ", ctx.pos))
+}
+
 func main() {
-	// verbose := pflag.BoolP("verbose", "v", false, "Show verbose debug information")
-	port := flag.Int("port", 17630, "Port to listen to")
-	key := flag.String("key", "harmonies.key", "TLS key file")
-	cert := flag.String("cert", "harmonies.pem", "TLS cert file")
+	config := Config{
+		Port: 17630,
+		Key: "/etc/hawk/hawk.key",
+		Cert: "/etc/hawk/hawk.pem",
+		Route: []ConfigRoute {
+			{
+				Handler: "api/v1",
+				Path: "/api/v1",
+				Target: nil,
+			},
+		},
+	}
+
+	port := flag.Int("port", config.Port, "Port to listen to")
+	key := flag.String("key", config.Key, "TLS key file")
+	cert := flag.String("cert", config.Cert, "TLS cert file")
+	cfgfile := flag.String("config", "", "Configuration file")
 
 	flag.Parse()
 
-	mux := http.NewServeMux()
-
-	asyncCib := AsyncCib{}
-	asyncCib.Start()
-
-	mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "img/favicon.ico")
-	})
-
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "html/index.html")
-	})
-
-	mux.HandleFunc("/api/v1/cib", func(w http.ResponseWriter, r *http.Request) {
-		if !checkAuth(r) {
-			http.Error(w, "Unauthorized request.", 401)
-			return
+	if *cfgfile != "" {
+		log.Printf("Reading %v...", *cfgfile)
+		raw, err := ioutil.ReadFile(*cfgfile)
+		if err != nil {
+			log.Fatal(err)
 		}
 
-		xmldoc := asyncCib.Get()
-		w.Header().Set("Content-Type", "application/xml")
-		io.WriteString(w, xmldoc)
-	})
+		err = json.Unmarshal(raw, &config)
+		if err != nil {
+			fatalSyntaxError(string(raw), err)
+		}
+		config.Port = *port
+		config.Key = *key
+		config.Cert = *cert
 
-	zipper := NewGzipHandler(mux)
+		tb, err := json.Marshal(&config)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("%s", tb)
+	}
 
+	routehandler := &routeHandler{
+		config: &config,
+		proxies: make(map[*ConfigRoute]*httputil.ReverseProxy),
+	}
+	routehandler.cib.Start()
+	zipper := NewGzipHandler(routehandler)
 	fmt.Printf("Listening to https://0.0.0.0:%d\n", *port)
 	ListenAndServeWithRedirect(fmt.Sprintf(":%d", *port), zipper, *cert, *key)
 }

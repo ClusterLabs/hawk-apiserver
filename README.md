@@ -33,8 +33,9 @@ go test
 
 ## Configuration
 
-Pass `-c <config>` as an argument to give harmonies a configuration
-file. The format is a json dictionary with key / value pairs.
+Pass `-config <config>` as an argument to give harmonies a
+configuration file. The format is a json dictionary with key / value
+pairs.
 
 The available configuration values are described below. If a value is
 set both in the configuration file and in a command line argument, the
@@ -67,12 +68,12 @@ Example:
     {
       "handler": "file",
       "path": "/",
-      "root": "/usr/share/hawk/public"
+      "target": "/usr/share/hawk/public"
     },
     {
       "handler": "proxy",
       "path": "/",
-      "url": "unix:/var/run/hawk/app.sock"
+      "target": "unix:/var/run/hawk/app.sock"
     }
   ]
 }
