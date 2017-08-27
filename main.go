@@ -1,18 +1,20 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
 	"bufio"
 	"crypto/tls"
+	"github.com/krig/go-pacemaker"
+	"flag"
+	"fmt"
+	"io"
 	"log"
 	"net"
+	"net/http"
 	"net/url"
-	"flag"
-	"time"
+	"os/exec"
+	"strings"
 	"sync"
-	"io"
-	"github.com/krig/go-pacemaker"
+	"time"
 )
 
 
@@ -189,7 +191,7 @@ func main() {
 	cert := flag.String("cert", "harmonies.pem", "TLS cert file")
 
 	flag.Parse()
-	
+
 	mux := http.NewServeMux()
 
 	asyncCib := AsyncCib{}
@@ -204,6 +206,12 @@ func main() {
 	})
 
 	mux.HandleFunc("/api/v1/cib", func(w http.ResponseWriter, r *http.Request) {
+		user, pass, _ := r.BasicAuth()
+		if !checkBasicAuth(user, pass) {
+			http.Error(w, "Unauthorized.", 401)
+			return
+		}
+
 		xmldoc := asyncCib.Get()
 		w.Header().Set("Content-Type", "application/xml")
 		io.WriteString(w, xmldoc)
@@ -215,3 +223,21 @@ func main() {
 	ListenAndServeWithRedirect(fmt.Sprintf(":%d", *port), zipper, *cert, *key)
 }
 
+
+func checkBasicAuth(user, pass string) bool {
+	// /usr/sbin/hawk_chkpwd passwd <user>
+	// write password
+	// close
+	cmd := exec.Command("/usr/sbin/hawk_chkpwd", "passwd", user)
+	if cmd == nil {
+		log.Print("Authorization failed: /usr/sbin/hawk_chkpwd not found")
+		return false
+	}
+	cmd.Stdin = strings.NewReader(pass)
+	err := cmd.Run()
+	if err != nil {
+		log.Printf("Authorization failed: %v", err)
+		return false
+	}
+	return true
+}

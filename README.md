@@ -80,6 +80,12 @@ Example:
 
 ## API
 
+Testing using curl:
+
+``` bash
+curl --insecure -u hacluster:<pass> https://<server>:<port>/api/v1/cib
+```
+
 ### Authentication
 
 * Basic auth: TODO. Get user:password from HTTP headers. Map to system
