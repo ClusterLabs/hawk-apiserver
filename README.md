@@ -88,12 +88,12 @@ curl --insecure -u hacluster:<pass> https://<server>:<port>/api/v1/cib
 
 ### Authentication
 
-* Basic auth: TODO. Get user:password from HTTP headers. Map to system
+* Basic auth: Get user:password from HTTP headers. Map to system
   user. Verify that system user is a member of the haclient group.
 
-* Cookie auth (cookie created by hawk rails app): TODO. If a valid
-  session cookie is found in the HTTP headers, this is accepted as
-  authentication.
+* Cookie auth (cookie created by hawk rails app): If a valid cookie is
+  found in the HTTP headers, this is accepted as authentication.
+  Session cookie is stored in attrd.
 
 * TODO: SAML2
 
