@@ -30,3 +30,147 @@ go build
 ``` bash
 go test
 ```
+
+## Configuration
+
+Pass `-c <config>` as an argument to give harmonies a configuration
+file. The format is a json dictionary with key / value pairs.
+
+The available configuration values are described below. If a value is
+set both in the configuration file and in a command line argument, the
+command line argument takes precedence.
+
+* `key`: Path to SSL key. (argument: -key)
+
+* `cert`: Path to SSL certificate. (argument: -cert)
+
+* `port`: TCP port to listen to for connections. (argument: -port)
+
+* `route`: List of json maps that configure the routing table.
+
+The route format is very limited and adapted to serving hawk, but
+enable reconfiguration of the exact paths to certificates, files and
+sockets.
+
+Example:
+
+``` json
+{
+  "key": "/etc/hawk/hawk.key",
+  "cert": "/etc/hawk/hawk.pem",
+  "port": 7630,
+  "route": [
+    {
+      "handler": "api/v1",
+      "path": "/api/v1",
+    },
+    {
+      "handler": "file",
+      "path": "/",
+      "root": "/usr/share/hawk/public"
+    },
+    {
+      "handler": "proxy",
+      "path": "/",
+      "url": "unix:/var/run/hawk/app.sock"
+    }
+  ]
+}
+```
+
+## API
+
+### Authentication
+
+* Basic auth: TODO. Get user:password from HTTP headers. Map to system
+  user. Verify that system user is a member of the haclient group.
+
+* Cookie auth (cookie created by hawk rails app): TODO. If a valid
+  session cookie is found in the HTTP headers, this is accepted as
+  authentication.
+
+* TODO: SAML2
+
+### Authorization
+
+### Endpoints
+
+HTTP verbs:
+
+* POST: Create new resources
+* GET: Retrieve resource
+* PUT: Update resource (should be idempotent)
+* PATCH: Update resource (not yet supported)
+* DELETE: Delete a resource
+
+``` bash
+GET                 /api/v1/features
+GET/POST/PUT/DELETE /api/v1/cib
+GET/POST/PUT/DELETE /api/v1/cib/attributes
+GET                 /api/v1/cib/status
+GET/POST/PUT/DELETE /api/v1/cib/configuration
+GET/POST/PUT/DELETE /api/v1/cib/configuration/crm_config
+GET/POST/PUT/DELETE /api/v1/cib/configuration/crm_config/{id}
+GET/POST/PUT/DELETE /api/v1/cib/configuration/nodes
+GET/POST/PUT/DELETE /api/v1/cib/configuration/nodes/{id}
+GET/POST/PUT/DELETE /api/v1/cib/configuration/resources
+GET/POST/PUT/DELETE /api/v1/cib/configuration/resources/{id}
+GET/POST/PUT/DELETE /api/v1/cib/configuration/constraints
+GET/POST/PUT/DELETE /api/v1/cib/configuration/constraints/{id}
+GET/POST/PUT/DELETE /api/v1/cib/configuration/fencing
+GET/POST/PUT/DELETE /api/v1/cib/configuration/acls
+GET/POST/PUT/DELETE /api/v1/cib/configuration/acls/{id}
+GET/POST/PUT/DELETE /api/v1/cib/configuration/tags
+GET/POST/PUT/DELETE /api/v1/cib/configuration/tags/{id}
+GET/POST/PUT/DELETE /api/v1/cib/configuration/alerts
+GET/POST/PUT/DELETE /api/v1/cib/configuration/alerts/{id}
+GET/POST/PUT/DELETE /api/v1/cib/configuration/op_defaults
+GET/POST/PUT/DELETE /api/v1/cib/configuration/op_defaults/{id}
+GET/POST/PUT/DELETE /api/v1/cib/configuration/rsc_defaults
+GET/POST/PUT/DELETE /api/v1/cib/configuration/rsc_defaults/{id}
+```
+
+### Shadow CIBs and simulation
+
+The web server SHOULD support the Shadow CIB feature, which includes
+the simulator interface. If the Shadow CIB feature is supported, the
+object returned by `GET /api/v1/features` MUST include `shadow: true`.
+
+All endpoints can also receive these extra arguments to determine
+which CIB is being accessed:
+
+* `CIB_file`: (DEV only) Refers to a path on the server.
+* `CIB_shadow`: Identifier for the shadow CIB residing on the server.
+
+Adds the following API endpoints which creates or deletes the server
+shadow CIB identifier. Use the CIB_shadow parameter together with the
+regular configuration API to modify the actual contents of the shadow
+CIB.
+
+``` bash
+GET/POST/PUT/DELETE /api/v1/shadow
+GET/POST/PUT/DELETE /api/v1/shadow/{id}
+PUT /api/v1/shadow/{id}
+```
+
+Adds the following API endpoints to invoke the simulator:
+
+``` bash
+POST/PUT /api/v1/shadow/{id}/simulate
+```
+
+The simulator accepts the special identifier `live` as ID to simulate
+using the live CIB as input.
+
+The simulator run and the results are returned as part of the request
+body.
+
+### WebSocket
+
+The web server SHOULD support the WebSocket API so that clients can
+subscribe to CIB events, and also efficiently post changes. If the
+WebSocket feature is supported, the object returned by `GET
+/api/v1/features` MUST include `websocket: true`.
+
+The exakt form of the event stream (in both directions) is to be
+decided.

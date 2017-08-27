@@ -91,7 +91,7 @@ func (handler *HTTPRedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 	handler.handler.ServeHTTP(w, r)
 }
 
-func ListenAndServeWithRedirect(addr string, mux *http.ServeMux, cert string, key string) {
+func ListenAndServeWithRedirect(addr string, handler http.Handler, cert string, key string) {
 	config := &tls.Config{}
 	if config.NextProtos == nil {
 		config.NextProtos = []string{"http1/1"}
@@ -118,7 +118,7 @@ func ListenAndServeWithRedirect(addr string, mux *http.ServeMux, cert string, ke
 	srv := &http.Server{
 		Addr: addr,
 		Handler: &HTTPRedirectHandler{
-			handler: mux,
+			handler: handler,
 		},
 	}
 	srv.SetKeepAlivesEnabled(true)
@@ -203,13 +203,15 @@ func main() {
 		http.ServeFile(w, r, "html/index.html")
 	})
 
-	mux.HandleFunc("/api/cib", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/v1/cib", func(w http.ResponseWriter, r *http.Request) {
 		xmldoc := asyncCib.Get()
 		w.Header().Set("Content-Type", "application/xml")
 		io.WriteString(w, xmldoc)
 	})
 
+	zipper := NewGzipHandler(mux)
+
 	fmt.Printf("Listening to https://0.0.0.0:%d\n", *port)
-	ListenAndServeWithRedirect(fmt.Sprintf(":%d", *port), mux, *cert, *key)
+	ListenAndServeWithRedirect(fmt.Sprintf(":%d", *port), zipper, *cert, *key)
 }
 
