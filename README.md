@@ -1,4 +1,4 @@
-# Harmonies
+# Hawk API Server
 
 Next-generation cluster UI prototype
 
@@ -7,16 +7,16 @@ Next-generation cluster UI prototype
 Building requires Go v1.7+.
 
 ``` bash
-go get -u github.com/krig/harmonies
+go get -u github.com/krig/hawk-apiserver
 ```
 
 The rest of the instructions assume that the current working directory
-is `$GOPATH/src/github.com/krig/harmonies`.
+is `$GOPATH/src/github.com/krig/hawk-apiserver`.
 
 ## Generating an SSL certificate
 
 ``` bash
-SSLGEN_KEY=harmonies.key SSLGEN_CERT=harmonies.pem ./tools/generate-ssl-cert
+SSLGEN_KEY=hawk.key SSLGEN_CERT=hawk.pem ./tools/generate-ssl-cert
 ```
 
 ## Building the server
@@ -33,7 +33,7 @@ go test
 
 ## Configuration
 
-Pass `-config <config>` as an argument to give harmonies a
+Pass `-config <config>` as an argument to give the server a
 configuration file. The format is a json dictionary with key / value
 pairs.
 

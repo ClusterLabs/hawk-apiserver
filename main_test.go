@@ -3,7 +3,7 @@ package main_test
 import (
 	"testing"
 	"net/http"
-	"github.com/krig/harmonies"
+	"github.com/krig/hawk-apiserver"
 )
 
 type TestHandler struct {
