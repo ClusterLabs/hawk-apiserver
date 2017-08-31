@@ -1,0 +1,9 @@
+[submodule "vendor/github.com/krig/go-pacemaker"]
+	path = vendor/github.com/krig/go-pacemaker
+	url = git@github.com:krig/go-pacemaker
+[submodule "vendor/gopkg.in/xmlpath.v2"]
+	path = vendor/gopkg.in/xmlpath.v2
+	url = git@github.com:go-xmlpath/xmlpath.git
+[submodule "vendor/golang.org/x/net"]
+	path = vendor/golang.org/x/net
+	url = git@github.com:golang/net
