@@ -1,27 +1,13 @@
-package main_test
+package main
 
 import (
 	"testing"
-	"net/http"
-	"github.com/krig/hawk-apiserver"
 )
 
-type TestHandler struct {
-	val int
-}
-
-func (h *TestHandler) ServeHTTP(http.ResponseWriter, *http.Request) {
-}
-
-func incAdapter(h http.Handler) http.Handler {
-	h.(*TestHandler).val++
-	return h
-}
-
-func TestAdapt(t *testing.T) {
-	th := TestHandler{0}
-	main.Adapt(&th, incAdapter, incAdapter)
-	if th.val != 2 {
-		t.Fatal("expected th=2, got ", th.val)
+func TestConfigParse(t *testing.T) {
+	config := Config{}
+	parseConfigFile("./config.json.example", &config)
+	if config.Port != 7630 {
+		t.Fatal("expected 7630, got ", config.Port)
 	}
 }

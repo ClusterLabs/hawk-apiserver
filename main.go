@@ -1,21 +1,15 @@
 package main
 
 import (
-	"bufio"
-	"crypto/tls"
 	"github.com/krig/go-pacemaker"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
-	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
-	"os/exec"
 	"path"
 	"strings"
 	"sync"
@@ -23,117 +17,9 @@ import (
 )
 
 
-type Adapter func(http.Handler) http.Handler
-
-// Adapt function to enable middlewares on the standard library
-func Adapt(h http.Handler, adapters ...Adapter) http.Handler {
-    for _, adapter := range adapters {
-        h = adapter(h)
-    }
-    return h
-}
-
-type SplitListener struct {
-	net.Listener
-	config *tls.Config
-}
-
-func (l *SplitListener) Accept() (net.Conn, error) {
-	c, err := l.Listener.Accept()
-	if err != nil {
-		return nil, err
-	}
-
-	bconn := &Conn{
-		Conn: c,
-		buf: bufio.NewReader(c),
-	}
-
-	// inspect the first bytes to see if it is HTTPS
-	hdr, err := bconn.buf.Peek(6)
-	if err != nil {
-		log.Printf("Short %s\n", c.RemoteAddr().String())
-		bconn.Close()
-		return nil, err
-	}
-
-	// SSL 3.0 or TLS 1.0, 1.1 and 1.2
-	if hdr[0] == 0x16 && hdr[1] == 0x3 && hdr[5] == 0x1 {
-		return tls.Server(bconn, l.config), nil
-	// SSL 2
-	} else if hdr[0] == 0x80 {
-		return tls.Server(bconn, l.config), nil
-	}
-	return bconn, nil
-}
-
-type Conn struct {
-	net.Conn
-	buf *bufio.Reader
-}
-
-func (c *Conn) Read(b []byte) (int, error) {
-	return c.buf.Read(b)
-}
-
-type HTTPRedirectHandler struct {
-	handler http.Handler
-}
-
-func (handler *HTTPRedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.TLS == nil {
-		u := url.URL{
-			Scheme: "https",
-			Opaque: r.URL.Opaque,
-			User: r.URL.User,
-			Host: r.Host,
-			Path: r.URL.Path,
-			RawQuery: r.URL.RawQuery,
-			Fragment: r.URL.Fragment,
-		}
-		log.Printf("http -> %s\n", u.String())
-		http.Redirect(w, r, u.String(), http.StatusMovedPermanently)
-		return
-	}
-	handler.handler.ServeHTTP(w, r)
-}
-
-func ListenAndServeWithRedirect(addr string, handler http.Handler, cert string, key string) {
-	config := &tls.Config{}
-	if config.NextProtos == nil {
-		config.NextProtos = []string{"http1/1"}
-	}
-
-	var err error
-	config.Certificates = make([]tls.Certificate, 1)
-	config.Certificates[0], err = tls.LoadX509KeyPair(cert, key)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	ln, err := net.Listen("tcp", addr)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	listener := &SplitListener{
-		Listener: ln,
-		config: config,
-	}
-
-
-	srv := &http.Server{
-		Addr: addr,
-		Handler: &HTTPRedirectHandler{
-			handler: handler,
-		},
-	}
-	srv.SetKeepAlivesEnabled(true)
-	srv.Serve(listener)
-}
-
 type AsyncCib struct {
 	xmldoc string
+	version *pacemaker.CibVersion
 	lock sync.Mutex
 }
 
@@ -154,6 +40,7 @@ func (acib* AsyncCib) Start() {
 					log.Print("Got new CIB, writing to xmldoc...")
 					acib.lock.Lock()
 					acib.xmldoc = cibxml.ToString()
+					acib.version = cibxml.Version()
 					acib.lock.Unlock()
 				}()
 
@@ -163,6 +50,7 @@ func (acib* AsyncCib) Start() {
 						log.Print("Got new CIB UpdateEvent, writing to xmldoc...")
 						acib.lock.Lock()
 						acib.xmldoc = doc.ToString()
+						acib.version = doc.Version()
 						acib.lock.Unlock()
 					} else {
 						log.Printf("lost connection: %s\n", event)
@@ -188,6 +76,13 @@ func (acib *AsyncCib) Get() string {
 	defer acib.lock.Unlock()
 	return acib.xmldoc
 }
+
+func (acib *AsyncCib) Version() *pacemaker.CibVersion {
+	acib.lock.Lock()
+	defer acib.lock.Unlock()
+	return acib.version
+}
+
 
 type Config struct {
     Port int    `json:"port"`
@@ -215,7 +110,11 @@ func (handler *routeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		if route.Handler == "api/v1" {
 			log.Printf("Serving API for %v", route.Path)
-			handler.serveAPI(w, r, route.Path)
+			handler.serveAPI(w, r, &route)
+			return
+		} else if route.Handler == "monitor" {
+			log.Printf("Monitor handler for %v", route.Path)
+			handler.serveMonitor(w, r, &route)
 			return
 		} else if route.Handler == "file" && route.Target != nil {
 			filename := path.Clean(fmt.Sprintf("%v%v", *route.Target, r.URL.Path))
@@ -254,13 +153,13 @@ func (handler *routeHandler) proxyForRoute(route *ConfigRoute) *httputil.Reverse
 	return proxy
 }
 
-func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, apiroot string) {
-	if !checkAuth(r) {
+func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, route *ConfigRoute) {
+	if !checkHawkAuthMethods(r) {
 		http.Error(w, "Unauthorized request.", 401)
 		return
 	}
 	if r.Method == "GET" {
-		if strings.HasPrefix(r.URL.Path, fmt.Sprintf("%s/cib", apiroot)) {
+		if strings.HasPrefix(r.URL.Path, fmt.Sprintf("%s/cib", route.Path)) {
 			xmldoc := handler.cib.Get()
 			w.Header().Set("Content-Type", "application/xml")
 			io.WriteString(w, xmldoc)
@@ -270,37 +169,57 @@ func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, ap
 	http.Error(w, "Unmatched request.", 500)
 }
 
-type offsetContext struct {
-	start int
-	end int
-	line int
-	pos int
-}
-
-func contextAtOffset(str string, offset int64) offsetContext {
-	start, end := strings.LastIndex(str[:offset], "\n")+1, len(str)
-	if idx := strings.Index(str[start:], "\n"); idx >= 0 {
-		end = start + idx
+func (handler *routeHandler) serveMonitor(w http.ResponseWriter, r *http.Request, route *ConfigRoute) {
+	epoch := ""
+	args := strings.Split(r.URL.RawQuery, "&")
+	if len(args) >= 1 {
+		epoch = args[0]
 	}
-	line, pos := strings.Count(str[:start], "\n"), int(offset) - start - 1
-	return offsetContext{
-		start: start,
-		end: end,
-		line: line,
-		pos: pos,
-	}
-}
 
-func fatalSyntaxError(js string, err error) {
-	syntax, ok := err.(*json.SyntaxError)
-	if !ok {
-		log.Fatal(err)
+	w.Header().Set("Content-Type", "text/event-stream")
+	if r.Header.Get("Origin") != "" {
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+		w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-CSRF-Token, Token")
+		w.Header().Set("Access-Control-Max-Age", "1728000")
+	}
+	// Flush headers if possible
+	if f, ok := w.(http.Flusher); ok {
+		f.Flush()
+	}
+
+	/*
+	connect_timeout := 60e9
+	timeout := make (chan bool)
+ 
+	go func () {
+		time.Sleep(connect_timeout)
+		timeout <- true
+	}()
+ 	select {
+	case msg := <-messages:
+		io.WriteString(w, msg)
+	case stop := <-timeout:
 		return
 	}
-	ctx := contextAtOffset(js, syntax.Offset)
-	log.Printf("Error in line %d: %s", ctx.line, err)
-	log.Printf("%s", js[ctx.start:ctx.end])
-	log.Fatalf("%s^", strings.Repeat(" ", ctx.pos))
+*/
+
+	new_epoch := ""
+	ver := handler.cib.Version()
+	if ver != nil {
+		new_epoch = ver.String()
+		if new_epoch == epoch {
+			log.Printf("Current version == queried version, wait for new cib for up to 60s...")
+		}
+	} else {
+		log.Print("No cib connection, wait for new cib for up to 60s...")
+	}
+	io.WriteString(w, fmt.Sprintf("{\"epoch\":\"%s\"}\n", new_epoch))
+	
+	http.Error(w, "monitor: No Cib connection", 500)
 }
 
 func main() {
@@ -325,27 +244,18 @@ func main() {
 	flag.Parse()
 
 	if *cfgfile != "" {
-		log.Printf("Reading %v...", *cfgfile)
-		raw, err := ioutil.ReadFile(*cfgfile)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		err = json.Unmarshal(raw, &config)
-		if err != nil {
-			fatalSyntaxError(string(raw), err)
-		}
-		config.Port = *port
-		config.Key = *key
-		config.Cert = *cert
-
-		tb, err := json.Marshal(&config)
-		if err != nil {
-			log.Fatal(err)
-		}
-		log.Printf("%s", tb)
+		parseConfigFile(*cfgfile, &config)
 	}
-
+	if *port != 17630 {
+		config.Port = *port
+	}
+	if *key != "/etc/hawk/hawk.key" {
+		config.Key = *key
+	}
+	if *cert != "/etc/hawk/hawk.pem" {
+		config.Cert = *cert
+	}
+	
 	routehandler := &routeHandler{
 		config: &config,
 		proxies: make(map[*ConfigRoute]*httputil.ReverseProxy),
@@ -354,64 +264,4 @@ func main() {
 	zipper := NewGzipHandler(routehandler)
 	fmt.Printf("Listening to https://0.0.0.0:%d\n", *port)
 	ListenAndServeWithRedirect(fmt.Sprintf(":%d", *port), zipper, *cert, *key)
-}
-
-
-func checkAuth(r *http.Request) bool {
-	// Try hawk attrd cookie
-	var user string
-	var session string
-	for _, c := range r.Cookies() {
-		if c.Name == "hawk_remember_me_id" {
-			user = c.Value
-		}
-		if c.Name == "hawk_remember_me_key" {
-			session = c.Value
-		}
-	}
-	if user != "" && session != "" {
-		cmd := exec.Command("/usr/sbin/attrd_updater", "-R", "-Q", "-A", "-n", fmt.Sprintf("hawk_session_%v", user))
-		if cmd != nil {
-			out, _ := cmd.StdoutPipe()
-			cmd.Start()
-			// for each line, look for value="..."
-			// if ... == sessioncookie, then OK
-			scanner := bufio.NewScanner(out)
-			tomatch := fmt.Sprintf("value=\"%v\"", session)
-			for scanner.Scan() {
-				l := scanner.Text()
-				if strings.Contains(l, tomatch) {
-					log.Printf("Valid session cookie for %v", user)
-					return true
-				}
-			}
-			cmd.Wait()
-		}
-	}
-	user, pass, ok := r.BasicAuth()
-	if !ok {
-		return false
-	}
-	if !checkBasicAuth(user, pass) {
-		return false
-	}
-	return true
-}
-
-func checkBasicAuth(user, pass string) bool {
-	// /usr/sbin/hawk_chkpwd passwd <user>
-	// write password
-	// close
-	cmd := exec.Command("/usr/sbin/hawk_chkpwd", "passwd", user)
-	if cmd == nil {
-		log.Print("Authorization failed: /usr/sbin/hawk_chkpwd not found")
-		return false
-	}
-	cmd.Stdin = strings.NewReader(pass)
-	err := cmd.Run()
-	if err != nil {
-		log.Printf("Authorization failed: %v", err)
-		return false
-	}
-	return true
 }
