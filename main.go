@@ -151,30 +151,21 @@ func (handler *routeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		if route.Handler == "api/v1" {
-			log.Printf("[api/v1] %v", r.URL.Path)
-			handler.serveAPI(w, r, &route)
-			return
-		} else if route.Handler == "monitor" &&
-			(r.URL.Path == route.Path || r.URL.Path == fmt.Sprintf("%s.json", route.Path)) {
-			log.Printf("[monitor] %v", r.URL.Path)
-			handler.serveMonitor(w, r, &route)
-			return
+			if handler.serveAPI(w, r, &route) {
+				return
+			}
+		} else if route.Handler == "monitor" {
+			if handler.serveMonitor(w, r, &route) {
+				return
+			}
 		} else if route.Handler == "file" && route.Target != nil {
-			filename := path.Clean(fmt.Sprintf("%v%v", *route.Target, r.URL.Path))
-			info, err := os.Stat(filename)
-			if !os.IsNotExist(err) && !info.IsDir() {
-				log.Printf("[file] %s", filename)
-				http.ServeFile(w, r, filename)
+			if handler.serveFile(w, r, &route) {
 				return
 			}
 		} else if route.Handler == "proxy" && route.Target != nil {
-			log.Printf("[proxy] %s -> %s", r.URL.Path, *route.Target)
-			rproxy := handler.proxyForRoute(&route)
-			if rproxy == nil {
-				http.Error(w, "Bad web server configuration.", 500)
+			if handler.serveProxy(w, r, &route) {
+				return
 			}
-			rproxy.ServeHTTP(w, r, nil)
-			return
 		}
 	}
 	http.Error(w, fmt.Sprintf("Unmatched request: %v.", r.URL.Path), 500)
@@ -197,23 +188,30 @@ func (handler *routeHandler) proxyForRoute(route *ConfigRoute) *ReverseProxy {
 	return proxy
 }
 
-func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, route *ConfigRoute) {
+func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, route *ConfigRoute) bool {
+	log.Printf("[api/v1] %v", r.URL.Path)
 	if !checkHawkAuthMethods(r) {
 		http.Error(w, "Unauthorized request.", 401)
-		return
+		return true
 	}
 	if r.Method == "GET" {
 		if strings.HasPrefix(r.URL.Path, fmt.Sprintf("%s/cib", route.Path)) {
 			xmldoc := handler.cib.Get()
 			w.Header().Set("Content-Type", "application/xml")
 			io.WriteString(w, xmldoc)
-			return
+			return true
 		}
 	}
 	http.Error(w, fmt.Sprintf("[api/v1]: No route for %v.", r.URL.Path), 500)
+	return true
 }
 
-func (handler *routeHandler) serveMonitor(w http.ResponseWriter, r *http.Request, route *ConfigRoute) {
+func (handler *routeHandler) serveMonitor(w http.ResponseWriter, r *http.Request, route *ConfigRoute) bool {
+	if r.URL.Path != route.Path && r.URL.Path != fmt.Sprintf("%s.json", route.Path) {
+		return false
+	}
+	log.Printf("[monitor] %v", r.URL.Path)
+
 	epoch := ""
 	args := strings.Split(r.URL.RawQuery, "&")
 	if len(args) >= 1 {
@@ -250,6 +248,38 @@ func (handler *routeHandler) serveMonitor(w http.ResponseWriter, r *http.Request
 		new_epoch = handler.cib.Wait(60, new_epoch)
 	}
 	io.WriteString(w, fmt.Sprintf("{\"epoch\":\"%s\"}\n", new_epoch))
+	return true
+}
+
+func (handler *routeHandler) serveFile(w http.ResponseWriter, r *http.Request, route *ConfigRoute) bool {
+	filename := path.Clean(fmt.Sprintf("%v%v", *route.Target, r.URL.Path))
+	info, err := os.Stat(filename)
+	if !os.IsNotExist(err) && !info.IsDir() {
+		log.Printf("[file] %s", filename)
+		e := fmt.Sprintf(`W/"%x-%x"`, info.ModTime().Unix(), info.Size())
+		if match := r.Header.Get("If-None-Match"); match != "" {
+			if strings.Contains(match, e) {
+				w.WriteHeader(http.StatusNotModified)
+				return true
+			}
+		}
+		w.Header().Set("Cache-Control", "public, max-age=2592000")
+		w.Header().Set("ETag", e)
+		http.ServeFile(w, r, filename)
+		return true
+	}
+	return false
+}
+
+func (handler *routeHandler) serveProxy(w http.ResponseWriter, r *http.Request, route *ConfigRoute) bool {
+	log.Printf("[proxy] %s -> %s", r.URL.Path, *route.Target)
+	rproxy := handler.proxyForRoute(route)
+	if rproxy == nil {
+		http.Error(w, "Bad web server configuration.", 500)
+		return true
+	}
+	rproxy.ServeHTTP(w, r, nil)
+	return true
 }
 
 func main() {
