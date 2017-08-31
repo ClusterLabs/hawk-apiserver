@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"os"
 	"path"
@@ -136,13 +135,13 @@ type ConfigRoute struct {
 type routeHandler struct {
 	cib AsyncCib
 	config *Config
-	proxies map[*ConfigRoute]*httputil.ReverseProxy
+	proxies map[*ConfigRoute]*ReverseProxy
 }
 
 func NewRouteHandler(config *Config) *routeHandler {
 	return &routeHandler{
 		config: config,
-		proxies: make(map[*ConfigRoute]*httputil.ReverseProxy),
+		proxies: make(map[*ConfigRoute]*ReverseProxy),
 	}
 }
 
@@ -174,7 +173,7 @@ func (handler *routeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if rproxy == nil {
 				http.Error(w, "Bad web server configuration.", 500)
 			}
-			rproxy.ServeHTTP(w, r)
+			rproxy.ServeHTTP(w, r, nil)
 			return
 		}
 	}
@@ -182,7 +181,7 @@ func (handler *routeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (handler *routeHandler) proxyForRoute(route *ConfigRoute) *httputil.ReverseProxy {
+func (handler *routeHandler) proxyForRoute(route *ConfigRoute) *ReverseProxy {
 	proxy, ok := handler.proxies[route]
 	if ok {
 		return proxy
@@ -193,7 +192,7 @@ func (handler *routeHandler) proxyForRoute(route *ConfigRoute) *httputil.Reverse
 		log.Print(err)
 		return nil
 	}
-	proxy = httputil.NewSingleHostReverseProxy(url)
+	proxy = NewSingleHostReverseProxy(url, "", http.DefaultMaxIdleConnsPerHost)
 	handler.proxies[route] = proxy
 	return proxy
 }

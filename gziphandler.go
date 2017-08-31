@@ -50,7 +50,8 @@ func (w *GzipResponseWriter) Write(b []byte) (int, error) {
 	w.buf = append(w.buf, b...)
 
 	// only enable compression if write is >= minSize
-	if len(w.buf) >= minSize {
+	// and compression isn't already enabled
+	if w.Header().Get("Content-Encoding") == "" && len(w.buf) >= minSize {
 		err := w.startGzip()
 		if err != nil {
 			return 0, err
