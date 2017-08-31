@@ -1,0 +1,25 @@
+{
+  "key": "/etc/hawk/hawk.key",
+  "cert": "/etc/hawk/hawk.pem",
+  "port": 7630,
+  "route": [
+    {
+      "handler": "api/v1",
+      "path": "/api/v1"
+    },
+    {
+      "handler": "monitor",
+      "path": "/monitor"
+    },
+    {
+      "handler": "file",
+      "path": "/",
+      "target": "/usr/share/hawk/public"
+    },
+    {
+      "handler": "proxy",
+      "path": "/",
+      "target": "http://127.0.0.1:7631"
+    }
+  ]
+}

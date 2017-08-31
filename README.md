@@ -63,7 +63,7 @@ Example:
   "route": [
     {
       "handler": "api/v1",
-      "path": "/api/v1",
+      "path": "/api/v1"
     },
     {
       "handler": "file",
