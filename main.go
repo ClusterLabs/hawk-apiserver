@@ -201,7 +201,7 @@ func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, ro
 			return
 		}
 	}
-	http.Error(w, "Unmatched request.", 500)
+	http.Error(w, fmt.Sprintf("[api/v1]: No route for %v.", r.URL.Path), 500)
 }
 
 func (handler *routeHandler) serveMonitor(w http.ResponseWriter, r *http.Request, route *ConfigRoute) {
