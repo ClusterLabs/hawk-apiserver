@@ -21,9 +21,33 @@ type AsyncCib struct {
 	xmldoc string
 	version *pacemaker.CibVersion
 	lock sync.Mutex
+	notifier chan chan string
+}
+
+func (acib* AsyncCib) notifyNewCib(cibxml *pacemaker.CibDocument) {
+	text := cibxml.ToString()
+	version := cibxml.Version()
+	log.Printf("[CIB]: %v", version)
+	acib.lock.Lock()
+	acib.xmldoc = text
+	acib.version = version
+	acib.lock.Unlock()
+	// Notify anyone waiting
+Loop:
+	for {
+		select {
+		case clientchan := <-acib.notifier:
+			clientchan <- version.String()
+		default:
+			break Loop
+		}
+	}
 }
 
 func (acib* AsyncCib) Start() {
+	if acib.notifier == nil {
+		acib.notifier = make(chan chan string)
+	}
 	cibFetcher := func () {
 		for {
 			cib, err := pacemaker.OpenCib()
@@ -36,22 +60,15 @@ func (acib* AsyncCib) Start() {
 					cibxml, err := cib.Query()
 					if err != nil {
 						log.Printf("Failed to query CIB: %s", err)
+					} else {
+						acib.notifyNewCib(cibxml)
 					}
-					log.Print("Got new CIB, writing to xmldoc...")
-					acib.lock.Lock()
-					acib.xmldoc = cibxml.ToString()
-					acib.version = cibxml.Version()
-					acib.lock.Unlock()
 				}()
 
 				waiter := make(chan int)
 				_, err = cib.Subscribe(func(event pacemaker.CibEvent, doc *pacemaker.CibDocument) {
 					if event == pacemaker.UpdateEvent {
-						log.Print("Got new CIB UpdateEvent, writing to xmldoc...")
-						acib.lock.Lock()
-						acib.xmldoc = doc.ToString()
-						acib.version = doc.Version()
-						acib.lock.Unlock()
+						acib.notifyNewCib(doc)
 					} else {
 						log.Printf("lost connection: %s\n", event)
 						waiter <- 1
@@ -69,6 +86,16 @@ func (acib* AsyncCib) Start() {
 
 	go cibFetcher()
 	go pacemaker.Mainloop()
+}
+
+func (acib *AsyncCib) Wait(timeout int, defval string) string {
+	requestChan := make(chan string)
+	select {
+	case acib.notifier <- requestChan:
+	case <-time.After(time.Duration(timeout) * time.Second):
+		return defval
+	}
+	return <-requestChan
 }
 
 func (acib *AsyncCib) Get() string {
@@ -103,29 +130,37 @@ type routeHandler struct {
 	proxies map[*ConfigRoute]*httputil.ReverseProxy
 }
 
+func NewRouteHandler(config *Config) *routeHandler {
+	return &routeHandler{
+		config: config,
+		proxies: make(map[*ConfigRoute]*httputil.ReverseProxy),
+	}
+}
+
 func (handler *routeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for _, route := range handler.config.Route {
 		if !strings.HasPrefix(r.URL.Path, route.Path) {
 			continue
 		}
 		if route.Handler == "api/v1" {
-			log.Printf("Serving API for %v", route.Path)
+			log.Printf("[api/v1] %v", r.URL.Path)
 			handler.serveAPI(w, r, &route)
 			return
-		} else if route.Handler == "monitor" {
-			log.Printf("Monitor handler for %v", route.Path)
+		} else if route.Handler == "monitor" &&
+			(r.URL.Path == route.Path || r.URL.Path == fmt.Sprintf("%s.json", route.Path)) {
+			log.Printf("[monitor] %v", r.URL.Path)
 			handler.serveMonitor(w, r, &route)
 			return
 		} else if route.Handler == "file" && route.Target != nil {
 			filename := path.Clean(fmt.Sprintf("%v%v", *route.Target, r.URL.Path))
 			info, err := os.Stat(filename)
 			if !os.IsNotExist(err) && !info.IsDir() {
-				log.Printf("Serving file %s", filename)
+				log.Printf("[file] %s", filename)
 				http.ServeFile(w, r, filename)
 				return
 			}
 		} else if route.Handler == "proxy" && route.Target != nil {
-			log.Printf("Proxying %s to %s", r.URL.Path, *route.Target)
+			log.Printf("[proxy] %s -> %s", r.URL.Path, *route.Target)
 			rproxy := handler.proxyForRoute(&route)
 			if rproxy == nil {
 				http.Error(w, "Bad web server configuration.", 500)
@@ -176,10 +211,10 @@ func (handler *routeHandler) serveMonitor(w http.ResponseWriter, r *http.Request
 		epoch = args[0]
 	}
 
-	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
 	if r.Header.Get("Origin") != "" {
-		w.Header().Set("Cache-Control", "no-cache")
-		w.Header().Set("Connection", "keep-alive")
 		w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
 		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, PUT, DELETE, OPTIONS")
@@ -191,35 +226,21 @@ func (handler *routeHandler) serveMonitor(w http.ResponseWriter, r *http.Request
 		f.Flush()
 	}
 
-	/*
-	connect_timeout := 60e9
-	timeout := make (chan bool)
- 
-	go func () {
-		time.Sleep(connect_timeout)
-		timeout <- true
-	}()
- 	select {
-	case msg := <-messages:
-		io.WriteString(w, msg)
-	case stop := <-timeout:
-		return
-	}
-*/
-
 	new_epoch := ""
 	ver := handler.cib.Version()
 	if ver != nil {
 		new_epoch = ver.String()
-		if new_epoch == epoch {
-			log.Printf("Current version == queried version, wait for new cib for up to 60s...")
-		}
-	} else {
-		log.Print("No cib connection, wait for new cib for up to 60s...")
+	}
+	if new_epoch == "" || new_epoch == epoch {
+		// either we haven't managed to connect
+		// to the CIB yet, or there hasn't been
+		// any change since we asked last.
+		// Wait with a timeout for something to
+		// appear, and return whatever we had
+		// if we time out
+		new_epoch = handler.cib.Wait(60, new_epoch)
 	}
 	io.WriteString(w, fmt.Sprintf("{\"epoch\":\"%s\"}\n", new_epoch))
-	
-	http.Error(w, "monitor: No Cib connection", 500)
 }
 
 func main() {
@@ -256,12 +277,9 @@ func main() {
 		config.Cert = *cert
 	}
 	
-	routehandler := &routeHandler{
-		config: &config,
-		proxies: make(map[*ConfigRoute]*httputil.ReverseProxy),
-	}
+	routehandler := NewRouteHandler(&config)
 	routehandler.cib.Start()
-	zipper := NewGzipHandler(routehandler)
+	gziphandler := NewGzipHandler(routehandler)
 	fmt.Printf("Listening to https://0.0.0.0:%d\n", *port)
-	ListenAndServeWithRedirect(fmt.Sprintf(":%d", *port), zipper, *cert, *key)
+	ListenAndServeWithRedirect(fmt.Sprintf(":%d", *port), gziphandler, *cert, *key)
 }
