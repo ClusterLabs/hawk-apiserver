@@ -17,31 +17,21 @@ import (
 )
 
 
+// AsyncCib
+//
+// Wraps the CIB retrieval from go-pacemaker
+// in an asynchronous interface, so that
+// other parts of the server have a single
+// copy of the CIB available at any time.
+// Also provides a subscription interface
+// for the long polling request end point,
+// via Wait().
+
 type AsyncCib struct {
 	xmldoc string
 	version *pacemaker.CibVersion
 	lock sync.Mutex
 	notifier chan chan string
-}
-
-func (acib* AsyncCib) notifyNewCib(cibxml *pacemaker.CibDocument) {
-	text := cibxml.ToString()
-	version := cibxml.Version()
-	log.Printf("[CIB]: %v", version)
-	acib.lock.Lock()
-	acib.xmldoc = text
-	acib.version = version
-	acib.lock.Unlock()
-	// Notify anyone waiting
-Loop:
-	for {
-		select {
-		case clientchan := <-acib.notifier:
-			clientchan <- version.String()
-		default:
-			break Loop
-		}
-	}
 }
 
 func (acib* AsyncCib) Start() {
@@ -110,6 +100,25 @@ func (acib *AsyncCib) Version() *pacemaker.CibVersion {
 	return acib.version
 }
 
+func (acib* AsyncCib) notifyNewCib(cibxml *pacemaker.CibDocument) {
+	text := cibxml.ToString()
+	version := cibxml.Version()
+	log.Printf("[CIB]: %v", version)
+	acib.lock.Lock()
+	acib.xmldoc = text
+	acib.version = version
+	acib.lock.Unlock()
+	// Notify anyone waiting
+Loop:
+	for {
+		select {
+		case clientchan := <-acib.notifier:
+			clientchan <- version.String()
+		default:
+			break Loop
+		}
+	}
+}
 
 type Config struct {
     Port int    `json:"port"`
@@ -178,6 +187,7 @@ func (handler *routeHandler) proxyForRoute(route *ConfigRoute) *httputil.Reverse
 	if ok {
 		return proxy
 	}
+
 	url, err := url.Parse(*route.Target)
 	if err != nil {
 		log.Print(err)
@@ -276,7 +286,7 @@ func main() {
 	if *cert != "/etc/hawk/hawk.pem" {
 		config.Cert = *cert
 	}
-	
+
 	routehandler := NewRouteHandler(&config)
 	routehandler.cib.Start()
 	gziphandler := NewGzipHandler(routehandler)

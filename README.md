@@ -73,7 +73,7 @@ Example:
     {
       "handler": "proxy",
       "path": "/",
-      "target": "unix:/var/run/hawk/app.sock"
+      "target": "unix:///var/run/hawk/app.sock"
     }
   ]
 }

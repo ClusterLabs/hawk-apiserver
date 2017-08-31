@@ -1,5 +1,4 @@
 package main
-// Adapted from github.com/NYTimes/gziphandler.
 // Original code under Apache 2.0 license.
 
 import (
@@ -13,8 +12,17 @@ import (
 	"strings"
 )
 
+// GzipHandler
+//
+// A http.Handler function which provides gzip compression to request
+// responses. Simply create the handler using NewGzipHandler and
+// chain it like any other http.Handler function.
+//
+// This is a stripped down version of github.com/NYTimes/gziphandler.
+
 const (
-	qValue = 1.0
+	// Only enable gzip compression if we have at least
+	// minSize bytes of data to compress
 	minSize = 512
 )
 
