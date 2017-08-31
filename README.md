@@ -66,6 +66,10 @@ Example:
       "path": "/api/v1"
     },
     {
+      "handler": "monitor",
+      "path": "/monitor"
+    },
+    {
       "handler": "file",
       "path": "/",
       "target": "/usr/share/hawk/public"
@@ -97,8 +101,6 @@ curl --insecure -u hacluster:<pass> https://<server>:<port>/api/v1/cib
   Session cookie is stored in attrd.
 
 * TODO: SAML2
-
-### Authorization
 
 ### Endpoints
 
@@ -137,6 +139,7 @@ GET/POST/PUT/DELETE /api/v1/cib/configuration/rsc_defaults
 GET/POST/PUT/DELETE /api/v1/cib/configuration/rsc_defaults/{id}
 ```
 
+
 ### Shadow CIBs and simulation
 
 The web server SHOULD support the Shadow CIB feature, which includes
@@ -172,12 +175,18 @@ using the live CIB as input.
 The simulator run and the results are returned as part of the request
 body.
 
-### WebSocket
 
-The web server SHOULD support the WebSocket API so that clients can
-subscribe to CIB events, and also efficiently post changes. If the
-WebSocket feature is supported, the object returned by `GET
-/api/v1/features` MUST include `websocket: true`.
+### Event subscription
 
-The exakt form of the event stream (in both directions) is to be
-decided.
+There should be some way to subscribe to CIB events via the API.
+
+Exactly what form this should take (WebSockets, long polling, etc.)
+remains to be decided.
+
+
+## TODO
+
+* Unix socket reverse proxy support
+
+* Cache for the file handler to avoid stat()ing on every request
+
