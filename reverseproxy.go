@@ -421,9 +421,12 @@ func copyHeader(dst, src http.Header) {
 //
 // WARNING: Only a shallow copy will be created!
 func shallowCopyTrailers(dstHeader, srcTrailer http.Header, forceSetTrailers bool) {
+	// Copy of http.TrailerPrefix moved here for compatibility
+	// with go 1.6
+	const TrailerPrefix = "Trailer:"
 	for k, vv := range srcTrailer {
 		if forceSetTrailers {
-			k = http.TrailerPrefix + k
+			k = TrailerPrefix + k
 		}
 		dstHeader[k] = vv
 	}
@@ -475,7 +478,7 @@ func newConnHijackerTransport(base http.RoundTripper) *connHijackerTransport {
 	if b, _ := base.(*http.Transport); b != nil {
 		tlsClientConfig := b.TLSClientConfig
 		if tlsClientConfig != nil && tlsClientConfig.NextProtos != nil {
-			tlsClientConfig = tlsClientConfig.Clone()
+			tlsClientConfig = cloneTLSConfig(tlsClientConfig)
 			tlsClientConfig.NextProtos = nil
 		}
 
