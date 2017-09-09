@@ -120,16 +120,17 @@ Loop:
 }
 
 type Config struct {
-    Port int    `json:"port"`
-    Key string `json:"key"`
-    Cert string `json:"cert"`
+	Listen string       `json:"listen"`
+	Port int            `json:"port"`
+	Key string          `json:"key"`
+	Cert string         `json:"cert"`
 	Route []ConfigRoute `json:"route"`
 }
 
 type ConfigRoute struct {
-	Handler string `json:"handler"`
-	Path string `json:"path"`
-	Target *string `json:"target"`
+	Handler string      `json:"handler"`
+	Path string         `json:"path"`
+	Target *string      `json:"target"`
 }
 
 type routeHandler struct {
@@ -284,6 +285,7 @@ func (handler *routeHandler) serveProxy(w http.ResponseWriter, r *http.Request, 
 
 func main() {
 	config := Config{
+		Listen: "0.0.0.0",
 		Port: 17630,
 		Key: "/etc/hawk/hawk.key",
 		Cert: "/etc/hawk/hawk.pem",
@@ -296,6 +298,7 @@ func main() {
 		},
 	}
 
+	listen := flag.String("listen", config.Listen, "Address to listen to")
 	port := flag.Int("port", config.Port, "Port to listen to")
 	key := flag.String("key", config.Key, "TLS key file")
 	cert := flag.String("cert", config.Cert, "TLS cert file")
@@ -305,6 +308,10 @@ func main() {
 
 	if *cfgfile != "" {
 		parseConfigFile(*cfgfile, &config)
+	}
+
+	if *listen != "0.0.0.0" {
+		config.Listen = *listen
 	}
 	if *port != 17630 {
 		config.Port = *port
@@ -319,6 +326,6 @@ func main() {
 	routehandler := NewRouteHandler(&config)
 	routehandler.cib.Start()
 	gziphandler := NewGzipHandler(routehandler)
-	fmt.Printf("Listening to https://0.0.0.0:%d\n", *port)
-	ListenAndServeWithRedirect(fmt.Sprintf(":%d", *port), gziphandler, *cert, *key)
+	fmt.Printf("Listening to https://%s:%d\n", config.Listen, config.Port)
+	ListenAndServeWithRedirect(fmt.Sprintf("%s:%d", config.Listen, config.Port), gziphandler, config.Cert, config.Key)
 }

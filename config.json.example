@@ -1,6 +1,7 @@
 {
   "key": "/etc/hawk/hawk.key",
   "cert": "/etc/hawk/hawk.pem",
+  "listen": "0.0.0.0",
   "port": 7630,
   "route": [
     {
