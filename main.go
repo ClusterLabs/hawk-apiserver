@@ -137,6 +137,7 @@ type routeHandler struct {
 	cib AsyncCib
 	config *Config
 	proxies map[*ConfigRoute]*ReverseProxy
+	proxymux sync.Mutex
 }
 
 func NewRouteHandler(config *Config) *routeHandler {
@@ -174,7 +175,9 @@ func (handler *routeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (handler *routeHandler) proxyForRoute(route *ConfigRoute) *ReverseProxy {
+	handler.proxymux.Lock()
 	proxy, ok := handler.proxies[route]
+	handler.proxymux.Unlock()
 	if ok {
 		return proxy
 	}
@@ -185,7 +188,9 @@ func (handler *routeHandler) proxyForRoute(route *ConfigRoute) *ReverseProxy {
 		return nil
 	}
 	proxy = NewSingleHostReverseProxy(url, "", http.DefaultMaxIdleConnsPerHost)
+	handler.proxymux.Lock()
 	handler.proxies[route] = proxy
+	handler.proxymux.Unlock()
 	return proxy
 }
 
