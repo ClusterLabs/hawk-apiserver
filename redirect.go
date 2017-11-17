@@ -35,9 +35,12 @@ func (l *SplitListener) Accept() (net.Conn, error) {
 	// inspect the first bytes to see if it is HTTPS
 	hdr, err := bconn.buf.Peek(6)
 	if err != nil {
-		log.Printf("Short %s\n", c.RemoteAddr().String())
-		bconn.Close()
-		return nil, err
+		log.Printf("Short %s: %s\n", c.RemoteAddr().String(), err.Error())
+		// couldn't peek, assume it's HTTPS
+		return tls.Server(bconn, l.config), nil
+		// log.Printf("Short %s\n", c.RemoteAddr().String())
+		// bconn.Close()
+		// return nil, err
 	}
 
 	// SSL 3.0 or TLS 1.0, 1.1 and 1.2
