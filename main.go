@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"net/url"
 	"os"
@@ -41,14 +41,14 @@ func (acib* AsyncCib) Start() {
 		for {
 			cib, err := pacemaker.OpenCib()
 			if err != nil {
-				log.Printf("Failed to connect to Pacemaker: %s", err)
+				log.Warnf("Failed to connect to Pacemaker: %s", err)
 				time.Sleep(5 * time.Second)
 			}
 			for cib != nil {
 				func() {
 					cibxml, err := cib.Query()
 					if err != nil {
-						log.Printf("Failed to query CIB: %s", err)
+						log.Errorf("Failed to query CIB: %s", err)
 					} else {
 						acib.notifyNewCib(cibxml)
 					}
@@ -59,12 +59,12 @@ func (acib* AsyncCib) Start() {
 					if event == pacemaker.UpdateEvent {
 						acib.notifyNewCib(doc)
 					} else {
-						log.Printf("lost connection: %s\n", event)
+						log.Warnf("lost connection: %s\n", event)
 						waiter <- 1
 					}
 				})
 				if err != nil {
-					log.Printf("Failed to subscribe, rechecking every 5 seconds")
+					log.Infof("Failed to subscribe, rechecking every 5 seconds")
 					time.Sleep(5 * time.Second)
 				} else {
 					<-waiter
@@ -102,7 +102,7 @@ func (acib *AsyncCib) Version() *pacemaker.CibVersion {
 func (acib* AsyncCib) notifyNewCib(cibxml *pacemaker.CibDocument) {
 	text := cibxml.ToString()
 	version := cibxml.Version()
-	log.Printf("[CIB]: %v", version)
+	log.Infof("[CIB]: %v", version)
 	acib.lock.Lock()
 	acib.xmldoc = text
 	acib.version = version
@@ -124,6 +124,7 @@ type Config struct {
 	Port int            `json:"port"`
 	Key string          `json:"key"`
 	Cert string         `json:"cert"`
+	LogLevel string     `json:"loglevel"`
 	Route []ConfigRoute `json:"route"`
 }
 
@@ -184,7 +185,7 @@ func (handler *routeHandler) proxyForRoute(route *ConfigRoute) *ReverseProxy {
 
 	url, err := url.Parse(*route.Target)
 	if err != nil {
-		log.Print(err)
+		log.Error(err)
 		return nil
 	}
 	proxy = NewSingleHostReverseProxy(url, "", http.DefaultMaxIdleConnsPerHost)
@@ -195,7 +196,7 @@ func (handler *routeHandler) proxyForRoute(route *ConfigRoute) *ReverseProxy {
 }
 
 func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, route *ConfigRoute) bool {
-	log.Printf("[api/v1] %v", r.URL.Path)
+	log.Debugf("[api/v1] %v", r.URL.Path)
 	if !checkHawkAuthMethods(r) {
 		http.Error(w, "Unauthorized request.", 401)
 		return true
@@ -216,7 +217,7 @@ func (handler *routeHandler) serveMonitor(w http.ResponseWriter, r *http.Request
 	if r.URL.Path != route.Path && r.URL.Path != fmt.Sprintf("%s.json", route.Path) {
 		return false
 	}
-	log.Printf("[monitor] %v", r.URL.Path)
+	log.Debugf("[monitor] %v", r.URL.Path)
 
 	epoch := ""
 	args := strings.Split(r.URL.RawQuery, "&")
@@ -261,7 +262,7 @@ func (handler *routeHandler) serveFile(w http.ResponseWriter, r *http.Request, r
 	filename := path.Clean(fmt.Sprintf("%v%v", *route.Target, r.URL.Path))
 	info, err := os.Stat(filename)
 	if !os.IsNotExist(err) && !info.IsDir() {
-		log.Printf("[file] %s", filename)
+		log.Debugf("[file] %s", filename)
 		e := fmt.Sprintf(`W/"%x-%x"`, info.ModTime().Unix(), info.Size())
 		if match := r.Header.Get("If-None-Match"); match != "" {
 			if strings.Contains(match, e) {
@@ -278,7 +279,7 @@ func (handler *routeHandler) serveFile(w http.ResponseWriter, r *http.Request, r
 }
 
 func (handler *routeHandler) serveProxy(w http.ResponseWriter, r *http.Request, route *ConfigRoute) bool {
-	log.Printf("[proxy] %s -> %s", r.URL.Path, *route.Target)
+	log.Debugf("[proxy] %s -> %s", r.URL.Path, *route.Target)
 	rproxy := handler.proxyForRoute(route)
 	if rproxy == nil {
 		http.Error(w, "Bad web server configuration.", 500)
@@ -289,11 +290,17 @@ func (handler *routeHandler) serveProxy(w http.ResponseWriter, r *http.Request, 
 }
 
 func main() {
+	log.SetFormatter(&log.TextFormatter{
+		DisableTimestamp: true,
+		DisableSorting: true,
+	})
+	
 	config := Config{
 		Listen: "0.0.0.0",
 		Port: 17630,
 		Key: "/etc/hawk/hawk.key",
 		Cert: "/etc/hawk/hawk.pem",
+		LogLevel: "info",
 		Route: []ConfigRoute {
 			{
 				Handler: "api/v1",
@@ -307,6 +314,7 @@ func main() {
 	port := flag.Int("port", config.Port, "Port to listen to")
 	key := flag.String("key", config.Key, "TLS key file")
 	cert := flag.String("cert", config.Cert, "TLS cert file")
+	loglevel := flag.String("loglevel", config.LogLevel, "Log level (debug|info|warning|error|fatal|panic)")
 	cfgfile := flag.String("config", "", "Configuration file")
 
 	flag.Parse()
@@ -327,6 +335,16 @@ func main() {
 	if *cert != "/etc/hawk/hawk.pem" {
 		config.Cert = *cert
 	}
+	if *loglevel != "info" {
+		config.LogLevel = *loglevel
+	}
+
+	lvl, err := log.ParseLevel(config.LogLevel)
+	if err != nil {
+		log.Errorf("Failed to parse loglevel \"%v\" (must be debug|info|warning|error|fatal|panic)", config.LogLevel)
+		lvl = log.InfoLevel
+	}
+	log.SetLevel(lvl)
 
 	routehandler := NewRouteHandler(&config)
 	routehandler.cib.Start()
