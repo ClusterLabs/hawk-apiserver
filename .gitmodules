@@ -10,3 +10,6 @@
 [submodule "vendor/github.com/sirupsen/logrus"]
 	path = vendor/github.com/sirupsen/logrus
 	url = git@github.com:sirupsen/logrus
+[submodule "vendor/golang.org/x/crypto"]
+	path = vendor/golang.org/x/crypto
+	url = git@github.com:golang/crypto
