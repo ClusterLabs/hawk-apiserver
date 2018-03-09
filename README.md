@@ -4,7 +4,7 @@ Next-generation cluster UI prototype
 
 ## Source installation + dependencies
 
-Building requires Go v1.7+.
+Building requires Go v1.9.
 
 ``` bash
 go get -u github.com/krig/hawk-apiserver
