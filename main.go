@@ -202,6 +202,15 @@ func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, ro
 		return true
 	}
 	if r.Method == "GET" {
+		if r.URL.Path == fmt.Sprintf("%s/nodes", route.Path) {
+			return handleApiNodesV1(w, handler.cib.Get())
+		}
+		if r.URL.Path == fmt.Sprintf("%s/resources", route.Path) {
+			fmt.Println("for resources")
+		}
+		if r.URL.Path == fmt.Sprintf("%s/cluster", route.Path) {
+			fmt.Println("for cluster")
+		}
 		if strings.HasPrefix(r.URL.Path, fmt.Sprintf("%s/cib", route.Path)) {
 			xmldoc := handler.cib.Get()
 			w.Header().Set("Content-Type", "application/xml")
