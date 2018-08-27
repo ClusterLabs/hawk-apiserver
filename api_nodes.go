@@ -24,6 +24,15 @@ type Node struct {
 	Uname string `xml:"uname,attr" json:"uname"`
 }
 
+func handleApiNodes(version string, w http.ResponseWriter, cib_data string) bool {
+	m := map[string]func(http.ResponseWriter, string)bool{
+		"v1": handleApiNodesV1,
+		"v2": handleApiNodesV2,
+	}
+
+	return m[version](w, cib_data)
+}
+
 func handleApiNodesV1(w http.ResponseWriter, cib_data string) bool {
 	xmlData := []byte(cib_data)
 	var result Result
@@ -48,5 +57,10 @@ func handleApiNodesV1(w http.ResponseWriter, cib_data string) bool {
 		return false
 	}
 	io.WriteString(w, string(jsonData))
+	return true
+}
+
+func handleApiNodesV2(w http.ResponseWriter, cib_data string) bool {
+	fmt.Printf("handleApiNodesV2")
 	return true
 }

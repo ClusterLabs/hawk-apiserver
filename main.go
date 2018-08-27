@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"regexp"
 )
 
 
@@ -153,7 +154,8 @@ func (handler *routeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasPrefix(r.URL.Path, route.Path) {
 			continue
 		}
-		if route.Handler == "api/v1" {
+                match, _ := regexp.MatchString("api/v[1-9]$", route.Handler)
+		if match {
 			if handler.serveAPI(w, r, &route) {
 				return
 			}
@@ -196,14 +198,15 @@ func (handler *routeHandler) proxyForRoute(route *ConfigRoute) *ReverseProxy {
 }
 
 func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, route *ConfigRoute) bool {
-	log.Debugf("[api/v1] %v", r.URL.Path)
+        version := strings.Split(route.Handler, "/")[1]
+	log.Debugf("[api/%s] %v", version, r.URL.Path)
 	if !checkHawkAuthMethods(r) {
 		http.Error(w, "Unauthorized request.", 401)
 		return true
 	}
 	if r.Method == "GET" {
 		if r.URL.Path == fmt.Sprintf("%s/nodes", route.Path) {
-			return handleApiNodesV1(w, handler.cib.Get())
+			return handleApiNodes(version, w, handler.cib.Get())
 		}
 		if r.URL.Path == fmt.Sprintf("%s/resources", route.Path) {
 			fmt.Println("for resources")
@@ -218,7 +221,7 @@ func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, ro
 			return true
 		}
 	}
-	http.Error(w, fmt.Sprintf("[api/v1]: No route for %v.", r.URL.Path), 500)
+	http.Error(w, fmt.Sprintf("[api/%s]: No route for %v.", version, r.URL.Path), 500)
 	return true
 }
 
