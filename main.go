@@ -205,8 +205,9 @@ func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, ro
 		return true
 	}
 	if r.Method == "GET" {
-		if r.URL.Path == fmt.Sprintf("%s/nodes", route.Path) {
-			return handleApiNodes(version, w, handler.cib.Get())
+                match, _ := regexp.MatchString("api/v[1-9]/nodes(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
+		if match {
+			return handleApiNodes(version, w, r, handler.cib.Get())
 		}
 		if r.URL.Path == fmt.Sprintf("%s/resources", route.Path) {
 			fmt.Println("for resources")
