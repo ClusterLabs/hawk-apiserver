@@ -126,15 +126,15 @@ type Master struct {
 // Resources define end
 
 // Constraints deine begin
-// based on https://github.com/ClusterLabs/pacemaker/blob/master/xml/constraints-3.0.rng
+// based on https://github.com/ClusterLabs/pacemaker/blob/2.0/xml/constraints-3.0.rng
 type Constraints struct {
 	XMLName xml.Name `xml:"constraints" json:"-"`
 	Type    string   `json:"-"`
 	Index   int      `json:"-"`
 	Location []*Location `xml:"rsc_location" json:"location,omitempty"`
-	//Colocation *Colocation `xml:"colocation" json:"colocation,omitempty"`
-	//Order *Order `xml:"order" json:"order,omitempty"`
-	//RscTicket *RscTicket `xml:"rsc_ticket" json:"rsc_ticket,omitempty"`
+	Colocation []*Colocation `xml:"rsc_colocation" json:"colocation,omitempty"`
+	Order []*Order `xml:"rsc_order" json:"order,omitempty"`
+	RscTicket []*RscTicket `xml:"rsc_ticket" json:"rsc_ticket,omitempty"`
 }
 
 type Location struct {
@@ -143,13 +143,67 @@ type Location struct {
 	Rsc         string      `xml:"rsc,attr" json:"rsc,omitempty"`
 	RscPattern  string      `xml:"rsc-pattern,attr" json:"rsc-pattern,omitempty"`
 	Role        string      `xml:"role,attr" json:"role,omitempty"`
-	//RscSet      []*RscSet   `xml:"resource-set" json:"resource-set,omitempty"`
+	RscSet      []*RscSet   `xml:"resource-set" json:"resource-set,omitempty"`
 	Score       string      `xml:"score,attr" json:"score,omitempty"`
 	Node        string      `xml:"node,attr" json:"node,omitempty"`
 	//Rule
 	Discovery   string      `xml:"discovery,attr" json:"discovery,omitempty"`
 }
-// Constraints deine end
+
+type Colocation struct {
+	XMLName xml.Name `xml:"rsc_colocation" json:"-"`
+	Id      string `xml:"id,attr" json:"id"`
+	Score   string `xml:"score,attr" json:"score,omitempty"`
+	RscSet  []*RscSet   `xml:"resource-set" json:"resource-set,omitempty"`
+	Rsc     string `xml:"rsc,attr" json:"rsc,omitempty"`
+	WithRsc string `xml:"with-rsc,attr" json:"with-rsc,omitempty"`
+	NodeAttr string `xml:"node-attribute,attr" json:"node-attribute,omitempty"`
+	RscRole  string `xml:"rsc-role,attr" json:"rsc-role,omitempty"`
+	WithRscRole string `xml:"with-rsc-role,attr" json:"with-rsc-role,omitempty"`
+}
+
+type Order struct {
+	XMLName xml.Name `xml:"rsc_order" json:"-"`
+	Id      string `xml:"id,attr" json:"id"`
+	Symm    string `xml:"symmetrical,attr" json:"symmetrical,omitempty"`
+	RequireAll string `xml:"require-all,attr" json:"require-all,omitempty"`
+	Score   string `xml:"score,attr" json:"score,omitempty"`
+	Kind    string `xml:"kind,attr" json:"kind,omitempty"`
+	RscSet  []*RscSet   `xml:"resource-set" json:"resource-set,omitempty"`
+	First   string `xml:"first,attr" json:"first,omitempty"`
+	Then    string `xml:"then,attr" json:"then,omitempty"`
+	FirstAction string `xml:"first-action,attr" json:"first-action,omitempty"`
+	ThenAction string `xml:"then-action,attr" json:"then-action,omitempty"`
+}
+
+type RscTicket struct {
+	XMLName xml.Name `xml:"rsc_ticket" json:"-"`
+	Id      string `xml:"id,attr" json:"id"`
+	RscSet  []*RscSet   `xml:"resource-set" json:"resource-set,omitempty"`
+	Rsc     string `xml:"rsc,attr" json:"rsc,omitempty"`
+	RscRole string `xml:"rsc-role,attr" json:"rsc-role,omitempty"`
+	Ticket  string `xml:"ticket" json:"ticket"`
+	LossPolicy string `xml:"loss-policy" json:"loss-policy,omitempty"`
+}
+
+type RscSet struct {
+	XMLName xml.Name `xml:"resource-set" json:"-"`
+	Id      string   `xml:"id,attr" json:"id"`
+	Sequential string `xml:"sequential,attr" json:"sequential,omitempty"`
+	RequireAll string `xml:"require-all,attr" json:"require-all,omitempty"`
+	Ordering   string `xml:"ordering,attr" json:"ordering,omitempty"`
+	Action     string `xml:"action,attr" json:"action,omitempty"`
+	Role       string `xml:"role,attr" json:"role,omitempty"`
+	Score      string `xml:"score,attr" json:"score,omitempty"`
+	Kind       string `xml:"kind,attr" json:"kind,omitempty"`
+	ResourceRef ResourceRef `xml:"resource_ref", json:"resource_ref"`
+}
+
+type ResourceRef struct {
+	XMLName xml.Name `xml:"resource_ref" json:"-"`
+	Id      []string `xml:"id,attr" json:"id"`
+}
+// Constraints define end
 
 type Utilization struct {
 	XMLName xml.Name `xml:"utilization" json:"-"`
@@ -242,6 +296,12 @@ func (c *Cib) MarshalJSON() ([]byte, error) {
 		case "location":
 			index := c.Config.Cons.Index
 			jsonValue, err = json.Marshal(c.Config.Cons.Location[index])
+		case "colocation":
+			index := c.Config.Cons.Index
+			jsonValue, err = json.Marshal(c.Config.Cons.Colocation[index])
+		case "order":
+			index := c.Config.Cons.Index
+			jsonValue, err = json.Marshal(c.Config.Cons.Order[index])
 		}
 	}
 
