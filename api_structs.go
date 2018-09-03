@@ -20,11 +20,17 @@ type Configuration struct {
 	Cons      Constraints `xml:"constraints" json:"constraints"`
 }
 
-// Cluster Property
+// Cluster Property begin
 type CrmConfig struct {
 	XMLName xml.Name `xml:"crm_config" json:"-"`
 	Property Property `xml:"cluster_property_set" json:"cluster_property"`
 }
+
+type Property struct {
+	XMLName xml.Name `xml:"cluster_property_set" json:"-"`
+	Nvpairs []*Nvpair `xml:"nvpair" json:"nvpair"`
+}
+// Cluster Property end
 
 // Nodes define begin
 // based on https://github.com/ClusterLabs/pacemaker/blob/master/xml/nodes-3.0.rng
@@ -144,11 +150,6 @@ type Location struct {
 	Discovery   string      `xml:"discovery,attr" json:"discovery,omitempty"`
 }
 // Constraints deine end
-
-type Property struct {
-	XMLName xml.Name `xml:"cluster_property_set" json:"-"`
-	Nvpairs []*Nvpair `xml:"nvpair" json:"nvpair"`
-}
 
 type Utilization struct {
 	XMLName xml.Name `xml:"utilization" json:"-"`
