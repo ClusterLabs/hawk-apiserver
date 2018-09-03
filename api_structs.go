@@ -180,6 +180,21 @@ type NodeState struct {
 	Id      string   `xml:"id,attr"`
 	Uname   string   `xml:"uname,attr"`
 	Crmd    string   `xml:"crmd,attr"` // online or offline
+	LrmRs   []*LrmRs  `xml:"lrm>lrm_resources>lrm_resource"`
+}
+
+type LrmRs struct {
+	XMLName xml.Name `xml:"lrm_resource"`
+	LrmOp   []*LrmOp `xml:"lrm_rsc_op"`
+}
+
+type LrmOp struct {
+	XMLName xml.Name `xml:"lrm_rsc_op"`
+	Id      string   `xml:"id,attr"`
+	Operation string `xml:"operation,attr"`
+	ExitReason string `xml:"exit-reason,attr"`
+	OnNode    string `xml:"on_node,attr"`
+	RcCode    string `xml:"rc-code,attr"`
 }
 
 type TypeIndex struct {
@@ -210,6 +225,12 @@ func (c *Cib) MarshalJSON() ([]byte, error) {
 		case "group":
 			index := c.Config.Resources.Index
 			jsonValue, err = json.Marshal(c.Config.Resources.Group[index])
+		case "clone":
+			index := c.Config.Resources.Index
+			jsonValue, err = json.Marshal(c.Config.Resources.Clone[index])
+		case "master":
+			index := c.Config.Resources.Index
+			jsonValue, err = json.Marshal(c.Config.Resources.Master[index])
 		}
 	case "cluster":
 		jsonValue, err = json.Marshal(c.Config.Cluster)
