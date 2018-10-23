@@ -10,16 +10,7 @@ import (
 	"strings"
 )
 
-func handleApiResources(version string, w http.ResponseWriter, r *http.Request, cib_data string) bool {
-	m := map[string]func(http.ResponseWriter, *http.Request, string) bool{
-		"v1": handleApiResourcesV1,
-		"v2": handleApiResourcesV2,
-	}
-
-	return m[version](w, r, cib_data)
-}
-
-func handleApiResourcesV1(w http.ResponseWriter, r *http.Request, cib_data string) bool {
+func handleApiResources(w http.ResponseWriter, r *http.Request, cib_data string) bool {
 	// parse xml into Cib struct
 	var cib Cib
 	err := xml.Unmarshal([]byte(cib_data), &cib)
@@ -71,10 +62,5 @@ func handleApiResourcesV1(w http.ResponseWriter, r *http.Request, cib_data strin
 	}
 
 	io.WriteString(w, string(jsonData)+"\n")
-	return true
-}
-
-func handleApiResourcesV2(w http.ResponseWriter, r *http.Request, cib_data string) bool {
-	fmt.Printf("handleApiResourcesV2")
 	return true
 }

@@ -154,8 +154,7 @@ func (handler *routeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasPrefix(r.URL.Path, route.Path) {
 			continue
 		}
-                match, _ := regexp.MatchString("api/v[1-9]$", route.Handler)
-		if match {
+		if route.Handler == "api/v1" {
 			if handler.serveAPI(w, r, &route) {
 				return
 			}
@@ -198,28 +197,27 @@ func (handler *routeHandler) proxyForRoute(route *ConfigRoute) *ReverseProxy {
 }
 
 func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, route *ConfigRoute) bool {
-        version := strings.Split(route.Handler, "/")[1]
-	log.Debugf("[api/%s] %v", version, r.URL.Path)
+	log.Debugf("[api/v1] %v", r.URL.Path)
 	if !checkHawkAuthMethods(r) {
 		http.Error(w, "Unauthorized request.", 401)
 		return true
 	}
 	if r.Method == "GET" {
-                match, _ := regexp.MatchString("api/v[1-9]/nodes(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
+                match, _ := regexp.MatchString("api/v1/nodes(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
 		if match {
-			return handleApiNodes(version, w, r, handler.cib.Get())
+			return handleApiNodes(w, r, handler.cib.Get())
 		}
-                match, _ = regexp.MatchString("api/v[1-9]/resources(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
+                match, _ = regexp.MatchString("api/v1/resources(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
 		if match {
-			return handleApiResources(version, w, r, handler.cib.Get())
+			return handleApiResources(w, r, handler.cib.Get())
 		}
-                match, _ = regexp.MatchString("api/v[1-9]/cluster/?$", r.URL.Path)
+                match, _ = regexp.MatchString("api/v1/cluster/?$", r.URL.Path)
 		if match {
-			return handleApiCluster(version, w, r, handler.cib.Get())
+			return handleApiCluster(w, r, handler.cib.Get())
 		}
-                match, _ = regexp.MatchString("api/v[1-9]/constraints(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
+                match, _ = regexp.MatchString("api/v1/constraints(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
 		if match {
-			return handleApiConstraints(version, w, r, handler.cib.Get())
+			return handleApiConstraints(w, r, handler.cib.Get())
 		}
 		if strings.HasPrefix(r.URL.Path, fmt.Sprintf("%s/cib", route.Path)) {
 			xmldoc := handler.cib.Get()
@@ -228,7 +226,7 @@ func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, ro
 			return true
 		}
 	}
-	http.Error(w, fmt.Sprintf("[api/%s]: No route for %v.", version, r.URL.Path), 500)
+	http.Error(w, fmt.Sprintf("[api/v1]: No route for %v.", r.URL.Path), 500)
 	return true
 }
 

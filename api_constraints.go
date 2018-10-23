@@ -10,16 +10,7 @@ import (
 	"strings"
 )
 
-func handleApiConstraints(version string, w http.ResponseWriter, r *http.Request, cib_data string) bool {
-	m := map[string]func(http.ResponseWriter, *http.Request, string) bool{
-		"v1": handleApiConstraintsV1,
-		"v2": handleApiConstraintsV2,
-	}
-
-	return m[version](w, r, cib_data)
-}
-
-func handleApiConstraintsV1(w http.ResponseWriter, r *http.Request, cib_data string) bool {
+func handleApiConstraints(w http.ResponseWriter, r *http.Request, cib_data string) bool {
 	// parse xml into Cib struct
 	var cib Cib
 	err := xml.Unmarshal([]byte(cib_data), &cib)
@@ -68,10 +59,5 @@ func handleApiConstraintsV1(w http.ResponseWriter, r *http.Request, cib_data str
 	}
 
 	io.WriteString(w, string(jsonData)+"\n")
-	return true
-}
-
-func handleApiConstraintsV2(w http.ResponseWriter, r *http.Request, cib_data string) bool {
-	fmt.Printf("handleApiConstraintsV2")
 	return true
 }

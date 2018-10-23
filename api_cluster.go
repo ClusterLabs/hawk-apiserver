@@ -3,22 +3,12 @@ package main
 import (
 	"encoding/json"
 	"encoding/xml"
-	"fmt"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 )
 
-func handleApiCluster(version string, w http.ResponseWriter, r *http.Request, cib_data string) bool {
-	m := map[string]func(http.ResponseWriter, *http.Request, string) bool{
-		"v1": handleApiClusterV1,
-		"v2": handleApiClusterV2,
-	}
-
-	return m[version](w, r, cib_data)
-}
-
-func handleApiClusterV1(w http.ResponseWriter, r *http.Request, cib_data string) bool {
+func handleApiCluster(w http.ResponseWriter, r *http.Request, cib_data string) bool {
 	// parse xml into Cib struct
 	var cib Cib
 	err := xml.Unmarshal([]byte(cib_data), &cib)
@@ -38,10 +28,5 @@ func handleApiClusterV1(w http.ResponseWriter, r *http.Request, cib_data string)
 	}
 
 	io.WriteString(w, string(jsonData)+"\n")
-	return true
-}
-
-func handleApiClusterV2(w http.ResponseWriter, r *http.Request, cib_data string) bool {
-	fmt.Printf("handleApiClusterV2")
 	return true
 }
