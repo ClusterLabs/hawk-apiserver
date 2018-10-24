@@ -202,23 +202,24 @@ func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, ro
 		return true
 	}
 	if r.Method == "GET" {
-		match, _ := regexp.MatchString("api/v1/nodes(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
+		prefix := route.Path + "/configuration/"
+		match, _ := regexp.MatchString(prefix + "nodes(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
 		if match {
 			return handleApiNodes(w, r, handler.cib.Get())
 		}
-		match, _ = regexp.MatchString("api/v1/resources(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
+		match, _ = regexp.MatchString(prefix + "resources(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
 		if match {
 			return handleApiResources(w, r, handler.cib.Get())
 		}
-		match, _ = regexp.MatchString("api/v1/cluster/?$", r.URL.Path)
+		match, _ = regexp.MatchString(prefix + "cluster/?$", r.URL.Path)
 		if match {
 			return handleApiCluster(w, r, handler.cib.Get())
 		}
-		match, _ = regexp.MatchString("api/v1/constraints(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
+		match, _ = regexp.MatchString(prefix + "constraints(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
 		if match {
 			return handleApiConstraints(w, r, handler.cib.Get())
 		}
-		if strings.HasPrefix(r.URL.Path, fmt.Sprintf("%s/cib", route.Path)) {
+		if strings.HasPrefix(r.URL.Path, prefix + "cib.xml") {
 			xmldoc := handler.cib.Get()
 			w.Header().Set("Content-Type", "application/xml")
 			io.WriteString(w, xmldoc)
