@@ -1,21 +1,20 @@
 package main
 
 import (
-	"github.com/krig/go-pacemaker"
 	"flag"
 	"fmt"
-	"io"
+	"github.com/krig/go-pacemaker"
 	log "github.com/sirupsen/logrus"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
-	"regexp"
 )
-
 
 // AsyncCib
 //
@@ -28,17 +27,17 @@ import (
 // via Wait().
 
 type AsyncCib struct {
-	xmldoc string
-	version *pacemaker.CibVersion
-	lock sync.Mutex
+	xmldoc   string
+	version  *pacemaker.CibVersion
+	lock     sync.Mutex
 	notifier chan chan string
 }
 
-func (acib* AsyncCib) Start() {
+func (acib *AsyncCib) Start() {
 	if acib.notifier == nil {
 		acib.notifier = make(chan chan string)
 	}
-	cibFetcher := func () {
+	cibFetcher := func() {
 		for {
 			cib, err := pacemaker.OpenCib()
 			if err != nil {
@@ -100,7 +99,7 @@ func (acib *AsyncCib) Version() *pacemaker.CibVersion {
 	return acib.version
 }
 
-func (acib* AsyncCib) notifyNewCib(cibxml *pacemaker.CibDocument) {
+func (acib *AsyncCib) notifyNewCib(cibxml *pacemaker.CibDocument) {
 	text := cibxml.ToString()
 	version := cibxml.Version()
 	log.Infof("[CIB]: %v", version)
@@ -121,30 +120,30 @@ Loop:
 }
 
 type Config struct {
-	Listen string       `json:"listen"`
-	Port int            `json:"port"`
-	Key string          `json:"key"`
-	Cert string         `json:"cert"`
-	LogLevel string     `json:"loglevel"`
-	Route []ConfigRoute `json:"route"`
+	Listen   string        `json:"listen"`
+	Port     int           `json:"port"`
+	Key      string        `json:"key"`
+	Cert     string        `json:"cert"`
+	LogLevel string        `json:"loglevel"`
+	Route    []ConfigRoute `json:"route"`
 }
 
 type ConfigRoute struct {
-	Handler string      `json:"handler"`
-	Path string         `json:"path"`
-	Target *string      `json:"target"`
+	Handler string  `json:"handler"`
+	Path    string  `json:"path"`
+	Target  *string `json:"target"`
 }
 
 type routeHandler struct {
-	cib AsyncCib
-	config *Config
-	proxies map[*ConfigRoute]*ReverseProxy
+	cib      AsyncCib
+	config   *Config
+	proxies  map[*ConfigRoute]*ReverseProxy
 	proxymux sync.Mutex
 }
 
 func NewRouteHandler(config *Config) *routeHandler {
 	return &routeHandler{
-		config: config,
+		config:  config,
 		proxies: make(map[*ConfigRoute]*ReverseProxy),
 	}
 }
@@ -203,19 +202,19 @@ func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, ro
 		return true
 	}
 	if r.Method == "GET" {
-                match, _ := regexp.MatchString("api/v1/nodes(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
+		match, _ := regexp.MatchString("api/v1/nodes(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
 		if match {
 			return handleApiNodes(w, r, handler.cib.Get())
 		}
-                match, _ = regexp.MatchString("api/v1/resources(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
+		match, _ = regexp.MatchString("api/v1/resources(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
 		if match {
 			return handleApiResources(w, r, handler.cib.Get())
 		}
-                match, _ = regexp.MatchString("api/v1/cluster/?$", r.URL.Path)
+		match, _ = regexp.MatchString("api/v1/cluster/?$", r.URL.Path)
 		if match {
 			return handleApiCluster(w, r, handler.cib.Get())
 		}
-                match, _ = regexp.MatchString("api/v1/constraints(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
+		match, _ = regexp.MatchString("api/v1/constraints(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
 		if match {
 			return handleApiConstraints(w, r, handler.cib.Get())
 		}
@@ -309,20 +308,20 @@ func (handler *routeHandler) serveProxy(w http.ResponseWriter, r *http.Request, 
 func main() {
 	log.SetFormatter(&log.TextFormatter{
 		DisableTimestamp: true,
-		DisableSorting: true,
+		DisableSorting:   true,
 	})
-	
+
 	config := Config{
-		Listen: "0.0.0.0",
-		Port: 17630,
-		Key: "/etc/hawk/hawk.key",
-		Cert: "/etc/hawk/hawk.pem",
+		Listen:   "0.0.0.0",
+		Port:     17630,
+		Key:      "/etc/hawk/hawk.key",
+		Cert:     "/etc/hawk/hawk.pem",
 		LogLevel: "info",
-		Route: []ConfigRoute {
+		Route: []ConfigRoute{
 			{
 				Handler: "api/v1",
-				Path: "/api/v1",
-				Target: nil,
+				Path:    "/api/v1",
+				Target:  nil,
 			},
 		},
 	}
