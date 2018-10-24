@@ -13,6 +13,11 @@ go get -u github.com/krig/hawk-apiserver
 The rest of the instructions assume that the current working directory
 is `$GOPATH/src/github.com/krig/hawk-apiserver`.
 
+Generating `api_structs.go` requires the `cibToGoStruct` utility found
+at https://github.com/liangxin1300/CibToGo to be installed. This file
+is generated from the pacemaker schema, so a new schema version in
+Pacemaker requires regenerating this file.
+
 ## Generating an SSL certificate
 
 ``` bash
@@ -22,6 +27,7 @@ SSLGEN_KEY=hawk.key SSLGEN_CERT=hawk.pem ./tools/generate-ssl-cert
 ## Building the server
 
 ``` bash
+go generate
 go build
 ```
 
