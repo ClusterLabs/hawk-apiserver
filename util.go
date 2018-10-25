@@ -11,7 +11,6 @@ import (
 	"strings"
 )
 
-
 // parseConfigFile
 //
 // Configuration file parser. The configuration file format is
@@ -19,9 +18,9 @@ import (
 
 type offsetContext struct {
 	start int
-	end int
-	line int
-	pos int
+	end   int
+	line  int
+	pos   int
 }
 
 func contextAtOffset(str string, offset int64) offsetContext {
@@ -29,12 +28,12 @@ func contextAtOffset(str string, offset int64) offsetContext {
 	if idx := strings.Index(str[start:], "\n"); idx >= 0 {
 		end = start + idx
 	}
-	line, pos := strings.Count(str[:start], "\n"), int(offset) - start - 1
+	line, pos := strings.Count(str[:start], "\n"), int(offset)-start-1
 	return offsetContext{
 		start: start,
-		end: end,
-		line: line,
-		pos: pos,
+		end:   end,
+		line:  line,
+		pos:   pos,
 	}
 }
 
@@ -62,7 +61,6 @@ func parseConfigFile(cfgfile string, target *Config) {
 		fatalSyntaxError(string(raw), err)
 	}
 }
-
 
 // checkHawkAuthMethods
 //
@@ -115,7 +113,6 @@ func checkHawkAuthMethods(r *http.Request) bool {
 	}
 	return true
 }
-
 
 // checkBasicAuth
 //

@@ -29,7 +29,7 @@ func (l *SplitListener) Accept() (net.Conn, error) {
 
 	bconn := &Conn{
 		Conn: c,
-		buf: bufio.NewReader(c),
+		buf:  bufio.NewReader(c),
 	}
 
 	// inspect the first bytes to see if it is HTTPS
@@ -46,7 +46,7 @@ func (l *SplitListener) Accept() (net.Conn, error) {
 	// SSL 3.0 or TLS 1.0, 1.1 and 1.2
 	if hdr[0] == 0x16 && hdr[1] == 0x3 && hdr[5] == 0x1 {
 		return tls.Server(bconn, l.config), nil
-	// SSL 2
+		// SSL 2
 	} else if hdr[0] == 0x80 {
 		return tls.Server(bconn, l.config), nil
 	}
@@ -69,11 +69,11 @@ type HTTPRedirectHandler struct {
 func (handler *HTTPRedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.TLS == nil {
 		u := url.URL{
-			Scheme: "https",
-			Opaque: r.URL.Opaque,
-			User: r.URL.User,
-			Host: r.Host,
-			Path: r.URL.Path,
+			Scheme:   "https",
+			Opaque:   r.URL.Opaque,
+			User:     r.URL.User,
+			Host:     r.Host,
+			Path:     r.URL.Path,
 			RawQuery: r.URL.RawQuery,
 			Fragment: r.URL.Fragment,
 		}
@@ -104,9 +104,8 @@ func ListenAndServeWithRedirect(addr string, handler http.Handler, cert string, 
 
 	listener := &SplitListener{
 		Listener: ln,
-		config: config,
+		config:   config,
 	}
-
 
 	srv := &http.Server{
 		Addr: addr,

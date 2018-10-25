@@ -1,4 +1,5 @@
 package main
+
 // Original code under Apache 2.0 license.
 
 import (
@@ -29,8 +30,8 @@ const (
 type GzipResponseWriter struct {
 	http.ResponseWriter
 	writer *gzip.Writer
-	code int
-	buf []byte
+	code   int
+	buf    []byte
 }
 
 type codings map[string]float64
@@ -87,7 +88,7 @@ func (w *GzipResponseWriter) startGzip() error {
 	}
 
 	w.buf = nil
-	return err	
+	return err
 }
 
 func (w *GzipResponseWriter) WriteHeader(code int) {
@@ -114,7 +115,6 @@ func (w *GzipResponseWriter) Close() error {
 
 	return w.writer.Close()
 }
-
 
 // Flush flushes the underlying *gzip.Writer and then the underlying
 // http.ResponseWriter if it is an http.Flusher. This makes GzipResponseWriter
@@ -149,7 +149,7 @@ func NewGzipHandler(h http.Handler) http.Handler {
 				ResponseWriter: w,
 			}
 			defer gw.Close()
-			
+
 			h.ServeHTTP(gw, r)
 		} else {
 			h.ServeHTTP(w, r)
@@ -157,14 +157,12 @@ func NewGzipHandler(h http.Handler) http.Handler {
 	})
 }
 
-
 // acceptsGzip returns true if the given HTTP request indicates that it will
 // accept a gzipped response.
 func acceptsGzip(r *http.Request) bool {
 	acceptedEncodings, _ := parseEncodings(r.Header.Get("Accept-Encoding"))
 	return acceptedEncodings["gzip"] > 0.0
 }
-
 
 // parseEncodings attempts to parse a list of codings, per RFC 2616, as might
 // appear in an Accept-Encoding header. It returns a map of content-codings to
