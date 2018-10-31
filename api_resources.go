@@ -24,12 +24,12 @@ func handleAPIResources(w http.ResponseWriter, r *http.Request, cibData string) 
 	w.Header().Set("Content-Type", "application/json")
 
 	urllist := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-	if len(urllist) == 3 {
-		// for url api/v[1-9]/resources
+	if len(urllist) == 4 {
+		// for url api/v1/configuration/resources
 		cib.Configuration.Resources.URLType = "all"
 	} else {
-		// for url api/v[1-9]/resources/{resid}
-		resID := urllist[3]
+		// for url api/v1/configuration/resources/{resid}
+		resID := urllist[4]
 
 		mapIDType := make(map[string]TypeIndex)
 		for pi, pitem := range cib.Configuration.Resources.Primitive {
