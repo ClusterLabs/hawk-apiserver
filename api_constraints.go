@@ -24,12 +24,12 @@ func handleAPIConstraints(w http.ResponseWriter, r *http.Request, cibData string
 	w.Header().Set("Content-Type", "application/json")
 
 	urllist := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-	if len(urllist) == 3 {
-		// for url api/v[1-9]/constraints
+	if len(urllist) == 4 {
+		// for url api/v1/configuration/constraints
 		cib.Configuration.Constraints.URLType = "all"
 	} else {
-		// for url api/v[1-9]/constraints/{resid}
-		consID := urllist[3]
+		// for url api/v1/configuration/constraints/{resid}
+		consID := urllist[4]
 
 		mapIDType := make(map[string]TypeIndex)
 		for li, litem := range cib.Configuration.Constraints.RscLocation {
