@@ -23,14 +23,14 @@ func handleApiNodes(w http.ResponseWriter, r *http.Request, cib_data string) boo
 
 	w.Header().Set("Content-Type", "application/json")
 	urllist := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-	if len(urllist) == 3 {
-		// for url api/v[1-9]/nodes
+	if len(urllist) == 4 {
+		// for url api/v1/configuration/nodes
 		cib.Configuration.Nodes.URLType = "all"
 	} else {
-		// for url api/v[1-9]/nodes/{nodeid}
+		// for url api/v1/configuration/nodes/{nodeid}
 		cib.Configuration.Nodes.URLType = "node"
 
-		nodeIndex := urllist[3]
+		nodeIndex := urllist[4]
 		var index int = -1
 		for i, item := range cib.Configuration.Nodes.Node {
 			if nodeIndex == item.Uname || nodeIndex == item.Id {
