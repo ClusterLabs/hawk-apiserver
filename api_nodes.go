@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	log "github.com/sirupsen/logrus"
@@ -46,7 +45,7 @@ func handleAPINodes(w http.ResponseWriter, r *http.Request, cibData string) bool
 		cib.Configuration.Nodes.URLIndex = index
 	}
 
-	jsonData, jsonError := json.Marshal(&cib)
+	jsonData, jsonError := MarshalOut(r, &cib)
 	if jsonError != nil {
 		log.Error(jsonError)
 		return false
