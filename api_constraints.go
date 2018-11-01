@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	log "github.com/sirupsen/logrus"
@@ -52,7 +51,7 @@ func handleApiConstraints(w http.ResponseWriter, r *http.Request, cib_data strin
 		}
 	}
 
-	jsonData, jsonError := json.Marshal(&cib)
+	jsonData, jsonError := MarshalOut(r, &cib)
 	if jsonError != nil {
 		log.Error(jsonError)
 		return false

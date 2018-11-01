@@ -1,6 +1,9 @@
 package main
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"net/http"
+)
 
 //go:generate bash gen.sh
 
@@ -53,4 +56,16 @@ func (c *Cib) MarshalJSON() ([]byte, error) {
 
 	jsonValue, err := json.Marshal(struct_interface)
 	return jsonValue, err
+}
+
+// Common function for pretty print.
+// Give pretty print by default;
+// Give nomal print for efficiency reason,
+// by setting request header "PrettyPrint" as non "1" value on client.
+func MarshalOut(r *http.Request, cib_data *Cib) ([]byte, error) {
+	value := r.Header.Get("PrettyPrint")
+	if value == "" || value == "1" {
+		return json.MarshalIndent(&cib_data, "", "  ")
+	}
+	return json.Marshal(&cib_data)
 }

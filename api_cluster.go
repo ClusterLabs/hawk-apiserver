@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"encoding/xml"
 	log "github.com/sirupsen/logrus"
 	"io"
@@ -21,7 +20,7 @@ func handleApiCluster(w http.ResponseWriter, r *http.Request, cib_data string) b
 
 	w.Header().Set("Content-Type", "application/json")
 
-	jsonData, jsonError := json.Marshal(&cib)
+	jsonData, jsonError := MarshalOut(r, &cib)
 	if jsonError != nil {
 		log.Error(jsonError)
 		return false
