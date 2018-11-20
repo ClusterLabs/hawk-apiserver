@@ -1,33 +1,11 @@
 package main
 
-import (
-	"encoding/xml"
-	"fmt"
-	log "github.com/sirupsen/logrus"
-	"io"
-	"net/http"
-	"strings"
-)
 
-func handleAPIConstraints(w http.ResponseWriter, r *http.Request, cibData string) bool {
-	// parse xml into Cib struct
-	var cib Cib
-	err := xml.Unmarshal([]byte(cibData), &cib)
-	if err != nil {
-		log.Error(err)
-		return false
-	}
+func handleConfigConstraints(urllist []string, cib Cib) bool {
 
-	cib.Configuration.URLType = "constraints"
-
-	w.Header().Set("Content-Type", "application/json")
-
-	urllist := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 	if len(urllist) == 4 {
-		// for url api/v1/configuration/constraints
 		cib.Configuration.Constraints.URLType = "all"
 	} else {
-		// for url api/v1/configuration/constraints/{resid}
 		consID := urllist[4]
 
 		mapIDType := make(map[string]TypeIndex)
@@ -46,17 +24,9 @@ func handleAPIConstraints(w http.ResponseWriter, r *http.Request, cibData string
 			cib.Configuration.Constraints.URLType = val.Type
 			cib.Configuration.Constraints.URLIndex = val.Index
 		} else {
-			http.Error(w, fmt.Sprintf("No route for %v.", r.URL.Path), 500)
 			return false
 		}
 	}
 
-	jsonData, jsonError := MarshalOut(r, &cib)
-	if jsonError != nil {
-		log.Error(jsonError)
-		return false
-	}
-
-	io.WriteString(w, string(jsonData)+"\n")
 	return true
 }
