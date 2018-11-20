@@ -54,6 +54,8 @@ func (c *Cib) MarshalJSON() ([]byte, error) {
 		}
 	case "rsc_defaults":
 		struct_interface = c.Configuration.RscDefaults
+	case "op_defaults":
+		struct_interface = c.Configuration.OpDefaults
 	}
 
 	jsonValue, err := json.Marshal(struct_interface)
