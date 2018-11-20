@@ -64,6 +64,14 @@ func (c *Cib) MarshalJSON() ([]byte, error) {
 			index := c.Configuration.Alerts.URLIndex
 			struct_interface = c.Configuration.Alerts.Alert[index]
 		}
+	case "tags":
+		switch c.Configuration.Tags.URLType {
+		case "all":
+			struct_interface = c.Configuration.Tags.Tag
+		case "tag":
+			index := c.Configuration.Tags.URLIndex
+			struct_interface = c.Configuration.Tags.Tag[index]
+		}
 	}
 
 	jsonValue, err := json.Marshal(struct_interface)
