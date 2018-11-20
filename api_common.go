@@ -86,6 +86,14 @@ func (c *Cib) MarshalJSON() ([]byte, error) {
 			index := c.Configuration.Acls.URLIndex
 			struct_interface = c.Configuration.Acls.AclRole[index]
 		}
+	case "fences":
+		switch c.Configuration.FencingTopology.URLType {
+		case "all":
+			struct_interface = c.Configuration.FencingTopology.FencingLevel
+		case "fence":
+			index := c.Configuration.FencingTopology.URLIndex
+			struct_interface = c.Configuration.FencingTopology.FencingLevel[index]
+		}
 	}
 
 	jsonValue, err := json.Marshal(struct_interface)
