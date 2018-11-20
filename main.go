@@ -235,6 +235,10 @@ func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, ro
 		if match {
 			return handleApiTags(w, r, handler.cib.Get())
 		}
+		match, _ = regexp.MatchString(prefix + "acls(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
+		if match {
+			return handleApiAcls(w, r, handler.cib.Get())
+		}
 		if strings.HasPrefix(r.URL.Path, prefix + "cib.xml") {
 			xmldoc := handler.cib.Get()
 			w.Header().Set("Content-Type", "application/xml")

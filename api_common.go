@@ -72,6 +72,20 @@ func (c *Cib) MarshalJSON() ([]byte, error) {
 			index := c.Configuration.Tags.URLIndex
 			struct_interface = c.Configuration.Tags.Tag[index]
 		}
+	case "acls":
+		switch c.Configuration.Acls.URLType {
+		case "all":
+			struct_interface = c.Configuration.Acls
+		case "target":
+			index := c.Configuration.Acls.URLIndex
+			struct_interface = c.Configuration.Acls.AclTarget[index]
+		case "group":
+			index := c.Configuration.Acls.URLIndex
+			struct_interface = c.Configuration.Acls.AclGroup[index]
+		case "role":
+			index := c.Configuration.Acls.URLIndex
+			struct_interface = c.Configuration.Acls.AclRole[index]
+		}
 	}
 
 	jsonValue, err := json.Marshal(struct_interface)
