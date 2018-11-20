@@ -2,7 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"net/http"
+        "fmt"
+        log "github.com/sirupsen/logrus"
+        "io"
+        "strings"
 )
 
 //go:generate bash gen.sh
@@ -21,7 +26,14 @@ func (c *Cib) MarshalJSON() ([]byte, error) {
 			structInterface = c.Configuration.Nodes.Node[index]
 		}
 	case "cluster":
-		structInterface = c.Configuration.CrmConfig
+		switch c.Configuration.CrmConfig.URLType {
+		case "all":
+			structInterface = c.Configuration.CrmConfig
+		case "property":
+			index_bootstrap := c.Configuration.CrmConfig.URLIndex
+			index_property := c.Configuration.CrmConfig.ClusterPropertySet[index_bootstrap].URLIndex
+			structInterface = c.Configuration.CrmConfig.ClusterPropertySet[index_bootstrap].Nvpair[index_property]
+		}
 	case "resources":
 		switch c.Configuration.Resources.URLType {
 		case "all":
@@ -54,9 +66,23 @@ func (c *Cib) MarshalJSON() ([]byte, error) {
 			structInterface = c.Configuration.Constraints.RscOrder[index]
 		}
 	case "rsc_defaults":
-		struct_interface = c.Configuration.RscDefaults
+		switch c.Configuration.RscDefaults.URLType {
+		case "all":
+			struct_interface = c.Configuration.RscDefaults
+		case "options":
+			index_option := c.Configuration.RscDefaults.URLIndex
+			index_attr := c.Configuration.RscDefaults.MetaAttributes[index_option].URLIndex
+			struct_interface = c.Configuration.RscDefaults.MetaAttributes[index_option].Nvpair[index_attr]
+		}
 	case "op_defaults":
-		struct_interface = c.Configuration.OpDefaults
+		switch c.Configuration.OpDefaults.URLType {
+		case "all":
+			struct_interface = c.Configuration.OpDefaults
+		case "options":
+			index_option := c.Configuration.OpDefaults.URLIndex
+			index_attr := c.Configuration.OpDefaults.MetaAttributes[index_option].URLIndex
+			struct_interface = c.Configuration.OpDefaults.MetaAttributes[index_option].Nvpair[index_attr]
+		}
 	case "alerts":
 		switch c.Configuration.Alerts.URLType {
 		case "all":
@@ -87,7 +113,7 @@ func (c *Cib) MarshalJSON() ([]byte, error) {
 			index := c.Configuration.Acls.URLIndex
 			struct_interface = c.Configuration.Acls.AclRole[index]
 		}
-	case "fences":
+	case "fencing":
 		switch c.Configuration.FencingTopology.URLType {
 		case "all":
 			struct_interface = c.Configuration.FencingTopology.FencingLevel
@@ -111,4 +137,47 @@ func MarshalOut(r *http.Request, cib_data *Cib) ([]byte, error) {
 		return json.MarshalIndent(&cib_data, "", "  ")
 	}
 	return json.Marshal(&cib_data)
+}
+
+
+func handleConfigApi(w http.ResponseWriter, r *http.Request, cib_data string) bool{
+	// parse xml into Cib struct
+        var cib Cib
+        err := xml.Unmarshal([]byte(cib_data), &cib)
+        if err != nil {
+                log.Error(err)
+                return false
+        }
+
+        urllist := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+        cib.Configuration.URLType = urllist[3]
+
+        w.Header().Set("Content-Type", "application/json")
+
+        configHandle := map[string]func([]string, Cib) bool {
+		"nodes": handleConfigNodes,
+		"resources": handleConfigResources,
+		"cluster": handleConfigCluster,
+		"constraints": handleConfigConstraints,
+		"rsc_defaults": handleConfigRscDefaults,
+		"op_defaults": handleConfigOpDefaults,
+		"alerts": handleConfigAlerts,
+		"tags": handleConfigTags,
+		"acls": handleConfigAcls,
+		"fencing": handleConfigFencing,
+        }
+
+	if !configHandle[cib.Configuration.URLType](urllist, cib){
+		http.Error(w, fmt.Sprintf("No route for %v.", r.URL.Path), 500)
+		return false
+	}
+
+        jsonData, jsonError := MarshalOut(r, &cib)
+        if jsonError != nil {
+                log.Error(jsonError)
+                return false
+        }
+
+        io.WriteString(w, string(jsonData)+"\n")
+        return true
 }

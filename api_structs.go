@@ -54,6 +54,8 @@ type ClusterPropertySet struct {
 	Rule    *Rule     `xml:"rule" json:"rule,omitempty"`
 	Nvpair  []*Nvpair `xml:"nvpair" json:"nvpair,omitempty"`
 	Score   string    `xml:"score,attr" json:"score,omitempty"`
+	URLType   string       `json:"-"`
+	URLIndex  int          `json:"-"`
 }
 
 type Rule struct {
@@ -139,6 +141,8 @@ type MetaAttributes struct {
 	Rule    *Rule     `xml:"rule" json:"rule,omitempty"`
 	Nvpair  []*Nvpair `xml:"nvpair" json:"nvpair,omitempty"`
 	Score   string    `xml:"score,attr" json:"score,omitempty"`
+	URLType   string       `json:"-"`
+	URLIndex  int          `json:"-"`
 }
 
 type OpDefaults struct {

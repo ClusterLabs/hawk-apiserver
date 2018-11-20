@@ -258,45 +258,12 @@ func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, ro
 	}
 	if r.Method == "GET" {
 		prefix := route.Path + "/configuration/"
-		match, _ := regexp.MatchString(prefix+"nodes(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
+
+		// all types below cib/configuration
+		all_types := "(nodes|resources|cluster|constraints|rsc_defaults|op_defaults|alerts|tags|acls|fencing)"
+		match, _ := regexp.MatchString(prefix + all_types + "(/?|/.+/?)$", r.URL.Path)
 		if match {
-			return handleAPINodes(w, r, handler.cib.Get())
-		}
-		match, _ = regexp.MatchString(prefix+"resources(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
-		if match {
-			return handleAPIResources(w, r, handler.cib.Get())
-		}
-		match, _ = regexp.MatchString(prefix+"cluster/?$", r.URL.Path)
-		if match {
-			return handleAPICluster(w, r, handler.cib.Get())
-		}
-		match, _ = regexp.MatchString(prefix+"constraints(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
-		if match {
-			return handleAPIConstraints(w, r, handler.cib.Get())
-		}
-		match, _ = regexp.MatchString(prefix + "rsc_defaults/?$", r.URL.Path)
-		if match {
-			return handleApiRscDefaults(w, r, handler.cib.Get())
-		}
-		match, _ = regexp.MatchString(prefix + "op_defaults/?$", r.URL.Path)
-		if match {
-			return handleApiOpDefaults(w, r, handler.cib.Get())
-		}
-		match, _ = regexp.MatchString(prefix + "alerts(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
-		if match {
-			return handleApiAlerts(w, r, handler.cib.Get())
-		}
-		match, _ = regexp.MatchString(prefix + "tags(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
-		if match {
-			return handleApiTags(w, r, handler.cib.Get())
-		}
-		match, _ = regexp.MatchString(prefix + "acls(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
-		if match {
-			return handleApiAcls(w, r, handler.cib.Get())
-		}
-		match, _ = regexp.MatchString(prefix + "fencing(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
-		if match {
-			return handleApiFencing(w, r, handler.cib.Get())
+			return handleConfigApi(w, r, handler.cib.Get())
 		}
 		if strings.HasPrefix(r.URL.Path, prefix+"cib.xml") {
 			xmldoc := handler.cib.Get()
