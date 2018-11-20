@@ -219,6 +219,10 @@ func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, ro
 		if match {
 			return handleApiConstraints(w, r, handler.cib.Get())
 		}
+		match, _ = regexp.MatchString(prefix + "rsc_defaults/?$", r.URL.Path)
+		if match {
+			return handleApiRscDefaults(w, r, handler.cib.Get())
+		}
 		if strings.HasPrefix(r.URL.Path, prefix + "cib.xml") {
 			xmldoc := handler.cib.Get()
 			w.Header().Set("Content-Type", "application/xml")

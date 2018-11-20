@@ -52,6 +52,8 @@ func (c *Cib) MarshalJSON() ([]byte, error) {
 			index := c.Configuration.Constraints.URLIndex
 			struct_interface = c.Configuration.Constraints.RscOrder[index]
 		}
+	case "rsc_defaults":
+		struct_interface = c.Configuration.RscDefaults
 	}
 
 	jsonValue, err := json.Marshal(struct_interface)
