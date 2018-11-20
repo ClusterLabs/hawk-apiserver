@@ -521,7 +521,7 @@ type Tag struct {
 
 type ObjRef struct {
 	XMLNAME xml.Name `xml:"obj_ref" json:"-"`
-	Id      string   `xml:"id ,attr" json:"id "`
+	Id      string   `xml:"id,attr" json:"id"`
 }
 
 type Alerts struct {
