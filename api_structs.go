@@ -587,9 +587,64 @@ type Recipient struct {
 }
 
 type Status struct {
-	XMLNAME  xml.Name `xml:"status" json:"-"`
-	URLType  string   `json:"-"`
-	URLIndex int      `json:"-"`
+	XMLNAME   xml.Name     `xml:"status" json:"-"`
+	NodeState []*NodeState `xml:"node_state" json:"node_state,omitempty"`
+	URLType   string       `json:"-"`
+	URLIndex  int          `json:"-"`
+}
+
+type NodeState struct {
+	XMLNAME        xml.Name `xml:"node_state" json:"-"`
+	Id             string   `xml:"id,attr" json:"id"`
+	Uname          string   `xml:"uname,attr" json:"uname"`
+	InCcm          string   `xml:"in_ccm,attr" json:"in_ccm"`
+	Crmd           string   `xml:"crmd,attr" json:"crmd"`
+	CrmDebugOrigin string   `xml:"crm-debug-origin,attr" json:"crm-debug-origin"`
+	Join           string   `xml:"join,attr" json:"join"`
+	Expected       string   `xml:"expected,attr" json:"expected"`
+	Lrm            *Lrm     `xml:"lrm" json:"lrm,omitempty"`
+}
+
+type Lrm struct {
+	XMLNAME      xml.Name      `xml:"lrm" json:"-"`
+	Id           string        `xml:"id,attr" json:"id"`
+	LrmResources *LrmResources `xml:"lrm_resources" json:"lrm_resources,omitempty"`
+}
+
+type LrmResources struct {
+	XMLNAME     xml.Name       `xml:"lrm_resources" json:"-"`
+	LrmResource []*LrmResource `xml:"lrm_resource" json:"lrm_resource,omitempty"`
+}
+
+type LrmResource struct {
+	XMLNAME  xml.Name  `xml:"lrm_resource" json:"-"`
+	Id       string    `xml:"id,attr" json:"id"`
+	Type     string    `xml:"type,attr" json:"type"`
+	Class    string    `xml:"class,attr" json:"class"`
+	Provider string    `xml:"provider,attr" json:"provider,omitempty"`
+	LrmRscOp *LrmRscOp `xml:"lrm_rsc_op" json:"lrm_rsc_op,omitempty"`
+}
+
+type LrmRscOp struct {
+	XMLNAME         xml.Name `xml:"lrm_rsc_op" json:"-"`
+	Id              string   `xml:"id,attr" json:"id"`
+	OperationKey    string   `xml:"operation_key,attr" json:"operation_key"`
+	Operation       string   `xml:"operation,attr" json:"operation"`
+	CrmDebugOrigin  string   `xml:"crm-debug-origin,attr" json:"crm-debug-origin"`
+	CrmFeatureSet   string   `xml:"crm_feature_set,attr" json:"crm_feature_set"`
+	TransitionKey   string   `xml:"transition-key,attr" json:"transition-key"`
+	TransitionMagic string   `xml:"transition-magic,attr" json:"transition-magic"`
+	ExitReason      string   `xml:"exit-reason,attr" json:"exit-reason"`
+	OnNode          string   `xml:"on_node,attr" json:"on_node"`
+	CallId          string   `xml:"call-id,attr" json:"call-id"`
+	RcCode          string   `xml:"rc-code,attr" json:"rc-code"`
+	OpStatus        string   `xml:"op-status,attr" json:"op-status"`
+	Interval        string   `xml:"interval,attr" json:"interval"`
+	LastRun         string   `xml:"last-run,attr" json:"last-run"`
+	LastRcChange    string   `xml:"last-rc-change,attr" json:"last-rc-change"`
+	ExecTime        string   `xml:"exec-time,attr" json:"exec-time"`
+	QueueTime       string   `xml:"queue-time,attr" json:"queue-time"`
+	OpDigest        string   `xml:"op-digest,attr" json:"op-digest"`
 }
 
 type TypeIndex struct {

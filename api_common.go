@@ -16,6 +16,14 @@ import (
 func (c *Cib) MarshalJSON() ([]byte, error) {
 	var structInterface interface{}
 
+        switch c.Status.URLType {
+	case "nodes":
+		struct_interface = c.Status.NodeState
+	case "node":
+		index := c.Status.URLIndex
+		struct_interface = c.Status.NodeState[index]
+	}
+
 	switch c.Configuration.URLType {
 	case "nodes":
 		switch c.Configuration.Nodes.URLType {
@@ -167,6 +175,40 @@ func handleConfigApi(w http.ResponseWriter, r *http.Request, cib_data string) bo
 	}
 
 	if !configHandle[cib.Configuration.URLType](urllist, cib) {
+		http.Error(w, fmt.Sprintf("No route for %v.", r.URL.Path), 500)
+		return false
+	}
+
+	jsonData, jsonError := MarshalOut(r, &cib)
+	if jsonError != nil {
+		log.Error(jsonError)
+		return false
+	}
+
+	io.WriteString(w, string(jsonData)+"\n")
+	return true
+}
+
+func handleStatusApi(w http.ResponseWriter, r *http.Request, cib_data string) bool {
+	// parse xml into Cib struct
+	var cib Cib
+	err := xml.Unmarshal([]byte(cib_data), &cib)
+	if err != nil {
+		log.Error(err)
+		return false
+	}
+
+	urllist := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	cib.Status.URLType = urllist[3]
+
+	w.Header().Set("Content-Type", "application/json")
+
+	configHandle := map[string]func([]string, Cib) bool{
+		"nodes":        handleStateNodes,
+		"resources":    handleStateResources,
+	}
+
+	if !configHandle[cib.Status.URLType](urllist, cib) {
 		http.Error(w, fmt.Sprintf("No route for %v.", r.URL.Path), 500)
 		return false
 	}
