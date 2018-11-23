@@ -1,6 +1,5 @@
 package main
 
-
 func handleConfigCluster(urllist []string, cib Cib) bool {
 
 	if len(urllist) == 4 {
@@ -15,7 +14,7 @@ func handleConfigCluster(urllist []string, cib Cib) bool {
 		// find cib-bootstrap-options firstly
 		// then match the specific property
 		for i, item := range cib.Configuration.CrmConfig.ClusterPropertySet {
-			if item.Id == "cib-bootstrap-options"{
+			if item.Id == "cib-bootstrap-options" {
 				boot_index = i
 				for nv_i, nv_item := range item.Nvpair {
 					if attrIndex == nv_item.Id || attrIndex == nv_item.Name {
@@ -38,7 +37,6 @@ func handleConfigCluster(urllist []string, cib Cib) bool {
 	return true
 }
 
-
 func handleConfigRscDefaults(urllist []string, cib Cib) bool {
 
 	if len(urllist) == 4 {
@@ -53,7 +51,7 @@ func handleConfigRscDefaults(urllist []string, cib Cib) bool {
 		// find rsc-options firstly
 		// then match the specific options
 		for i, item := range cib.Configuration.RscDefaults.MetaAttributes {
-			if item.Id == "rsc-options"{
+			if item.Id == "rsc-options" {
 				option_index = i
 				for nv_i, nv_item := range item.Nvpair {
 					if attrIndex == nv_item.Id || attrIndex == nv_item.Name {
@@ -76,7 +74,6 @@ func handleConfigRscDefaults(urllist []string, cib Cib) bool {
 	return true
 }
 
-
 func handleConfigOpDefaults(urllist []string, cib Cib) bool {
 
 	if len(urllist) == 4 {
@@ -91,7 +88,7 @@ func handleConfigOpDefaults(urllist []string, cib Cib) bool {
 		// find op-options firstly
 		// then match the specific options
 		for i, item := range cib.Configuration.OpDefaults.MetaAttributes {
-			if item.Id == "op-options"{
+			if item.Id == "op-options" {
 				option_index = i
 				for nv_i, nv_item := range item.Nvpair {
 					if attrIndex == nv_item.Id || attrIndex == nv_item.Name {
