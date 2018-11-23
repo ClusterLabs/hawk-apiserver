@@ -261,7 +261,7 @@ func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, ro
 
 		// all types below cib/configuration
 		all_types := "(nodes|resources|cluster|constraints|rsc_defaults|op_defaults|alerts|tags|acls|fencing)"
-		match, _ := regexp.MatchString(prefix + all_types + "(/?|/.+/?)$", r.URL.Path)
+		match, _ := regexp.MatchString(prefix+all_types+"(/?|/.+/?)$", r.URL.Path)
 		if match {
 			return handleConfigApi(w, r, handler.cib.Get())
 		}
