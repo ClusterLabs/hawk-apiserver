@@ -1,6 +1,5 @@
 package main
 
-
 func handleConfigFencing(urllist []string, cib Cib) bool {
 
 	if len(urllist) == 4 {

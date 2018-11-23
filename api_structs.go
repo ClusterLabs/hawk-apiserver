@@ -43,19 +43,19 @@ type Configuration struct {
 type CrmConfig struct {
 	XMLNAME            xml.Name              `xml:"crm_config" json:"-"`
 	ClusterPropertySet []*ClusterPropertySet `xml:"cluster_property_set" json:"cluster_property_set,omitempty"`
-	URLType   string       `json:"-"`
-	URLIndex  int          `json:"-"`
+	URLType            string                `json:"-"`
+	URLIndex           int                   `json:"-"`
 }
 
 type ClusterPropertySet struct {
-	XMLNAME xml.Name  `xml:"cluster_property_set" json:"-"`
-	IdRef   string    `xml:"id-ref,attr" json:"id-ref,omitempty"`
-	Id      string    `xml:"id,attr" json:"id,omitempty"`
-	Rule    *Rule     `xml:"rule" json:"rule,omitempty"`
-	Nvpair  []*Nvpair `xml:"nvpair" json:"nvpair,omitempty"`
-	Score   string    `xml:"score,attr" json:"score,omitempty"`
-	URLType   string       `json:"-"`
-	URLIndex  int          `json:"-"`
+	XMLNAME  xml.Name  `xml:"cluster_property_set" json:"-"`
+	IdRef    string    `xml:"id-ref,attr" json:"id-ref,omitempty"`
+	Id       string    `xml:"id,attr" json:"id,omitempty"`
+	Rule     *Rule     `xml:"rule" json:"rule,omitempty"`
+	Nvpair   []*Nvpair `xml:"nvpair" json:"nvpair,omitempty"`
+	Score    string    `xml:"score,attr" json:"score,omitempty"`
+	URLType  string    `json:"-"`
+	URLIndex int       `json:"-"`
 }
 
 type Rule struct {
@@ -130,26 +130,26 @@ type Nvpair struct {
 type RscDefaults struct {
 	XMLNAME        xml.Name          `xml:"rsc_defaults" json:"-"`
 	MetaAttributes []*MetaAttributes `xml:"meta_attributes" json:"meta_attributes,omitempty"`
-	URLType   string       `json:"-"`
-	URLIndex  int          `json:"-"`
+	URLType        string            `json:"-"`
+	URLIndex       int               `json:"-"`
 }
 
 type MetaAttributes struct {
-	XMLNAME xml.Name  `xml:"meta_attributes" json:"-"`
-	IdRef   string    `xml:"id-ref,attr" json:"id-ref,omitempty"`
-	Id      string    `xml:"id,attr" json:"id,omitempty"`
-	Rule    *Rule     `xml:"rule" json:"rule,omitempty"`
-	Nvpair  []*Nvpair `xml:"nvpair" json:"nvpair,omitempty"`
-	Score   string    `xml:"score,attr" json:"score,omitempty"`
-	URLType   string       `json:"-"`
-	URLIndex  int          `json:"-"`
+	XMLNAME  xml.Name  `xml:"meta_attributes" json:"-"`
+	IdRef    string    `xml:"id-ref,attr" json:"id-ref,omitempty"`
+	Id       string    `xml:"id,attr" json:"id,omitempty"`
+	Rule     *Rule     `xml:"rule" json:"rule,omitempty"`
+	Nvpair   []*Nvpair `xml:"nvpair" json:"nvpair,omitempty"`
+	Score    string    `xml:"score,attr" json:"score,omitempty"`
+	URLType  string    `json:"-"`
+	URLIndex int       `json:"-"`
 }
 
 type OpDefaults struct {
 	XMLNAME        xml.Name          `xml:"op_defaults" json:"-"`
 	MetaAttributes []*MetaAttributes `xml:"meta_attributes" json:"meta_attributes,omitempty"`
-	URLType   string       `json:"-"`
-	URLIndex  int          `json:"-"`
+	URLType        string            `json:"-"`
+	URLIndex       int               `json:"-"`
 }
 
 type Nodes struct {
@@ -438,8 +438,8 @@ type RscTicket struct {
 type FencingTopology struct {
 	XMLNAME      xml.Name        `xml:"fencing-topology" json:"-"`
 	FencingLevel []*FencingLevel `xml:"fencing-level" json:"fencing-level,omitempty"`
-	URLType   string       `json:"-"`
-	URLIndex  int          `json:"-"`
+	URLType      string          `json:"-"`
+	URLIndex     int             `json:"-"`
 }
 
 type FencingLevel struct {
@@ -498,10 +498,10 @@ type AclPermission struct {
 }
 
 type Tags struct {
-	XMLNAME xml.Name `xml:"tags" json:"-"`
-	Tag     []*Tag   `xml:"tag" json:"tag,omitempty"`
-	URLType   string       `json:"-"`
-	URLIndex  int          `json:"-"`
+	XMLNAME  xml.Name `xml:"tags" json:"-"`
+	Tag      []*Tag   `xml:"tag" json:"tag,omitempty"`
+	URLType  string   `json:"-"`
+	URLIndex int      `json:"-"`
 }
 
 type Tag struct {
@@ -516,10 +516,10 @@ type ObjRef struct {
 }
 
 type Alerts struct {
-	XMLNAME xml.Name `xml:"alerts" json:"-"`
-	Alert   []*Alert `xml:"alert" json:"alert,omitempty"`
-	URLType   string       `json:"-"`
-	URLIndex  int          `json:"-"`
+	XMLNAME  xml.Name `xml:"alerts" json:"-"`
+	Alert    []*Alert `xml:"alert" json:"alert,omitempty"`
+	URLType  string   `json:"-"`
+	URLIndex int      `json:"-"`
 }
 
 type Alert struct {
@@ -574,9 +574,9 @@ type Recipient struct {
 }
 
 type Status struct {
-	XMLNAME xml.Name `xml:"status" json:"-"`
-	URLType   string       `json:"-"`
-	URLIndex  int          `json:"-"`
+	XMLNAME  xml.Name `xml:"status" json:"-"`
+	URLType  string   `json:"-"`
+	URLIndex int      `json:"-"`
 }
 
 type TypeIndex struct {

@@ -1,6 +1,5 @@
 package main
 
-
 func handleConfigAlerts(urllist []string, cib Cib) bool {
 
 	if len(urllist) == 4 {

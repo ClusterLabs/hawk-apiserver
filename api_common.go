@@ -3,11 +3,11 @@ package main
 import (
 	"encoding/json"
 	"encoding/xml"
+	"fmt"
+	log "github.com/sirupsen/logrus"
+	"io"
 	"net/http"
-        "fmt"
-        log "github.com/sirupsen/logrus"
-        "io"
-        "strings"
+	"strings"
 )
 
 //go:generate bash gen.sh
@@ -138,45 +138,44 @@ func MarshalOut(r *http.Request, cib_data *Cib) ([]byte, error) {
 	return json.Marshal(&cib_data)
 }
 
-
-func handleConfigApi(w http.ResponseWriter, r *http.Request, cib_data string) bool{
+func handleConfigApi(w http.ResponseWriter, r *http.Request, cib_data string) bool {
 	// parse xml into Cib struct
-        var cib Cib
-        err := xml.Unmarshal([]byte(cib_data), &cib)
-        if err != nil {
-                log.Error(err)
-                return false
-        }
+	var cib Cib
+	err := xml.Unmarshal([]byte(cib_data), &cib)
+	if err != nil {
+		log.Error(err)
+		return false
+	}
 
-        urllist := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-        cib.Configuration.URLType = urllist[3]
+	urllist := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	cib.Configuration.URLType = urllist[3]
 
-        w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 
-        configHandle := map[string]func([]string, Cib) bool {
-		"nodes": handleConfigNodes,
-		"resources": handleConfigResources,
-		"cluster": handleConfigCluster,
-		"constraints": handleConfigConstraints,
+	configHandle := map[string]func([]string, Cib) bool{
+		"nodes":        handleConfigNodes,
+		"resources":    handleConfigResources,
+		"cluster":      handleConfigCluster,
+		"constraints":  handleConfigConstraints,
 		"rsc_defaults": handleConfigRscDefaults,
-		"op_defaults": handleConfigOpDefaults,
-		"alerts": handleConfigAlerts,
-		"tags": handleConfigTags,
-		"acls": handleConfigAcls,
-		"fencing": handleConfigFencing,
-        }
+		"op_defaults":  handleConfigOpDefaults,
+		"alerts":       handleConfigAlerts,
+		"tags":         handleConfigTags,
+		"acls":         handleConfigAcls,
+		"fencing":      handleConfigFencing,
+	}
 
-	if !configHandle[cib.Configuration.URLType](urllist, cib){
+	if !configHandle[cib.Configuration.URLType](urllist, cib) {
 		http.Error(w, fmt.Sprintf("No route for %v.", r.URL.Path), 500)
 		return false
 	}
 
-        jsonData, jsonError := MarshalOut(r, &cib)
-        if jsonError != nil {
-                log.Error(jsonError)
-                return false
-        }
+	jsonData, jsonError := MarshalOut(r, &cib)
+	if jsonError != nil {
+		log.Error(jsonError)
+		return false
+	}
 
-        io.WriteString(w, string(jsonData)+"\n")
-        return true
+	io.WriteString(w, string(jsonData)+"\n")
+	return true
 }
