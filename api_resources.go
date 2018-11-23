@@ -32,3 +32,7 @@ func handleConfigResources(urllist []string, cib Cib) bool {
 
 	return true
 }
+
+func handleStateResources(urllist []string, cib Cib) bool {
+	return true
+}
