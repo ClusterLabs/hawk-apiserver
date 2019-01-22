@@ -15,3 +15,10 @@
 
 config.json
 hawk-apiserver
+
+.vagrant
+*.vdi
+
+# Ignore vagrant config file
+vagrant_config.rb
+*_public_ip
