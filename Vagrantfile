@@ -34,7 +34,7 @@ def configure_machine(machine, idx, roles, memory, cpus)
     provider.volume_cache = "default"
     provider.graphics_type = "spice"
     provider.watchdog model: "i6300esb", action: "reset"
-    provider.graphics_port = 9200 + idx
+    provider.graphics_port = 9230 + idx
     provider.storage :file, path: "#{$shared_disk}.raw", size: "#{$shared_disk_size}M", type: 'raw', cache: 'none', allow_existing: true, shareable: true
     provider.storage :file, path: "#{$drbd_disk}-#{machine.vm.hostname}.raw", size: "#{$drbd_disk_size}M", type: 'raw', allow_existing: true
     provider.cpu_mode = 'host-passthrough'
@@ -59,10 +59,12 @@ def configure_triggers(machine, idx)
   machine.trigger.after :up, :provision do |trigger|
     trigger.warn = "Saving this machine public ip in #{ENV['VM_PREFIX_NAME']}_public_ip"
     trigger.run_remote = { inline: "echo $(hostname): $(ip addr show eth2 | grep \"inet\\b\" | head -n1 | awk '{print $2}' | cut -d/ -f1) >> /vagrant/#{ENV['VM_PREFIX_NAME']}_public_ip" }
+    trigger.on_error = :continue
   end
   machine.trigger.before :destroy do |trigger|
     trigger.warn = "Deleting this machine public ip from #{ENV['VM_PREFIX_NAME']}_public_ip"
     trigger.run = { inline: "sed -i \"/#{idx}/d\" #{ENV['VM_PREFIX_NAME']}_public_ip" }
+    trigger.on_error = :continue
   end
 
 end
@@ -122,7 +124,7 @@ Vagrant.configure("2") do |config|
 
   config.vm.define "webui", primary: true do |machine|
     machine.vm.hostname = "webui"
-    machine.vm.network :forwarded_port, host_ip: host_bind_address, guest: 8808, host: 8808
+    machine.vm.network :forwarded_port, host_ip: host_bind_address, guest: 8808, host: 8818
     configure_machine machine, 0, ["base", "webui"], ENV["VM_MEM"] || 2608, ENV["VM_CPU"] || 2
     configure_triggers(machine, "webui") if defined?(GC)
   end
