@@ -4,15 +4,8 @@ webui_packages:
       - pam-devel
       - libglue-devel
 
-salt://utils/install_tools.sh:
-  cmd.script:
-    - require:
-      - pkg: webui_packages
-
 salt://utils/init_cluster.sh:
   cmd.script:
-    - require:
-      - cmd: "salt://utils/install_tools.sh"
     - env:
 {% if 'vdb' in grains['disks'] %}
       - PDEV: /dev/vdb

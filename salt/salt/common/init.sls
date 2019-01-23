@@ -4,7 +4,6 @@ include:
   - common.ssh
   - common.firewalld
   - common.configure_routes
-  - common.cluster
   - common.drbd
   - common.services
   - common.monitoring
