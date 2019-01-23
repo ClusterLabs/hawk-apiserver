@@ -30,11 +30,11 @@ case "$(uname -m)" in
 	libdir=lib64
 	;;
 esac
-export GOROOT=/usr/$libdir/go/1.10
+export GOROOT=/usr/$libdir/go/1.11
 export GOBIN=/usr/bin
-export GOPATH=/usr/share/go/1.10/contrib
+export GOPATH=/usr/share/go/1.11/contrib
 
 if [ `id -u` != 0 ]; then
-  export GOPATH=$HOME/go:/usr/share/go/1.10/contrib
+  export GOPATH=$HOME/go:/usr/share/go/1.11/contrib
   unset GOBIN
 fi

@@ -17,6 +17,7 @@ dev_packages:
     - names:
       - pam-devel
       - libglue-devel
+      -
 
 monitoring_packages:
   pkg.installed:
@@ -24,7 +25,7 @@ monitoring_packages:
     - refresh: True
     - names:
         - git
-        - go1.10
+        - go1.11
         - golang-github-prometheus-prometheus
         - golang-github-prometheus-promu
         - golang-github-prometheus-node_exporter
