@@ -1,9 +1,3 @@
-webui_packages:
-  pkg.installed:
-    - names:
-      - pam-devel
-      - libglue-devel
-
 salt://utils/init_cluster.sh:
   cmd.script:
     - env:

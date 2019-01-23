@@ -1,4 +1,5 @@
 include:
+  - common.dependencies
   - common.watchdog
   - common.hosts
   - common.ssh
