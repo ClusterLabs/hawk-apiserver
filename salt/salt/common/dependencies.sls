@@ -17,7 +17,9 @@ dev_packages:
     - names:
       - pam-devel
       - libglue-devel
-      -
+      - libpacemaker-devel
+      - libxml2-devel
+      - glib2-devel
 
 monitoring_packages:
   pkg.installed:
