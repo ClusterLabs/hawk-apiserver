@@ -12,6 +12,11 @@ devel:tools:
     - refresh: True
     - gpgautoimport: True
 
+
+salt://utils/update.sh:
+  cmd.script:
+    - runas: root
+
 dev_packages:
   pkg.installed:
     - names:

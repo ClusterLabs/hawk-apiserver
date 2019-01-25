@@ -7,3 +7,4 @@ drbdadm new-current-uuid --clear-bitmap r0/0
 drbdadm primary --force r0
 mkfs.ext4 /dev/drbd0
 crm script run drbd id=DRBD drbd_resource=r0
+exit 0

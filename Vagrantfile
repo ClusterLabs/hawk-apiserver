@@ -11,10 +11,10 @@ def host_bind_address
   ENV["VAGRANT_INSECURE_FORWARDS"] =~ /^(y(es)?|true|on)$/i ? '*' : '127.0.0.1'
 end
 
-$shared_disk = '_shared_disk'
+$shared_disk = 'api_shared_disk'
 $shared_disk_size = 128 # MB
 
-$drbd_disk = '_drbd_disk'
+$drbd_disk = 'api_drbd_disk'
 $drbd_disk_size = 256 # MB
 
 # Shared configuration for all VMs
@@ -82,7 +82,7 @@ Vagrant.configure("2") do |config|
   # Change hacluster user's shell from nologin to /bin/bash to avoid issues with bindfs
   config.vm.provision "shell", inline: "chsh -s /bin/bash hacluster"
 
-  config.vm.synced_folder ".", "/vagrant", type: "nfs", nfs_version: "4", nfs_udp: false, mount_options: ["rw", "noatime", "async"]
+  config.vm.synced_folder ".", "/usr/share/go/1.11/contrib/src/github.com/krig/hawk-apiserver", type: "nfs", nfs_version: "4", nfs_udp: false, mount_options: ["rw", "noatime", "async"]
   config.bindfs.bind_folder "/vagrant", "/vagrant", force_user: "hacluster", force_group: "haclient", perms: "u=rwX:g=rwXD:o=rXD", after: :provision
 
   # Provision the machines using Salt

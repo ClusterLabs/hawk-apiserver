@@ -21,9 +21,8 @@ salt://utils/configure_drbd.sh:
     - source: salt://files/crm-initial.conf
     - template: jinja
 
-apply_initial_configuration:
-  cmd.run:
-    - name: crm configure load update /root/initial.crm
+salt://utils/apply_initial_configuration.sh:
+  cmd.script:
     - require:
       - file: /root/initial.crm
       - cmd: "salt://utils/configure_drbd.sh"
