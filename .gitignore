@@ -22,3 +22,9 @@ hawk-apiserver
 # Ignore vagrant config file
 vagrant_config.rb
 *_public_ip
+
+# Ignore SSL certificates and logs
+*.key
+*.pem
+tools/certificate.log
+*.0
