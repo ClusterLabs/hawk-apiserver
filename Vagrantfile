@@ -83,7 +83,6 @@ Vagrant.configure("2") do |config|
   config.vm.provision "shell", inline: "chsh -s /bin/bash hacluster"
 
   config.vm.synced_folder ".", "/usr/share/go/1.11/contrib/src/github.com/krig/hawk-apiserver", type: "nfs", nfs_version: "4", nfs_udp: false, mount_options: ["rw", "noatime", "async"]
-  config.bindfs.bind_folder "/vagrant", "/vagrant", force_user: "hacluster", force_group: "haclient", perms: "u=rwX:g=rwXD:o=rXD", after: :provision
 
   # Provision the machines using Salt
   config.vm.synced_folder "salt/salt", "/srv/salt"
