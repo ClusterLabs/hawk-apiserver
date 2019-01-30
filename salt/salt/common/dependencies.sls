@@ -49,6 +49,9 @@ monitoring_packages:
 'source /etc/profile.d/go.sh':
   cmd.run
 
+'echo "cd /usr/share/go/1.11/contrib/src/github.com/krig/hawk-apiserver" >> /home/vagrant/.bashrc':
+  cmd.run
+
 gobin:
    environ.setenv:
      - name: GOBIN
