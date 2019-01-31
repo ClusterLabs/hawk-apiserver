@@ -181,6 +181,32 @@ using the live CIB as input.
 The simulator run and the results are returned as part of the request
 body.
 
+### Hacking Hawk API server
+
+To hack on Hawk API server, we recommend to use the Vagrant setup.
+There is a Vagrantfile attached, which creates a three nodes cluster with a
+basic configuration suitable for development and testing.
+
+The Vagrant configuration supports only `libvirt` and does not support other
+providers such as `Virtualbox`.
+
+To be prepared for getting our Vagrant setup running you need to follow
+some steps:
+
+* Install the Vagrant package from http://www.vagrantup.com/downloads.html.
+* Install `libvirt` and `kvm` to actually host the virtual machine(s).
+* Install the Vagrant libvirt-plugin
+
+This is all you need to prepare initially to set up the vagrant environment,
+now you can simply start the virtual machines with `vagrant up` and start
+an ssh session with `vagrant ssh webui`. If you want to
+access the source within the virtual machine you have to switch to the `$GOPATH/src/github.com/krig/hawk-apiserver` directory (synced with NFS).
+
+To build the project from within the Vagrant box, simply ssh into the machine
+using `vagrant ssh webui`, cd to `$GOPATH/src/github.com/krig/hawk-apiserver`,
+then install the dependencies using `go get ./...` and finally `go build` to
+build. Running `hawk-apiserver` binary will start a server on port `17630`.
+
 
 ### Event subscription
 
