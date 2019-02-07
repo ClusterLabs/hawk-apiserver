@@ -33,22 +33,43 @@ type AsyncCib struct {
 	notifier chan chan string
 }
 
+// LogRecord
+//
+// Record the last warning and error,
+// to avoid output the duplicate message
+
+type LogRecord struct {
+	warning string
+	error   string
+}
+
 func (acib *AsyncCib) Start() {
 	if acib.notifier == nil {
 		acib.notifier = make(chan chan string)
 	}
+
+	lastLog := LogRecord{warning: "", error: ""}
+
 	cibFetcher := func() {
 		for {
 			cib, err := pacemaker.OpenCib()
 			if err != nil {
-				log.Warnf("Failed to connect to Pacemaker: %s", err)
+				msg = "Failed to connect to Pacemaker: " + err
+				if msg != lastLog.warning {
+					log.Warnf(msg)
+					lastLog.warning = msg
+				}
 				time.Sleep(5 * time.Second)
 			}
 			for cib != nil {
 				func() {
 					cibxml, err := cib.Query()
 					if err != nil {
-						log.Errorf("Failed to query CIB: %s", err)
+						msg = "Failed to query CIB: " + err
+						if msg != lastLog.error {
+							log.Errorf(msg)
+							lastLog.error = msg
+						}
 					} else {
 						acib.notifyNewCib(cibxml)
 					}
@@ -59,7 +80,11 @@ func (acib *AsyncCib) Start() {
 					if event == pacemaker.UpdateEvent {
 						acib.notifyNewCib(doc)
 					} else {
-						log.Warnf("lost connection: %s\n", event)
+						msg = "lost connection: " + event + "\n"
+						if msg != lastLog.warning {
+							log.Warnf(msg)
+							lastLog.warning = msg
+						}
 						waiter <- 1
 					}
 				})
