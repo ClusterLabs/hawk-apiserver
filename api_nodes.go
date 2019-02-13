@@ -1,51 +1,69 @@
 package main
 
-func handleConfigNodes(urllist []string, cib Cib) bool {
-
-	if len(urllist) == 4 {
-		cib.Configuration.Nodes.URLType = "all"
-	} else {
-		cib.Configuration.Nodes.URLType = "node"
-
-		nodeIndex := urllist[4]
-		var index int = -1
-		for i, item := range cib.Configuration.Nodes.Node {
-			if nodeIndex == item.Uname || nodeIndex == item.Id {
-				index = i
-				break
-			}
-		}
-		if index == -1 {
-			return false
-		}
-
-		cib.Configuration.Nodes.URLIndex = index
-	}
-
-	return true
+// Struct for node
+type SimpleNode struct {
+	Id          string            `json:"id"`
+	Uname       string            `json:"uname"`
+	Type        string            `json:"type,omitempty"`
+	Attributes  map[string]string `json:"instance_attributes,omitempty"`
+	Utilization map[string]string `json:"utilization,omitempty"`
 }
 
-func handleStateNodes(urllist []string, cib Cib) bool {
+// Instance function for node
+// Casting from Node struct to SimpleNode struct
+func (s *SimpleNode) Instance(item *Node) {
+	s.Id = item.Id
+	s.Uname = item.Uname
+	s.Type = item.Type
+	s.Attributes = FetchNv(item.InstanceAttributes)
+	s.Utilization = FetchNv(item.Utilization)
+}
 
-	if len(urllist) == 4 {
-		cib.Status.URLType = "nodes"
-	} else {
-		cib.Status.URLType = "node"
-
-		nodeIndex := urllist[4]
-		var index int = -1
-		for i, item := range cib.Status.NodeState {
-			if nodeIndex == item.Uname || nodeIndex == item.Id {
-				index = i
-				break
-			}
-		}
-		if index == -1 {
-			return false
-		}
-
-		cib.Status.URLIndex = index
+// handle function for url /api/v1/configuration/nodes
+func handleConfigNodes(urllist []string, cib *Cib) (bool, interface{}) {
+	nodes_data := cib.Configuration.Nodes.Node
+	if nodes_data == nil {
+		return true, nil
 	}
 
-	return true
+	nodeId := ""
+	if len(urllist) == 5 {
+		// /api/v1/configuration/nodes/:id
+		nodeId = urllist[4]
+	}
+
+	nodes := make([]SimpleNode, 0)
+	for _, item := range nodes_data {
+		simple_item := &SimpleNode{}
+		simple_item.Instance(item)
+		if nodeId == "" {
+			// /api/v1/configuration/nodes
+			nodes = append(nodes, *simple_item)
+		} else if item.Id == nodeId {
+			// /api/v1/configuration/nodes/:id
+			return true, simple_item
+		}
+	}
+	return true, nodes
+}
+
+// /api/v1/status/nodes
+func handleStateNodes(urllist []string, crmMon *CrmMon) (bool, interface{}) {
+	nodes_data := crmMon.CrmMonNodes.NodesNode
+	if nodes_data == nil {
+		return true, nil
+	}
+
+	nodeId := ""
+	if len(urllist) == 5 {
+		// /api/v1/status/nodes/:id
+		nodeId = urllist[4]
+	}
+
+	for index, item := range nodes_data {
+		if item.Id == nodeId {
+			return true, nodes_data[index]
+		}
+	}
+	return true, nodes_data
 }
