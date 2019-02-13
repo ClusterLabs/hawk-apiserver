@@ -1,112 +1,40 @@
 package main
 
-func handleConfigCluster(urllist []string, cib Cib) bool {
+import "strings"
 
-	if len(urllist) == 4 {
-		cib.Configuration.CrmConfig.URLType = "all"
-	} else {
-		cib.Configuration.CrmConfig.URLType = "property"
-
-		attrIndex := urllist[4]
-		var index int = -1
-		var boot_index int
-
-		// find cib-bootstrap-options firstly
-		// then match the specific property
-		for i, item := range cib.Configuration.CrmConfig.ClusterPropertySet {
-			if item.Id == "cib-bootstrap-options" {
-				boot_index = i
-				for nv_i, nv_item := range item.Nvpair {
-					if attrIndex == nv_item.Id || attrIndex == nv_item.Name {
-						index = nv_i
-						break
-					}
-				}
-				break
-			}
-		}
-
-		if index == -1 {
-			return false
-		}
-
-		cib.Configuration.CrmConfig.URLIndex = boot_index
-		cib.Configuration.CrmConfig.ClusterPropertySet[boot_index].URLIndex = index
-	}
-
-	return true
+// api/v1/configuration/cluster_property
+func handleConfigCluster(urllist []string, cib *Cib) (bool, interface{}) {
+	return true, FetchNv(cib.Configuration.CrmConfig.ClusterPropertySet)
 }
 
-func handleConfigRscDefaults(urllist []string, cib Cib) bool {
-
-	if len(urllist) == 4 {
-		cib.Configuration.RscDefaults.URLType = "all"
-	} else {
-		cib.Configuration.RscDefaults.URLType = "options"
-
-		attrIndex := urllist[4]
-		var index int = -1
-		var option_index int
-
-		// find rsc-options firstly
-		// then match the specific options
-		for i, item := range cib.Configuration.RscDefaults.MetaAttributes {
-			if item.Id == "rsc-options" {
-				option_index = i
-				for nv_i, nv_item := range item.Nvpair {
-					if attrIndex == nv_item.Id || attrIndex == nv_item.Name {
-						index = nv_i
-						break
-					}
-				}
-				break
-			}
-		}
-
-		if index == -1 {
-			return false
-		}
-
-		cib.Configuration.RscDefaults.URLIndex = option_index
-		cib.Configuration.RscDefaults.MetaAttributes[option_index].URLIndex = index
-	}
-
-	return true
+// api/v1/configuration/rsc_defaults
+func handleConfigRscDefaults(urllist []string, cib *Cib) (bool, interface{}) {
+	return true, FetchNv(cib.Configuration.RscDefaults)
 }
 
-func handleConfigOpDefaults(urllist []string, cib Cib) bool {
+// api/v1/configuration/op_defaults
+func handleConfigOpDefaults(urllist []string, cib *Cib) (bool, interface{}) {
+	return true, FetchNv(cib.Configuration.OpDefaults)
+}
 
-	if len(urllist) == 4 {
-		cib.Configuration.OpDefaults.URLType = "all"
-	} else {
-		cib.Configuration.OpDefaults.URLType = "options"
-
-		attrIndex := urllist[4]
-		var index int = -1
-		var option_index int
-
-		// find op-options firstly
-		// then match the specific options
-		for i, item := range cib.Configuration.OpDefaults.MetaAttributes {
-			if item.Id == "op-options" {
-				option_index = i
-				for nv_i, nv_item := range item.Nvpair {
-					if attrIndex == nv_item.Id || attrIndex == nv_item.Name {
-						index = nv_i
-						break
-					}
-				}
-				break
-			}
-		}
-
-		if index == -1 {
-			return false
-		}
-
-		cib.Configuration.OpDefaults.URLIndex = option_index
-		cib.Configuration.OpDefaults.MetaAttributes[option_index].URLIndex = index
+// api/v1/status/summary
+func handleStateSummary(urllist []string, crmMon *CrmMon) (bool, interface{}) {
+	summary_data := crmMon.CrmMonSummary
+	if summary_data == nil {
+		return true, nil
 	}
 
-	return true
+	ch := make(chan string)
+	go FetchContent(ch, GetNumField(summary_data), summary_data)
+	nv := make(map[string]string)
+	for n := range ch {
+		res := strings.Split(n, ";")
+		// in crm_mon xml outputs, there are some elements which have some attributes
+		// for the reason about namespace, I combine the element tag and each attribute name
+		// so the output looks flat, hope this can be useful
+		key := res[2] + "_" + res[0]
+		nv[key] = res[1]
+	}
+
+	return true, nv
 }
