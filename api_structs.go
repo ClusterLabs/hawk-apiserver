@@ -37,25 +37,11 @@ type Configuration struct {
 	Acls            *Acls            `xml:"acls" json:"acls,omitempty"`
 	Tags            *Tags            `xml:"tags" json:"tags,omitempty"`
 	Alerts          *Alerts          `xml:"alerts" json:"alerts,omitempty"`
-	URLType         string           `json:"-"`
 }
 
 type CrmConfig struct {
-	XMLNAME            xml.Name              `xml:"crm_config" json:"-"`
-	ClusterPropertySet []*ClusterPropertySet `xml:"cluster_property_set" json:"cluster_property_set,omitempty"`
-	URLType            string                `json:"-"`
-	URLIndex           int                   `json:"-"`
-}
-
-type ClusterPropertySet struct {
-	XMLNAME  xml.Name  `xml:"cluster_property_set" json:"-"`
-	IdRef    string    `xml:"id-ref,attr" json:"id-ref,omitempty"`
-	Id       string    `xml:"id,attr" json:"id,omitempty"`
-	Rule     *Rule     `xml:"rule" json:"rule,omitempty"`
-	Nvpair   []*Nvpair `xml:"nvpair" json:"nvpair,omitempty"`
-	Score    string    `xml:"score,attr" json:"score,omitempty"`
-	URLType  string    `json:"-"`
-	URLIndex int       `json:"-"`
+	XMLNAME            xml.Name          `xml:"crm_config" json:"-"`
+	ClusterPropertySet []*MetaAttributes `xml:"cluster_property_set" json:"cluster_property_set,omitempty"`
 }
 
 type Rule struct {
@@ -87,22 +73,8 @@ type DateExpression struct {
 	Operation string    `xml:"operation,attr" json:"operation,omitempty"`
 	Start     string    `xml:"start,attr" json:"start,omitempty"`
 	End       string    `xml:"end,attr" json:"end,omitempty"`
-	Duration  *Duration `xml:"duration" json:"duration,omitempty"`
+	Duration  *DateSpec `xml:"duration" json:"duration,omitempty"`
 	DateSpec  *DateSpec `xml:"date_spec" json:"date_spec,omitempty"`
-}
-
-type Duration struct {
-	XMLNAME   xml.Name `xml:"duration" json:"-"`
-	Id        string   `xml:"id,attr" json:"id"`
-	Hours     string   `xml:"hours,attr" json:"hours,omitempty"`
-	Monthdays string   `xml:"monthdays,attr" json:"monthdays,omitempty"`
-	Weekdays  string   `xml:"weekdays,attr" json:"weekdays,omitempty"`
-	Yearsdays string   `xml:"yearsdays,attr" json:"yearsdays,omitempty"`
-	Months    string   `xml:"months,attr" json:"months,omitempty"`
-	Weeks     string   `xml:"weeks,attr" json:"weeks,omitempty"`
-	Years     string   `xml:"years,attr" json:"years,omitempty"`
-	Weekyears string   `xml:"weekyears,attr" json:"weekyears,omitempty"`
-	Moon      string   `xml:"moon,attr" json:"moon,omitempty"`
 }
 
 type DateSpec struct {
@@ -130,62 +102,36 @@ type Nvpair struct {
 type RscDefaults struct {
 	XMLNAME        xml.Name          `xml:"rsc_defaults" json:"-"`
 	MetaAttributes []*MetaAttributes `xml:"meta_attributes" json:"meta_attributes,omitempty"`
-	URLType        string            `json:"-"`
-	URLIndex       int               `json:"-"`
 }
 
 type MetaAttributes struct {
-	XMLNAME  xml.Name  `xml:"meta_attributes" json:"-"`
-	IdRef    string    `xml:"id-ref,attr" json:"id-ref,omitempty"`
-	Id       string    `xml:"id,attr" json:"id,omitempty"`
-	Rule     *Rule     `xml:"rule" json:"rule,omitempty"`
-	Nvpair   []*Nvpair `xml:"nvpair" json:"nvpair,omitempty"`
-	Score    string    `xml:"score,attr" json:"score,omitempty"`
-	URLType  string    `json:"-"`
-	URLIndex int       `json:"-"`
+	XMLNAME xml.Name  `xml:"meta_attributes" json:"-"`
+	IdRef   string    `xml:"id-ref,attr" json:"id-ref,omitempty"`
+	Id      string    `xml:"id,attr" json:"id,omitempty"`
+	Rule    *Rule     `xml:"rule" json:"rule,omitempty"`
+	Nvpair  []*Nvpair `xml:"nvpair" json:"nvpair,omitempty"`
+	Score   string    `xml:"score,attr" json:"score,omitempty"`
 }
 
 type OpDefaults struct {
 	XMLNAME        xml.Name          `xml:"op_defaults" json:"-"`
 	MetaAttributes []*MetaAttributes `xml:"meta_attributes" json:"meta_attributes,omitempty"`
-	URLType        string            `json:"-"`
-	URLIndex       int               `json:"-"`
 }
 
 type Nodes struct {
-	XMLNAME  xml.Name `xml:"nodes" json:"-"`
-	Node     []*Node  `xml:"node" json:"node,omitempty"`
-	URLType  string   `json:"-"`
-	URLIndex int      `json:"-"`
+	XMLNAME xml.Name `xml:"nodes" json:"-"`
+	Node    []*Node  `xml:"node" json:"node,omitempty"`
 }
 
 type Node struct {
-	XMLNAME            xml.Name              `xml:"node" json:"-"`
-	Id                 string                `xml:"id,attr" json:"id"`
-	Uname              string                `xml:"uname,attr" json:"uname"`
-	Type               string                `xml:"type,attr" json:"type,omitempty"`
-	Description        string                `xml:"description,attr" json:"description,omitempty"`
-	Score              string                `xml:"score,attr" json:"score,omitempty"`
-	InstanceAttributes []*InstanceAttributes `xml:"instance_attributes" json:"instance_attributes,omitempty"`
-	Utilization        []*Utilization        `xml:"utilization" json:"utilization,omitempty"`
-}
-
-type InstanceAttributes struct {
-	XMLNAME xml.Name  `xml:"instance_attributes" json:"-"`
-	IdRef   string    `xml:"id-ref,attr" json:"id-ref,omitempty"`
-	Id      string    `xml:"id,attr" json:"id,omitempty"`
-	Rule    *Rule     `xml:"rule" json:"rule,omitempty"`
-	Nvpair  []*Nvpair `xml:"nvpair" json:"nvpair,omitempty"`
-	Score   string    `xml:"score,attr" json:"score,omitempty"`
-}
-
-type Utilization struct {
-	XMLNAME xml.Name  `xml:"utilization" json:"-"`
-	IdRef   string    `xml:"id-ref,attr" json:"id-ref,omitempty"`
-	Id      string    `xml:"id,attr" json:"id,omitempty"`
-	Rule    *Rule     `xml:"rule" json:"rule,omitempty"`
-	Nvpair  []*Nvpair `xml:"nvpair" json:"nvpair,omitempty"`
-	Score   string    `xml:"score,attr" json:"score,omitempty"`
+	XMLNAME            xml.Name          `xml:"node" json:"-"`
+	Id                 string            `xml:"id,attr" json:"id"`
+	Uname              string            `xml:"uname,attr" json:"uname"`
+	Type               string            `xml:"type,attr" json:"type,omitempty"`
+	Description        string            `xml:"description,attr" json:"description,omitempty"`
+	Score              string            `xml:"score,attr" json:"score,omitempty"`
+	InstanceAttributes []*MetaAttributes `xml:"instance_attributes" json:"instance_attributes,omitempty"`
+	Utilization        []*MetaAttributes `xml:"utilization" json:"utilization,omitempty"`
 }
 
 type Resources struct {
@@ -196,22 +142,20 @@ type Resources struct {
 	Clone     []*Clone     `xml:"clone" json:"clone,omitempty"`
 	Master    []*Master    `xml:"master" json:"master,omitempty"`
 	Bundle    []*Bundle    `xml:"bundle" json:"bundle,omitempty"`
-	URLType   string       `json:"-"`
-	URLIndex  int          `json:"-"`
 }
 
 type Primitive struct {
-	XMLNAME            xml.Name              `xml:"primitive" json:"-"`
-	Id                 string                `xml:"id,attr" json:"id"`
-	Class              string                `xml:"class,attr" json:"class,omitempty"`
-	Provider           string                `xml:"provider,attr" json:"provider,omitempty"`
-	Type               string                `xml:"type,attr" json:"type,omitempty"`
-	Template           string                `xml:"template,attr" json:"template,omitempty"`
-	Description        string                `xml:"description,attr" json:"description,omitempty"`
-	MetaAttributes     []*MetaAttributes     `xml:"meta_attributes" json:"meta_attributes,omitempty"`
-	InstanceAttributes []*InstanceAttributes `xml:"instance_attributes" json:"instance_attributes,omitempty"`
-	Operations         *Operations           `xml:"operations" json:"operations,omitempty"`
-	Utilization        []*Utilization        `xml:"utilization" json:"utilization,omitempty"`
+	XMLNAME            xml.Name          `xml:"primitive" json:"-"`
+	Id                 string            `xml:"id,attr" json:"id"`
+	Class              string            `xml:"class,attr" json:"class,omitempty"`
+	Provider           string            `xml:"provider,attr" json:"provider,omitempty"`
+	Type               string            `xml:"type,attr" json:"type,omitempty"`
+	Template           string            `xml:"template,attr" json:"template,omitempty"`
+	Description        string            `xml:"description,attr" json:"description,omitempty"`
+	MetaAttributes     []*MetaAttributes `xml:"meta_attributes" json:"meta_attributes,omitempty"`
+	InstanceAttributes []*MetaAttributes `xml:"instance_attributes" json:"instance_attributes,omitempty"`
+	Operations         *Operations       `xml:"operations" json:"operations,omitempty"`
+	Utilization        []*MetaAttributes `xml:"utilization" json:"utilization,omitempty"`
 }
 
 type Operations struct {
@@ -222,76 +166,76 @@ type Operations struct {
 }
 
 type Op struct {
-	XMLNAME            xml.Name              `xml:"op" json:"-"`
-	Id                 string                `xml:"id,attr" json:"id"`
-	Name               string                `xml:"name,attr" json:"name"`
-	Interval           string                `xml:"interval,attr" json:"interval"`
-	Description        string                `xml:"description,attr" json:"description,omitempty"`
-	StartDelay         string                `xml:"start-delay,attr" json:"start-delay,omitempty"`
-	IntervalOrigin     string                `xml:"interval-origin,attr" json:"interval-origin,omitempty"`
-	Timeout            string                `xml:"timeout,attr" json:"timeout,omitempty"`
-	Enabled            string                `xml:"enabled,attr" json:"enabled,omitempty"`
-	RecordPending      string                `xml:"record-pending,attr" json:"record-pending,omitempty"`
-	Role               string                `xml:"role,attr" json:"role,omitempty"`
-	OnFail             string                `xml:"on-fail,attr" json:"on-fail,omitempty"`
-	MetaAttributes     []*MetaAttributes     `xml:"meta_attributes" json:"meta_attributes,omitempty"`
-	InstanceAttributes []*InstanceAttributes `xml:"instance_attributes" json:"instance_attributes,omitempty"`
+	XMLNAME            xml.Name          `xml:"op" json:"-"`
+	Id                 string            `xml:"id,attr" json:"id"`
+	Name               string            `xml:"name,attr" json:"name"`
+	Interval           string            `xml:"interval,attr" json:"interval"`
+	Description        string            `xml:"description,attr" json:"description,omitempty"`
+	StartDelay         string            `xml:"start-delay,attr" json:"start-delay,omitempty"`
+	IntervalOrigin     string            `xml:"interval-origin,attr" json:"interval-origin,omitempty"`
+	Timeout            string            `xml:"timeout,attr" json:"timeout,omitempty"`
+	Enabled            string            `xml:"enabled,attr" json:"enabled,omitempty"`
+	RecordPending      string            `xml:"record-pending,attr" json:"record-pending,omitempty"`
+	Role               string            `xml:"role,attr" json:"role,omitempty"`
+	OnFail             string            `xml:"on-fail,attr" json:"on-fail,omitempty"`
+	MetaAttributes     []*MetaAttributes `xml:"meta_attributes" json:"meta_attributes,omitempty"`
+	InstanceAttributes []*MetaAttributes `xml:"instance_attributes" json:"instance_attributes,omitempty"`
 }
 
 type Template struct {
-	XMLNAME            xml.Name              `xml:"template" json:"-"`
-	Id                 string                `xml:"id,attr" json:"id"`
-	Class              string                `xml:"class,attr" json:"class,omitempty"`
-	Provider           string                `xml:"provider,attr" json:"provider,omitempty"`
-	Type               string                `xml:"type,attr" json:"type"`
-	Description        string                `xml:"description,attr" json:"description,omitempty"`
-	MetaAttributes     []*MetaAttributes     `xml:"meta_attributes" json:"meta_attributes,omitempty"`
-	InstanceAttributes []*InstanceAttributes `xml:"instance_attributes" json:"instance_attributes,omitempty"`
-	Operations         *Operations           `xml:"operations" json:"operations,omitempty"`
-	Utilization        []*Utilization        `xml:"utilization" json:"utilization,omitempty"`
+	XMLNAME            xml.Name          `xml:"template" json:"-"`
+	Id                 string            `xml:"id,attr" json:"id"`
+	Class              string            `xml:"class,attr" json:"class,omitempty"`
+	Provider           string            `xml:"provider,attr" json:"provider,omitempty"`
+	Type               string            `xml:"type,attr" json:"type"`
+	Description        string            `xml:"description,attr" json:"description,omitempty"`
+	MetaAttributes     []*MetaAttributes `xml:"meta_attributes" json:"meta_attributes,omitempty"`
+	InstanceAttributes []*MetaAttributes `xml:"instance_attributes" json:"instance_attributes,omitempty"`
+	Operations         *Operations       `xml:"operations" json:"operations,omitempty"`
+	Utilization        []*MetaAttributes `xml:"utilization" json:"utilization,omitempty"`
 }
 
 type Group struct {
-	XMLNAME            xml.Name              `xml:"group" json:"-"`
-	Id                 string                `xml:"id,attr" json:"id"`
-	Description        string                `xml:"description,attr" json:"description,omitempty"`
-	MetaAttributes     []*MetaAttributes     `xml:"meta_attributes" json:"meta_attributes,omitempty"`
-	InstanceAttributes []*InstanceAttributes `xml:"instance_attributes" json:"instance_attributes,omitempty"`
-	Primitive          []*Primitive          `xml:"primitive" json:"primitive"`
+	XMLNAME            xml.Name          `xml:"group" json:"-"`
+	Id                 string            `xml:"id,attr" json:"id"`
+	Description        string            `xml:"description,attr" json:"description,omitempty"`
+	MetaAttributes     []*MetaAttributes `xml:"meta_attributes" json:"meta_attributes,omitempty"`
+	InstanceAttributes []*MetaAttributes `xml:"instance_attributes" json:"instance_attributes,omitempty"`
+	Primitive          []*Primitive      `xml:"primitive" json:"primitive"`
 }
 
 type Clone struct {
-	XMLNAME            xml.Name              `xml:"clone" json:"-"`
-	Id                 string                `xml:"id,attr" json:"id"`
-	Description        string                `xml:"description,attr" json:"description,omitempty"`
-	MetaAttributes     []*MetaAttributes     `xml:"meta_attributes" json:"meta_attributes,omitempty"`
-	InstanceAttributes []*InstanceAttributes `xml:"instance_attributes" json:"instance_attributes,omitempty"`
-	Primitive          *Primitive            `xml:"primitive" json:"primitive,omitempty"`
-	Group              *Group                `xml:"group" json:"group,omitempty"`
+	XMLNAME            xml.Name          `xml:"clone" json:"-"`
+	Id                 string            `xml:"id,attr" json:"id"`
+	Description        string            `xml:"description,attr" json:"description,omitempty"`
+	MetaAttributes     []*MetaAttributes `xml:"meta_attributes" json:"meta_attributes,omitempty"`
+	InstanceAttributes []*MetaAttributes `xml:"instance_attributes" json:"instance_attributes,omitempty"`
+	Primitive          *Primitive        `xml:"primitive" json:"primitive,omitempty"`
+	Group              *Group            `xml:"group" json:"group,omitempty"`
 }
 
 type Master struct {
-	XMLNAME            xml.Name              `xml:"master" json:"-"`
-	Id                 string                `xml:"id,attr" json:"id"`
-	Description        string                `xml:"description,attr" json:"description,omitempty"`
-	MetaAttributes     []*MetaAttributes     `xml:"meta_attributes" json:"meta_attributes,omitempty"`
-	InstanceAttributes []*InstanceAttributes `xml:"instance_attributes" json:"instance_attributes,omitempty"`
-	Primitive          *Primitive            `xml:"primitive" json:"primitive,omitempty"`
-	Group              *Group                `xml:"group" json:"group,omitempty"`
+	XMLNAME            xml.Name          `xml:"master" json:"-"`
+	Id                 string            `xml:"id,attr" json:"id"`
+	Description        string            `xml:"description,attr" json:"description,omitempty"`
+	MetaAttributes     []*MetaAttributes `xml:"meta_attributes" json:"meta_attributes,omitempty"`
+	InstanceAttributes []*MetaAttributes `xml:"instance_attributes" json:"instance_attributes,omitempty"`
+	Primitive          *Primitive        `xml:"primitive" json:"primitive,omitempty"`
+	Group              *Group            `xml:"group" json:"group,omitempty"`
 }
 
 type Bundle struct {
-	XMLNAME            xml.Name              `xml:"bundle" json:"-"`
-	Id                 string                `xml:"id,attr" json:"id"`
-	Description        string                `xml:"description,attr" json:"description,omitempty"`
-	MetaAttributes     []*MetaAttributes     `xml:"meta_attributes" json:"meta_attributes,omitempty"`
-	InstanceAttributes []*InstanceAttributes `xml:"instance_attributes" json:"instance_attributes,omitempty"`
-	Docker             *Docker               `xml:"docker" json:"docker,omitempty"`
-	Rkt                *Rkt                  `xml:"rkt" json:"rkt,omitempty"`
-	Podman             *Podman               `xml:"podman" json:"podman,omitempty"`
-	Network            *Network              `xml:"network" json:"network,omitempty"`
-	Storage            *Storage              `xml:"storage" json:"storage,omitempty"`
-	Primitive          *Primitive            `xml:"primitive" json:"primitive,omitempty"`
+	XMLNAME            xml.Name          `xml:"bundle" json:"-"`
+	Id                 string            `xml:"id,attr" json:"id"`
+	Description        string            `xml:"description,attr" json:"description,omitempty"`
+	MetaAttributes     []*MetaAttributes `xml:"meta_attributes" json:"meta_attributes,omitempty"`
+	InstanceAttributes []*MetaAttributes `xml:"instance_attributes" json:"instance_attributes,omitempty"`
+	Docker             *Docker           `xml:"docker" json:"docker,omitempty"`
+	Rkt                *Rkt              `xml:"rkt" json:"rkt,omitempty"`
+	Podman             *Podman           `xml:"podman" json:"podman,omitempty"`
+	Network            *Network          `xml:"network" json:"network,omitempty"`
+	Storage            *Storage          `xml:"storage" json:"storage,omitempty"`
+	Primitive          *Primitive        `xml:"primitive" json:"primitive,omitempty"`
 }
 
 type Docker struct {
@@ -368,8 +312,6 @@ type Constraints struct {
 	RscColocation []*RscColocation `xml:"rsc_colocation" json:"rsc_colocation,omitempty"`
 	RscOrder      []*RscOrder      `xml:"rsc_order" json:"rsc_order,omitempty"`
 	RscTicket     []*RscTicket     `xml:"rsc_ticket" json:"rsc_ticket,omitempty"`
-	URLType       string           `json:"-"`
-	URLIndex      int              `json:"-"`
 }
 
 type RscLocation struct {
@@ -451,8 +393,6 @@ type RscTicket struct {
 type FencingTopology struct {
 	XMLNAME      xml.Name        `xml:"fencing-topology" json:"-"`
 	FencingLevel []*FencingLevel `xml:"fencing-level" json:"fencing-level,omitempty"`
-	URLType      string          `json:"-"`
-	URLIndex     int             `json:"-"`
 }
 
 type FencingLevel struct {
@@ -471,8 +411,6 @@ type Acls struct {
 	AclTarget []*AclTarget `xml:"acl_target" json:"acl_target,omitempty"`
 	AclGroup  []*AclGroup  `xml:"acl_group" json:"acl_group,omitempty"`
 	AclRole   []*AclRole   `xml:"acl_role" json:"acl_role,omitempty"`
-	URLType   string       `json:"-"`
-	URLIndex  int          `json:"-"`
 }
 
 type AclTarget struct {
@@ -511,10 +449,8 @@ type AclPermission struct {
 }
 
 type Tags struct {
-	XMLNAME  xml.Name `xml:"tags" json:"-"`
-	Tag      []*Tag   `xml:"tag" json:"tag,omitempty"`
-	URLType  string   `json:"-"`
-	URLIndex int      `json:"-"`
+	XMLNAME xml.Name `xml:"tags" json:"-"`
+	Tag     []*Tag   `xml:"tag" json:"tag,omitempty"`
 }
 
 type Tag struct {
@@ -525,25 +461,23 @@ type Tag struct {
 
 type ObjRef struct {
 	XMLNAME xml.Name `xml:"obj_ref" json:"-"`
-	Id      string   `xml:"id,attr" json:"id"`
+	Id      string   `xml:"id ,attr" json:"id "`
 }
 
 type Alerts struct {
-	XMLNAME  xml.Name `xml:"alerts" json:"-"`
-	Alert    []*Alert `xml:"alert" json:"alert,omitempty"`
-	URLType  string   `json:"-"`
-	URLIndex int      `json:"-"`
+	XMLNAME xml.Name `xml:"alerts" json:"-"`
+	Alert   []*Alert `xml:"alert" json:"alert,omitempty"`
 }
 
 type Alert struct {
-	XMLNAME            xml.Name              `xml:"alert" json:"-"`
-	Id                 string                `xml:"id,attr" json:"id"`
-	Description        string                `xml:"description,attr" json:"description,omitempty"`
-	Path               string                `xml:"path,attr" json:"path"`
-	MetaAttributes     []*MetaAttributes     `xml:"meta_attributes" json:"meta_attributes,omitempty"`
-	InstanceAttributes []*InstanceAttributes `xml:"instance_attributes" json:"instance_attributes,omitempty"`
-	Select             *Select               `xml:"select" json:"select,omitempty"`
-	Recipient          []*Recipient          `xml:"recipient" json:"recipient,omitempty"`
+	XMLNAME            xml.Name          `xml:"alert" json:"-"`
+	Id                 string            `xml:"id,attr" json:"id"`
+	Description        string            `xml:"description,attr" json:"description,omitempty"`
+	Path               string            `xml:"path,attr" json:"path"`
+	MetaAttributes     []*MetaAttributes `xml:"meta_attributes" json:"meta_attributes,omitempty"`
+	InstanceAttributes []*MetaAttributes `xml:"instance_attributes" json:"instance_attributes,omitempty"`
+	Select             *Select           `xml:"select" json:"select,omitempty"`
+	Recipient          []*Recipient      `xml:"recipient" json:"recipient,omitempty"`
 }
 
 type Select struct {
@@ -578,76 +512,205 @@ type SelectResources struct {
 }
 
 type Recipient struct {
-	XMLNAME            xml.Name              `xml:"recipient" json:"-"`
-	Id                 string                `xml:"id,attr" json:"id"`
-	Description        string                `xml:"description,attr" json:"description,omitempty"`
-	Value              string                `xml:"value,attr" json:"value"`
-	MetaAttributes     []*MetaAttributes     `xml:"meta_attributes" json:"meta_attributes,omitempty"`
-	InstanceAttributes []*InstanceAttributes `xml:"instance_attributes" json:"instance_attributes,omitempty"`
+	XMLNAME            xml.Name          `xml:"recipient" json:"-"`
+	Id                 string            `xml:"id,attr" json:"id"`
+	Description        string            `xml:"description,attr" json:"description,omitempty"`
+	Value              string            `xml:"value,attr" json:"value"`
+	MetaAttributes     []*MetaAttributes `xml:"meta_attributes" json:"meta_attributes,omitempty"`
+	InstanceAttributes []*MetaAttributes `xml:"instance_attributes" json:"instance_attributes,omitempty"`
 }
 
 type Status struct {
-	XMLNAME   xml.Name     `xml:"status" json:"-"`
-	NodeState []*NodeState `xml:"node_state" json:"node_state,omitempty"`
-	URLType   string       `json:"-"`
-	URLIndex  int          `json:"-"`
+	XMLNAME xml.Name `xml:"status" json:"-"`
 }
 
-type NodeState struct {
-	XMLNAME        xml.Name `xml:"node_state" json:"-"`
-	Id             string   `xml:"id,attr" json:"id"`
-	Uname          string   `xml:"uname,attr" json:"uname"`
-	InCcm          string   `xml:"in_ccm,attr" json:"in_ccm"`
-	Crmd           string   `xml:"crmd,attr" json:"crmd"`
-	CrmDebugOrigin string   `xml:"crm-debug-origin,attr" json:"crm-debug-origin"`
-	Join           string   `xml:"join,attr" json:"join"`
-	Expected       string   `xml:"expected,attr" json:"expected"`
-	Lrm            *Lrm     `xml:"lrm" json:"lrm,omitempty"`
+type CrmMon struct {
+	XMLNAME              xml.Name              `xml:"crm_mon" json:"-"`
+	CrmMonSummary        *CrmMonSummary        `xml:"summary" json:"summary"`
+	CrmMonNodes          *CrmMonNodes          `xml:"nodes" json:"nodes"`
+	CrmMonResources      *CrmMonResources      `xml:"resources" json:"resources"`
+	CrmMonNodeAttributes *CrmMonNodeAttributes `xml:"node_attributes" json:"node_attributes"`
+	CrmMonNodeHistory    *CrmMonNodeHistory    `xml:"node_history" json:"node_history"`
+	CrmMonFailures       *CrmMonFailures       `xml:"failures" json:"failures"`
 }
 
-type Lrm struct {
-	XMLNAME      xml.Name      `xml:"lrm" json:"-"`
-	Id           string        `xml:"id,attr" json:"id"`
-	LrmResources *LrmResources `xml:"lrm_resources" json:"lrm_resources,omitempty"`
+type CrmMonSummary struct {
+	XMLNAME                    xml.Name                    `xml:"summary" json:"-"`
+	SummaryStack               *SummaryStack               `xml:"stack" json:"stack"`
+	SummaryCurrentDc           *SummaryCurrentDc           `xml:"current_dc" json:"current_dc"`
+	SummaryLastUpdate          *SummaryLastUpdate          `xml:"last_update" json:"last_update"`
+	SummaryLastChange          *SummaryLastChange          `xml:"last_change" json:"last_change"`
+	SummaryNodesConfigured     *SummaryNodesConfigured     `xml:"nodes_configured" json:"nodes_configured"`
+	SummaryResourcesConfigured *SummaryResourcesConfigured `xml:"resources_configured" json:"resources_configured"`
 }
 
-type LrmResources struct {
-	XMLNAME     xml.Name       `xml:"lrm_resources" json:"-"`
-	LrmResource []*LrmResource `xml:"lrm_resource" json:"lrm_resource,omitempty"`
+type SummaryStack struct {
+	XMLNAME xml.Name `xml:"stack" json:"-"`
+	Type    string   `xml:"type,attr" json:"type"`
 }
 
-type LrmResource struct {
-	XMLNAME  xml.Name  `xml:"lrm_resource" json:"-"`
-	Id       string    `xml:"id,attr" json:"id"`
-	Type     string    `xml:"type,attr" json:"type"`
-	Class    string    `xml:"class,attr" json:"class"`
-	Provider string    `xml:"provider,attr" json:"provider,omitempty"`
-	LrmRscOp *LrmRscOp `xml:"lrm_rsc_op" json:"lrm_rsc_op,omitempty"`
+type SummaryCurrentDc struct {
+	XMLNAME    xml.Name `xml:"current_dc" json:"-"`
+	Present    string   `xml:"present,attr" json:"present"`
+	Version    string   `xml:"version,attr" json:"version"`
+	Name       string   `xml:"name,attr" json:"name"`
+	Id         string   `xml:"id,attr" json:"id"`
+	WithQuorum string   `xml:"with_quorum,attr" json:"with_quorum"`
 }
 
-type LrmRscOp struct {
-	XMLNAME         xml.Name `xml:"lrm_rsc_op" json:"-"`
-	Id              string   `xml:"id,attr" json:"id"`
-	OperationKey    string   `xml:"operation_key,attr" json:"operation_key"`
-	Operation       string   `xml:"operation,attr" json:"operation"`
-	CrmDebugOrigin  string   `xml:"crm-debug-origin,attr" json:"crm-debug-origin"`
-	CrmFeatureSet   string   `xml:"crm_feature_set,attr" json:"crm_feature_set"`
-	TransitionKey   string   `xml:"transition-key,attr" json:"transition-key"`
-	TransitionMagic string   `xml:"transition-magic,attr" json:"transition-magic"`
-	ExitReason      string   `xml:"exit-reason,attr" json:"exit-reason"`
-	OnNode          string   `xml:"on_node,attr" json:"on_node"`
-	CallId          string   `xml:"call-id,attr" json:"call-id"`
-	RcCode          string   `xml:"rc-code,attr" json:"rc-code"`
-	OpStatus        string   `xml:"op-status,attr" json:"op-status"`
-	Interval        string   `xml:"interval,attr" json:"interval"`
-	LastRun         string   `xml:"last-run,attr" json:"last-run"`
-	LastRcChange    string   `xml:"last-rc-change,attr" json:"last-rc-change"`
-	ExecTime        string   `xml:"exec-time,attr" json:"exec-time"`
-	QueueTime       string   `xml:"queue-time,attr" json:"queue-time"`
-	OpDigest        string   `xml:"op-digest,attr" json:"op-digest"`
+type SummaryLastUpdate struct {
+	XMLNAME xml.Name `xml:"last_update" json:"-"`
+	Time    string   `xml:"time,attr" json:"time"`
 }
 
-type TypeIndex struct {
-	Type  string
-	Index int
+type SummaryLastChange struct {
+	XMLNAME xml.Name `xml:"last_change" json:"-"`
+	Time    string   `xml:"time,attr" json:"time"`
+	User    string   `xml:"user,attr" json:"user"`
+	Client  string   `xml:"client,attr" json:"client"`
+	Origin  string   `xml:"origin,attr" json:"origin"`
+}
+
+type SummaryNodesConfigured struct {
+	XMLNAME xml.Name `xml:"nodes_configured" json:"-"`
+	Number  string   `xml:"number,attr" json:"number"`
+}
+
+type SummaryResourcesConfigured struct {
+	XMLNAME  xml.Name `xml:"resources_configured" json:"-"`
+	Number   string   `xml:"number,attr" json:"number"`
+	Disabled string   `xml:"disabled,attr" json:"disabled"`
+	Blocked  string   `xml:"blocked,attr" json:"blocked"`
+}
+
+type CrmMonNodes struct {
+	XMLNAME   xml.Name     `xml:"nodes" json:"-"`
+	NodesNode []*NodesNode `xml:"node" json:"node"`
+}
+
+type NodesNode struct {
+	XMLNAME          xml.Name `xml:"node" json:"-"`
+	Name             string   `xml:"name,attr" json:"name"`
+	Id               string   `xml:"id,attr" json:"id"`
+	Online           string   `xml:"online,attr" json:"online"`
+	Standby          string   `xml:"standby,attr" json:"standby"`
+	StandbyOnfail    string   `xml:"standby_onfail,attr" json:"standby_onfail"`
+	Maintenance      string   `xml:"maintenance,attr" json:"maintenance"`
+	Pending          string   `xml:"pending,attr" json:"pending"`
+	Unclean          string   `xml:"unclean,attr" json:"unclean"`
+	Shutdown         string   `xml:"shutdown,attr" json:"shutdown"`
+	ExpectedUp       string   `xml:"expected_up,attr" json:"expected_up"`
+	IsDc             string   `xml:"is_dc,attr" json:"is_dc"`
+	ResourcesRunning string   `xml:"resources_running,attr" json:"resources_running"`
+	Type             string   `xml:"type,attr" json:"type"`
+}
+
+type CrmMonResources struct {
+	XMLNAME           xml.Name             `xml:"resources" json:"-"`
+	ResourcesResource []*ResourcesResource `xml:"resource" json:"resource"`
+	ResourcesGroup    []*ResourcesGroup    `xml:"group" json:"group"`
+	ResourcesClone    []*ResourcesClone    `xml:"clone" json:"clone"`
+}
+
+type ResourcesResource struct {
+	XMLNAME        xml.Name        `xml:"resource" json:"-"`
+	Id             string          `xml:"id,attr" json:"id"`
+	ResourceAgent  string          `xml:"resource_agent,attr" json:"resource_agent"`
+	Role           string          `xml:"role,attr" json:"role"`
+	Active         string          `xml:"active,attr" json:"active"`
+	Orphaned       string          `xml:"orphaned,attr" json:"orphaned"`
+	Blocked        string          `xml:"blocked,attr" json:"blocked"`
+	Managed        string          `xml:"managed,attr" json:"managed"`
+	Failed         string          `xml:"failed,attr" json:"failed"`
+	FailureIgnored string          `xml:"failure_ignored,attr" json:"failure_ignored"`
+	NodesRunningOn string          `xml:"nodes_running_on,attr" json:"nodes_running_on"`
+	ResourceNode   []*ResourceNode `xml:"node" json:"node"`
+}
+
+type ResourceNode struct {
+	XMLNAME xml.Name `xml:"node" json:"-"`
+	Name    string   `xml:"name,attr" json:"name"`
+	Id      string   `xml:"id,attr" json:"id"`
+	Cached  string   `xml:"cached,attr" json:"cached"`
+}
+
+type ResourcesGroup struct {
+	XMLNAME         xml.Name             `xml:"group" json:"-"`
+	Id              string               `xml:"id,attr" json:"id"`
+	NumberResources string               `xml:"number_resources,attr" json:"number_resources"`
+	GroupResource   []*ResourcesResource `xml:"resource" json:"resource"`
+}
+
+type ResourcesClone struct {
+	XMLNAME        xml.Name             `xml:"clone" json:"-"`
+	Id             string               `xml:"id,attr" json:"id"`
+	MultiState     string               `xml:"multi_state,attr" json:"multi_state"`
+	Unique         string               `xml:"unique,attr" json:"unique"`
+	Managed        string               `xml:"managed,attr" json:"managed"`
+	Failed         string               `xml:"failed,attr" json:"failed"`
+	FailureIgnored string               `xml:"failure_ignored,attr" json:"failure_ignored"`
+	CloneResource  []*ResourcesResource `xml:"resource" json:"resource"`
+	CloneGroup     []*ResourcesGroup    `xml:"group" json:"group"`
+}
+
+type CrmMonNodeAttributes struct {
+	XMLNAME            xml.Name              `xml:"node_attributes" json:"-"`
+	NodeAttributesNode []*NodeAttributesNode `xml:"node" json:"node"`
+}
+
+type NodeAttributesNode struct {
+	XMLNAME xml.Name `xml:"node" json:"-"`
+	Name    string   `xml:"name,attr" json:"name"`
+}
+
+type CrmMonNodeHistory struct {
+	XMLNAME         xml.Name         `xml:"node_history" json:"-"`
+	NodeHistoryNode *NodeHistoryNode `xml:"node" json:"node"`
+}
+
+type NodeHistoryNode struct {
+	XMLNAME             xml.Name             `xml:"node" json:"-"`
+	Name                string               `xml:"name,attr" json:"name"`
+	NodeResourceHistory *NodeResourceHistory `xml:"resource_history" json:"resource_history"`
+}
+
+type NodeResourceHistory struct {
+	XMLNAME                         xml.Name                           `xml:"resource_history" json:"-"`
+	Id                              string                             `xml:"id,attr" json:"id"`
+	Orphan                          string                             `xml:"orphan,attr" json:"orphan"`
+	MigrationThreshold              string                             `xml:"migration-threshold,attr" json:"migration-threshold"`
+	ResourceHistoryOperationHistory []*ResourceHistoryOperationHistory `xml:"operation_history" json:"operation_history"`
+}
+
+type ResourceHistoryOperationHistory struct {
+	XMLNAME      xml.Name `xml:"operation_history" json:"-"`
+	Call         string   `xml:"call,attr" json:"call"`
+	Task         string   `xml:"task,attr" json:"task"`
+	LastRcChange string   `xml:"last-rc-change,attr" json:"last-rc-change"`
+	LastRun      string   `xml:"last-run,attr" json:"last-run"`
+	ExecTime     string   `xml:"exec-time,attr" json:"exec-time"`
+	QueueTime    string   `xml:"queue-time,attr" json:"queue-time"`
+	Rc           string   `xml:"rc,attr" json:"rc"`
+	RcText       string   `xml:"rc_text,attr" json:"rc_text"`
+}
+
+type CrmMonFailures struct {
+	XMLNAME         xml.Name           `xml:"failures" json:"-"`
+	FailuresFailure []*FailuresFailure `xml:"failure" json:"failure"`
+}
+
+type FailuresFailure struct {
+	XMLNAME      xml.Name `xml:"failure" json:"-"`
+	OpKey        string   `xml:"op_key,attr" json:"op_key"`
+	Node         string   `xml:"node,attr" json:"node"`
+	Exitstatus   string   `xml:"exitstatus,attr" json:"exitstatus"`
+	Exitreason   string   `xml:"exitreason,attr" json:"exitreason"`
+	Exitcode     string   `xml:"exitcode,attr" json:"exitcode"`
+	Call         string   `xml:"call,attr" json:"call"`
+	Status       string   `xml:"status,attr" json:"status"`
+	LastRcChange string   `xml:"last-rc-change,attr" json:"last-rc-change"`
+	Queued       string   `xml:"queued,attr" json:"queued"`
+	Exec         string   `xml:"exec,attr" json:"exec"`
+	Interval     string   `xml:"interval,attr" json:"interval"`
+	Task         string   `xml:"task,attr" json:"task"`
 }
