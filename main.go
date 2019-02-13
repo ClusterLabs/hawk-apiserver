@@ -250,6 +250,12 @@ func (handler *routeHandler) proxyForRoute(route *ConfigRoute) *ReverseProxy {
 	return proxy
 }
 
+const ALL_CONFIG_TYPES = "(cluster_property|rsc_defaults|op_defaults|" +
+	"nodes|resources|primitives|groups|masters|clones|bundles|" +
+	"constraints|locations|colocations|orders|alerts|tags|acls|fencing)"
+
+const ALL_STATUS_TYPES = "(nodes|resources|summary|failures)"
+
 func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, route *ConfigRoute) bool {
 	log.Debugf("[api/v1] %v", r.URL.Path)
 	if !checkHawkAuthMethods(r) {
@@ -260,10 +266,17 @@ func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, ro
 		prefix := route.Path + "/configuration/"
 
 		// all types below cib/configuration
-		all_types := "(nodes|resources|cluster|constraints|rsc_defaults|op_defaults|alerts|tags|acls|fencing)"
+		all_types := ALL_CONFIG_TYPES
 		match, _ := regexp.MatchString(prefix+all_types+"(/?|/.+/?)$", r.URL.Path)
 		if match {
-			return handleConfigApi(w, r, handler.cib.Get())
+			return handleConfiguration(w, r, handler.cib.Get())
+		}
+
+		prefix = route.Path + "/status/"
+		all_types = ALL_STATUS_TYPES
+		match, _ = regexp.MatchString(prefix+all_types+"(/?|/.+/?)$", r.URL.Path)
+		if match {
+			return handleStatusApi(w, r, getStdout("crm_mon", "-X"))
 		}
 
 		if strings.HasPrefix(r.URL.Path, prefix+"cib.xml") {
@@ -271,13 +284,6 @@ func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, ro
 			w.Header().Set("Content-Type", "application/xml")
 			io.WriteString(w, xmldoc)
 			return true
-		}
-
-		prefix = route.Path + "/status/"
-		all_types = "(nodes|resources)"
-		match, _ = regexp.MatchString(prefix+all_types+"(/?|/.+/?)$", r.URL.Path)
-		if match {
-			return handleStatusApi(w, r, handler.cib.Get())
 		}
 	}
 	http.Error(w, fmt.Sprintf("[api/v1]: No route for %v.", r.URL.Path), 500)
