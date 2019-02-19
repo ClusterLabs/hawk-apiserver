@@ -1,17 +1,33 @@
 # Hawk API Server
 
-Next-generation cluster UI prototype
+HTTPS API server / minimalist web proxy for Hawk.
+
+This project currently provides a minimalistic web server which
+handles SSL certificate termination, proxying and static file serving
+for Hawk, a HA cluster dashboard and control interface written in Ruby
+on Rails.
+
+The primary goal for this project is to provide the minimal web server
+needed by Hawk while consuming as few system resources as
+possible. Second, it provides the `/monitor` API endpoint which
+handles long-lived connections from the frontend to enable instant
+updates of the interface on cluster events.
+
+In the future, the API server will provide a complete and documented
+REST API for Pacemaker and Pacemaker-based HA clusters, including the
+ability to provide status information and metrics for inclusion in
+other dashboards or for monitoring tools like Prometheus.
 
 ## Source installation + dependencies
 
 Building requires Go v1.9.
 
 ``` bash
-go get -u github.com/krig/hawk-apiserver
+go get -u github.com/ClusterLabs/hawk-apiserver
 ```
 
 The rest of the instructions assume that the current working directory
-is `$GOPATH/src/github.com/krig/hawk-apiserver`.
+is `$GOPATH/src/github.com/ClusterLabs/hawk-apiserver`.
 
 Generating `api_structs.go` requires the `cibToGoStruct` utility found
 at https://github.com/liangxin1300/CibToGo to be installed. This file
@@ -200,10 +216,10 @@ some steps:
 This is all you need to prepare initially to set up the vagrant environment,
 now you can simply start the virtual machines with `vagrant up` and start
 an ssh session with `vagrant ssh webui`. If you want to
-access the source within the virtual machine you have to switch to the `$GOPATH/src/github.com/krig/hawk-apiserver` directory (synced with NFS).
+access the source within the virtual machine you have to switch to the `$GOPATH/src/github.com/ClusterLabs/hawk-apiserver` directory (synced with NFS).
 
 To build the project from within the Vagrant box, simply ssh into the machine
-using `vagrant ssh webui`, cd to `$GOPATH/src/github.com/krig/hawk-apiserver`,
+using `vagrant ssh webui`, cd to `$GOPATH/src/github.com/ClusterLabs/hawk-apiserver`,
 then install the dependencies using `go get ./...` and finally `go build` to
 build. Running `hawk-apiserver` binary will start a server on port `17630`.
 
