@@ -1,0 +1,2 @@
+#!/bin/sh
+docker run -it -v "$(pwd):/app" krig/godev /bin/bash

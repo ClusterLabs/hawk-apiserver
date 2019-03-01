@@ -278,6 +278,7 @@ type Bundle struct {
 	InstanceAttributes []*InstanceAttributes `xml:"instance_attributes" json:"instance_attributes,omitempty"`
 	Docker             *Docker               `xml:"docker" json:"docker,omitempty"`
 	Rkt                *Rkt                  `xml:"rkt" json:"rkt,omitempty"`
+	Podman             *Podman               `xml:"podman" json:"podman,omitempty"`
 	Network            *Network              `xml:"network" json:"network,omitempty"`
 	Storage            *Storage              `xml:"storage" json:"storage,omitempty"`
 	Primitive          *Primitive            `xml:"primitive" json:"primitive,omitempty"`
@@ -297,6 +298,18 @@ type Docker struct {
 
 type Rkt struct {
 	XMLNAME         xml.Name `xml:"rkt" json:"-"`
+	Image           string   `xml:"image,attr" json:"image"`
+	Replicas        string   `xml:"replicas,attr" json:"replicas,omitempty"`
+	ReplicasPerHost string   `xml:"replicas-per-host,attr" json:"replicas-per-host,omitempty"`
+	Masters         string   `xml:"masters,attr" json:"masters,omitempty"`
+	PromotedMax     string   `xml:"promoted-max,attr" json:"promoted-max,omitempty"`
+	RunCommand      string   `xml:"run-command,attr" json:"run-command,omitempty"`
+	Network         string   `xml:"network,attr" json:"network,omitempty"`
+	Options         string   `xml:"options,attr" json:"options,omitempty"`
+}
+
+type Podman struct {
+	XMLNAME         xml.Name `xml:"podman" json:"-"`
 	Image           string   `xml:"image,attr" json:"image"`
 	Replicas        string   `xml:"replicas,attr" json:"replicas,omitempty"`
 	ReplicasPerHost string   `xml:"replicas-per-host,attr" json:"replicas-per-host,omitempty"`

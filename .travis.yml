@@ -1,0 +1,14 @@
+language: go
+install: true
+sudo: required
+go:
+  - 1.x
+
+services:
+  - docker
+
+before_install:
+  - docker pull krig/godev:latest
+
+script:
+  - docker run -t -v "$(pwd):/app" krig/godev /bin/sh -c "systemctl start dbus; cd /app; ./ci.sh"

@@ -1,18 +1,18 @@
 [submodule "vendor/github.com/krig/go-pacemaker"]
 	path = vendor/github.com/krig/go-pacemaker
-	url = git@github.com:krig/go-pacemaker
+	url = https://github.com/krig/go-pacemaker
 [submodule "vendor/gopkg.in/xmlpath.v2"]
 	path = vendor/gopkg.in/xmlpath.v2
-	url = git@github.com:go-xmlpath/xmlpath.git
+	url = https://github.com/go-xmlpath/xmlpath.git
 [submodule "vendor/golang.org/x/net"]
 	path = vendor/golang.org/x/net
-	url = git@github.com:golang/net
+	url = https://github.com/golang/net
 [submodule "vendor/github.com/sirupsen/logrus"]
 	path = vendor/github.com/sirupsen/logrus
-	url = git@github.com:sirupsen/logrus
+	url = https://github.com/sirupsen/logrus
 [submodule "vendor/golang.org/x/crypto"]
 	path = vendor/golang.org/x/crypto
-	url = git@github.com:golang/crypto
+	url = https://github.com/golang/crypto
 [submodule "vendor/golang.org/x/sys"]
 	path = vendor/golang.org/x/sys
-	url = git@github.com:golang/sys
+	url = https://github.com/golang/sys

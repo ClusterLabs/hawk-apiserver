@@ -48,13 +48,14 @@ func (acib *AsyncCib) Start() {
 		acib.notifier = make(chan chan string)
 	}
 
+	msg := ""
 	lastLog := LogRecord{warning: "", error: ""}
 
 	cibFetcher := func() {
 		for {
 			cib, err := pacemaker.OpenCib()
 			if err != nil {
-				msg = "Failed to connect to Pacemaker: " + err
+				msg = fmt.Sprintf("Failed to connect to Pacemaker: %v", err)
 				if msg != lastLog.warning {
 					log.Warnf(msg)
 					lastLog.warning = msg
@@ -65,7 +66,7 @@ func (acib *AsyncCib) Start() {
 				func() {
 					cibxml, err := cib.Query()
 					if err != nil {
-						msg = "Failed to query CIB: " + err
+						msg = fmt.Sprintf("Failed to query CIB: %v", err)
 						if msg != lastLog.error {
 							log.Errorf(msg)
 							lastLog.error = msg
@@ -80,7 +81,7 @@ func (acib *AsyncCib) Start() {
 					if event == pacemaker.UpdateEvent {
 						acib.notifyNewCib(doc)
 					} else {
-						msg = "lost connection: " + event + "\n"
+						msg = fmt.Sprintf("lost connection: %v", event)
 						if msg != lastLog.warning {
 							log.Warnf(msg)
 							lastLog.warning = msg
@@ -228,23 +229,23 @@ func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, ro
 	}
 	if r.Method == "GET" {
 		prefix := route.Path + "/configuration/"
-		match, _ := regexp.MatchString(prefix + "nodes(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
+		match, _ := regexp.MatchString(prefix+"nodes(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
 		if match {
 			return handleApiNodes(w, r, handler.cib.Get())
 		}
-		match, _ = regexp.MatchString(prefix + "resources(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
+		match, _ = regexp.MatchString(prefix+"resources(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
 		if match {
 			return handleApiResources(w, r, handler.cib.Get())
 		}
-		match, _ = regexp.MatchString(prefix + "cluster/?$", r.URL.Path)
+		match, _ = regexp.MatchString(prefix+"cluster/?$", r.URL.Path)
 		if match {
 			return handleApiCluster(w, r, handler.cib.Get())
 		}
-		match, _ = regexp.MatchString(prefix + "constraints(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
+		match, _ = regexp.MatchString(prefix+"constraints(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
 		if match {
 			return handleApiConstraints(w, r, handler.cib.Get())
 		}
-		if strings.HasPrefix(r.URL.Path, prefix + "cib.xml") {
+		if strings.HasPrefix(r.URL.Path, prefix+"cib.xml") {
 			xmldoc := handler.cib.Get()
 			w.Header().Set("Content-Type", "application/xml")
 			io.WriteString(w, xmldoc)
