@@ -1,2 +1,8 @@
 #!/bin/sh
-docker run -it -v "$(pwd):/app" krig/godev /bin/bash
+destdir="/root/go/src/github.com/ClusterLabs/hawk-apiserver"
+common_opts="-t --mount type=bind,source=$(pwd),destination=$destdir"
+if [ "$1" = "--ci" ]; then
+	docker run $common_opts krig/godev /bin/sh -c "systemctl start dbus; cd $destdir; ./ci.sh"
+else
+	docker run -i $common_opts krig/godev /bin/bash
+fi
