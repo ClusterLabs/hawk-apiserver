@@ -8,7 +8,16 @@ services:
   - docker
 
 before_install:
-  - docker pull krig/godev:latest
+  - docker pull shap/godev:latest
+
+before_script:
+  - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+  - chmod +x ./cc-test-reporter
+  - ./cc-test-reporter before-build
 
 script:
-  - docker run -t -v "$(pwd):/app" krig/godev /bin/sh -c "systemctl start dbus; cd /app; ./ci.sh"
+  - ./enter --ci
+
+after_script:
+  - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
+  

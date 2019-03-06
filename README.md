@@ -1,5 +1,9 @@
 # Hawk API Server
 
+[![Build Status](https://travis-ci.org/ClusterLabs/hawk-apiserver.svg?branch=master)](https://travis-ci.org/ClusterLabs/hawk-apiserver)
+[![Maintainability](https://api.codeclimate.com/v1/badges/9f372cd2a2dac74962e2/maintainability)](https://codeclimate.com/github/ClusterLabs/hawk-apiserver/maintainability)
+[![Test Coverage](https://api.codeclimate.com/v1/badges/9f372cd2a2dac74962e2/test_coverage)](https://codeclimate.com/github/ClusterLabs/hawk-apiserver/test_coverage)
+
 HTTPS API server / minimalist web proxy for Hawk.
 
 This project currently provides a minimalistic web server which
@@ -29,10 +33,25 @@ go get -u github.com/ClusterLabs/hawk-apiserver
 The rest of the instructions assume that the current working directory
 is `$GOPATH/src/github.com/ClusterLabs/hawk-apiserver`.
 
+## Generating the API structures
+
 Generating `api_structs.go` requires the `cibToGoStruct` utility found
 at https://github.com/liangxin1300/CibToGo to be installed. This file
 is generated from the pacemaker schema, so a new schema version in
 Pacemaker requires regenerating this file.
+
+Since a version of `api_structs.go` is already checked into the
+repository, running this utility is only necessary if this file hasn't
+been updated to match the current version of Pacemaker.
+
+## Using the enter script
+
+The `/enter` script can be used to set up a build and test environment
+inside a Docker container, so that all the dependencies are in place
+and there is no need to install things in the host system. If Docker
+is installed and the user has the necessary permissions to run
+containers, `/enter` should bring you to a prepared environment ready
+to run the rest of the commands.
 
 ## Generating an SSL certificate
 

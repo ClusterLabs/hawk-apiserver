@@ -1,6 +1,6 @@
 #!/bin/bash
-mkdir -p ~/go
-export GOPATH=~/go
-go get -t ./...
-go build
-go test
+export PATH=$HOME/go/bin:$PATH
+go get -v -t ./...
+go build -v
+go test -cover
+
