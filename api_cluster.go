@@ -8,10 +8,10 @@ import (
 	"net/http"
 )
 
-func handleApiCluster(w http.ResponseWriter, r *http.Request, cib_data string) bool {
+func handleAPICluster(w http.ResponseWriter, r *http.Request, cibData string) bool {
 	// parse xml into Cib struct
 	var cib Cib
-	err := xml.Unmarshal([]byte(cib_data), &cib)
+	err := xml.Unmarshal([]byte(cibData), &cib)
 	if err != nil {
 		log.Error(err)
 		return false

@@ -10,10 +10,10 @@ import (
 	"strings"
 )
 
-func handleApiNodes(w http.ResponseWriter, r *http.Request, cib_data string) bool {
+func handleAPINodes(w http.ResponseWriter, r *http.Request, cibData string) bool {
 	// parse xml into Cib struct
 	var cib Cib
-	err := xml.Unmarshal([]byte(cib_data), &cib)
+	err := xml.Unmarshal([]byte(cibData), &cib)
 	if err != nil {
 		log.Error(err)
 		return false
@@ -31,7 +31,7 @@ func handleApiNodes(w http.ResponseWriter, r *http.Request, cib_data string) boo
 		cib.Configuration.Nodes.URLType = "node"
 
 		nodeIndex := urllist[3]
-		var index int = -1
+		index := -1
 		for i, item := range cib.Configuration.Nodes.Node {
 			if nodeIndex == item.Uname || nodeIndex == item.Id {
 				index = i

@@ -10,10 +10,10 @@ import (
 	"strings"
 )
 
-func handleApiConstraints(w http.ResponseWriter, r *http.Request, cib_data string) bool {
+func handleAPIConstraints(w http.ResponseWriter, r *http.Request, cibData string) bool {
 	// parse xml into Cib struct
 	var cib Cib
-	err := xml.Unmarshal([]byte(cib_data), &cib)
+	err := xml.Unmarshal([]byte(cibData), &cib)
 	if err != nil {
 		log.Error(err)
 		return false
@@ -29,20 +29,20 @@ func handleApiConstraints(w http.ResponseWriter, r *http.Request, cib_data strin
 		cib.Configuration.Constraints.URLType = "all"
 	} else {
 		// for url api/v[1-9]/constraints/{resid}
-		consId := urllist[3]
+		consID := urllist[3]
 
-		mapIdType := make(map[string]TypeIndex)
+		mapIDType := make(map[string]TypeIndex)
 		for li, litem := range cib.Configuration.Constraints.RscLocation {
-			mapIdType[litem.Id] = TypeIndex{"location", li}
+			mapIDType[litem.Id] = TypeIndex{"location", li}
 		}
 		for ci, citem := range cib.Configuration.Constraints.RscColocation {
-			mapIdType[citem.Id] = TypeIndex{"colocation", ci}
+			mapIDType[citem.Id] = TypeIndex{"colocation", ci}
 		}
 		for oi, oitem := range cib.Configuration.Constraints.RscOrder {
-			mapIdType[oitem.Id] = TypeIndex{"order", oi}
+			mapIDType[oitem.Id] = TypeIndex{"order", oi}
 		}
 
-		val, ok := mapIdType[consId]
+		val, ok := mapIDType[consID]
 		if ok {
 			cib.Configuration.Constraints.URLType = val.Type
 			cib.Configuration.Constraints.URLIndex = val.Index

@@ -27,6 +27,8 @@ const (
 	minSize = 512
 )
 
+// GzipResponseWriter is a http.ResponseWriter
+// which compresses its input.
 type GzipResponseWriter struct {
 	http.ResponseWriter
 	writer *gzip.Writer
@@ -91,8 +93,8 @@ func (w *GzipResponseWriter) startGzip() error {
 	return err
 }
 
+// WriteHeader just saves the response code until close / actual write.
 func (w *GzipResponseWriter) WriteHeader(code int) {
-	// Just save the response code until close / actual write.
 	w.code = code
 }
 
@@ -140,6 +142,7 @@ func (w *GzipResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 // verify Hijacker interface implementation
 var _ http.Hijacker = &GzipResponseWriter{}
 
+// NewGzipHandler returns a http.Handler with gzip compression.
 func NewGzipHandler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Vary", "Accept-Encoding")

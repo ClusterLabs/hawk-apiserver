@@ -9,25 +9,56 @@ import (
 	"net/url"
 )
 
-// Provides ListenAndServeWithRedirect(),
-// a function which enables seamless
-// HTTP -> HTTPS redirect on the same port.
-// This is useful for Hawk so that if someone
-// accesses the :7630 port over HTTP, it'll
-// automagically redirect to HTTPS.
+// ListenAndServeWithRedirect enables seamless HTTP -> HTTPS redirect
+// on the same port. This is useful for Hawk so that if someone
+// accesses the :7630 port over HTTP, it'll automagically redirect to
+// HTTPS.
+func ListenAndServeWithRedirect(addr string, handler http.Handler, cert string, key string) {
+	config := &tls.Config{}
+	if config.NextProtos == nil {
+		config.NextProtos = []string{"http1/1"}
+	}
 
-type SplitListener struct {
+	var err error
+	config.Certificates = make([]tls.Certificate, 1)
+	config.Certificates[0], err = tls.LoadX509KeyPair(cert, key)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	listener := &splitListener{
+		Listener: ln,
+		config:   config,
+	}
+
+	srv := &http.Server{
+		Addr: addr,
+		Handler: &httpRedirectHandler{
+			handler: handler,
+		},
+	}
+	srv.SetKeepAlivesEnabled(true)
+	srv.Serve(listener)
+}
+
+
+type splitListener struct {
 	net.Listener
 	config *tls.Config
 }
 
-func (l *SplitListener) Accept() (net.Conn, error) {
+func (l *splitListener) Accept() (net.Conn, error) {
 	c, err := l.Listener.Accept()
 	if err != nil {
 		return nil, err
 	}
 
-	bconn := &Conn{
+	bconn := &conn{
 		Conn: c,
 		buf:  bufio.NewReader(c),
 	}
@@ -53,20 +84,20 @@ func (l *SplitListener) Accept() (net.Conn, error) {
 	return bconn, nil
 }
 
-type Conn struct {
+type conn struct {
 	net.Conn
 	buf *bufio.Reader
 }
 
-func (c *Conn) Read(b []byte) (int, error) {
+func (c *conn) Read(b []byte) (int, error) {
 	return c.buf.Read(b)
 }
 
-type HTTPRedirectHandler struct {
+type httpRedirectHandler struct {
 	handler http.Handler
 }
 
-func (handler *HTTPRedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (handler *httpRedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.TLS == nil {
 		u := url.URL{
 			Scheme:   "https",
@@ -84,35 +115,3 @@ func (handler *HTTPRedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 	handler.handler.ServeHTTP(w, r)
 }
 
-func ListenAndServeWithRedirect(addr string, handler http.Handler, cert string, key string) {
-	config := &tls.Config{}
-	if config.NextProtos == nil {
-		config.NextProtos = []string{"http1/1"}
-	}
-
-	var err error
-	config.Certificates = make([]tls.Certificate, 1)
-	config.Certificates[0], err = tls.LoadX509KeyPair(cert, key)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	ln, err := net.Listen("tcp", addr)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	listener := &SplitListener{
-		Listener: ln,
-		config:   config,
-	}
-
-	srv := &http.Server{
-		Addr: addr,
-		Handler: &HTTPRedirectHandler{
-			handler: handler,
-		},
-	}
-	srv.SetKeepAlivesEnabled(true)
-	srv.Serve(listener)
-}
