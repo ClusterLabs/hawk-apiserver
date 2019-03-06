@@ -3,6 +3,7 @@
 [![Build Status](https://travis-ci.org/ClusterLabs/hawk-apiserver.svg?branch=master)](https://travis-ci.org/ClusterLabs/hawk-apiserver)
 [![Maintainability](https://api.codeclimate.com/v1/badges/9f372cd2a2dac74962e2/maintainability)](https://codeclimate.com/github/ClusterLabs/hawk-apiserver/maintainability)
 [![Test Coverage](https://api.codeclimate.com/v1/badges/9f372cd2a2dac74962e2/test_coverage)](https://codeclimate.com/github/ClusterLabs/hawk-apiserver/test_coverage)
+[![GoDoc](https://godoc.org/github.com/ClusterLabs/hawk-apiserver?status.svg)](https://godoc.org/github.com/ClusterLabs/hawk-apiserver)
 
 HTTPS API server / minimalist web proxy for Hawk.
 
