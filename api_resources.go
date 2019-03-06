@@ -10,10 +10,10 @@ import (
 	"strings"
 )
 
-func handleApiResources(w http.ResponseWriter, r *http.Request, cib_data string) bool {
+func handleAPIResources(w http.ResponseWriter, r *http.Request, cibData string) bool {
 	// parse xml into Cib struct
 	var cib Cib
-	err := xml.Unmarshal([]byte(cib_data), &cib)
+	err := xml.Unmarshal([]byte(cibData), &cib)
 	if err != nil {
 		log.Error(err)
 		return false
@@ -29,23 +29,23 @@ func handleApiResources(w http.ResponseWriter, r *http.Request, cib_data string)
 		cib.Configuration.Resources.URLType = "all"
 	} else {
 		// for url api/v[1-9]/resources/{resid}
-		resId := urllist[3]
+		resID := urllist[3]
 
-		mapIdType := make(map[string]TypeIndex)
+		mapIDType := make(map[string]TypeIndex)
 		for pi, pitem := range cib.Configuration.Resources.Primitive {
-			mapIdType[pitem.Id] = TypeIndex{"primitive", pi}
+			mapIDType[pitem.Id] = TypeIndex{"primitive", pi}
 		}
 		for gi, gitem := range cib.Configuration.Resources.Group {
-			mapIdType[gitem.Id] = TypeIndex{"group", gi}
+			mapIDType[gitem.Id] = TypeIndex{"group", gi}
 		}
 		for ci, citem := range cib.Configuration.Resources.Clone {
-			mapIdType[citem.Id] = TypeIndex{"clone", ci}
+			mapIDType[citem.Id] = TypeIndex{"clone", ci}
 		}
 		for mi, mitem := range cib.Configuration.Resources.Master {
-			mapIdType[mitem.Id] = TypeIndex{"master", mi}
+			mapIDType[mitem.Id] = TypeIndex{"master", mi}
 		}
 
-		val, ok := mapIdType[resId]
+		val, ok := mapIDType[resID]
 		if ok {
 			cib.Configuration.Resources.URLType = val.Type
 			cib.Configuration.Resources.URLIndex = val.Index

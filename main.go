@@ -16,16 +16,12 @@ import (
 	"time"
 )
 
-// AsyncCib
+// AsyncCib wraps the CIB retrieval from go-pacemaker in an
+// asynchronous interface, so that other parts of the server have a
+// single copy of the CIB available at any time.
 //
-// Wraps the CIB retrieval from go-pacemaker
-// in an asynchronous interface, so that
-// other parts of the server have a single
-// copy of the CIB available at any time.
-// Also provides a subscription interface
-// for the long polling request end point,
-// via Wait().
-
+// Also provides a subscription interface for the long polling request
+// end point, via Wait().
 type AsyncCib struct {
 	xmldoc   string
 	version  *pacemaker.CibVersion
@@ -33,16 +29,16 @@ type AsyncCib struct {
 	notifier chan chan string
 }
 
-// LogRecord
-//
-// Record the last warning and error,
-// to avoid output the duplicate message
-
+// LogRecord records the last warning and error messages, to avoid
+// spamming the log with duplicate messages.
 type LogRecord struct {
 	warning string
 	error   string
 }
 
+// Start launches two goroutines, one which runs the go-pacemaker
+// mainloop and one which listens for CIB events (the CIB fetcher
+// goroutine).
 func (acib *AsyncCib) Start() {
 	if acib.notifier == nil {
 		acib.notifier = make(chan chan string)
@@ -103,6 +99,7 @@ func (acib *AsyncCib) Start() {
 	go pacemaker.Mainloop()
 }
 
+// Wait blocks for up to `timeout` seconds for a CIB change event.
 func (acib *AsyncCib) Wait(timeout int, defval string) string {
 	requestChan := make(chan string)
 	select {
@@ -113,12 +110,14 @@ func (acib *AsyncCib) Wait(timeout int, defval string) string {
 	return <-requestChan
 }
 
+// Get returns the current CIB XML document (or nil).
 func (acib *AsyncCib) Get() string {
 	acib.lock.Lock()
 	defer acib.lock.Unlock()
 	return acib.xmldoc
 }
 
+// Version returns the current CIB version (or nil).
 func (acib *AsyncCib) Version() *pacemaker.CibVersion {
 	acib.lock.Lock()
 	defer acib.lock.Unlock()
@@ -145,6 +144,7 @@ Loop:
 	}
 }
 
+// Config is the internal representation of the configuration file.
 type Config struct {
 	Listen   string        `json:"listen"`
 	Port     int           `json:"port"`
@@ -154,6 +154,15 @@ type Config struct {
 	Route    []ConfigRoute `json:"route"`
 }
 
+// ConfigRoute is used in the configuration to map routes to handlers.
+//
+// Possible handlers (this list may be outdated)a:
+//
+//   * `api/v1` - Exposes a CIB API endpoint.
+//   * `monitor` - Typically mapped to `/monitor` to handle
+//     long-polling for CIB updates.
+//   * `file` - A static file serving route mapped to a directory.
+//   * `proxy` - Proxies requests to another server.
 type ConfigRoute struct {
 	Handler string  `json:"handler"`
 	Path    string  `json:"path"`
@@ -167,7 +176,8 @@ type routeHandler struct {
 	proxymux sync.Mutex
 }
 
-func NewRouteHandler(config *Config) *routeHandler {
+// newRoutehandler creates a routeHandler object from a configuration
+func newRouteHandler(config *Config) *routeHandler {
 	return &routeHandler{
 		config:  config,
 		proxies: make(map[*ConfigRoute]*ReverseProxy),
@@ -231,19 +241,19 @@ func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, ro
 		prefix := route.Path + "/configuration/"
 		match, _ := regexp.MatchString(prefix+"nodes(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
 		if match {
-			return handleApiNodes(w, r, handler.cib.Get())
+			return handleAPINodes(w, r, handler.cib.Get())
 		}
 		match, _ = regexp.MatchString(prefix+"resources(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
 		if match {
-			return handleApiResources(w, r, handler.cib.Get())
+			return handleAPIResources(w, r, handler.cib.Get())
 		}
 		match, _ = regexp.MatchString(prefix+"cluster/?$", r.URL.Path)
 		if match {
-			return handleApiCluster(w, r, handler.cib.Get())
+			return handleAPICluster(w, r, handler.cib.Get())
 		}
 		match, _ = regexp.MatchString(prefix+"constraints(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
 		if match {
-			return handleApiConstraints(w, r, handler.cib.Get())
+			return handleAPIConstraints(w, r, handler.cib.Get())
 		}
 		if strings.HasPrefix(r.URL.Path, prefix+"cib.xml") {
 			xmldoc := handler.cib.Get()
@@ -283,21 +293,21 @@ func (handler *routeHandler) serveMonitor(w http.ResponseWriter, r *http.Request
 		f.Flush()
 	}
 
-	new_epoch := ""
+	newEpoch := ""
 	ver := handler.cib.Version()
 	if ver != nil {
-		new_epoch = ver.String()
+		newEpoch = ver.String()
 	}
-	if new_epoch == "" || new_epoch == epoch {
+	if newEpoch == "" || newEpoch == epoch {
 		// either we haven't managed to connect
 		// to the CIB yet, or there hasn't been
 		// any change since we asked last.
 		// Wait with a timeout for something to
 		// appear, and return whatever we had
 		// if we time out
-		new_epoch = handler.cib.Wait(60, new_epoch)
+		newEpoch = handler.cib.Wait(60, newEpoch)
 	}
-	io.WriteString(w, fmt.Sprintf("{\"epoch\":\"%s\"}\n", new_epoch))
+	io.WriteString(w, fmt.Sprintf("{\"epoch\":\"%s\"}\n", newEpoch))
 	return true
 }
 
@@ -389,7 +399,7 @@ func main() {
 	}
 	log.SetLevel(lvl)
 
-	routehandler := NewRouteHandler(&config)
+	routehandler := newRouteHandler(&config)
 	routehandler.cib.Start()
 	gziphandler := NewGzipHandler(routehandler)
 	fmt.Printf("Listening to https://%s:%d\n", config.Listen, config.Port)
