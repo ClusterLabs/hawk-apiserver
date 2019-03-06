@@ -4,6 +4,10 @@ sudo: required
 go:
   - 1.x
 
+env:
+  global:
+    - CC_TEST_REPORTER_ID=88795f8e4fefcdb16839fb681856e38e7dc631ebb43f9c10ea66f57ee4e29cf8
+
 services:
   - docker
 
