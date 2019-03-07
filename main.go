@@ -159,6 +159,7 @@ type Config struct {
 // Possible handlers (this list may be outdated)a:
 //
 //   * `api/v1` - Exposes a CIB API endpoint.
+//   * `metrics` - Prometheus metrics, typically mapped to `/metrics`.
 //   * `monitor` - Typically mapped to `/monitor` to handle
 //     long-polling for CIB updates.
 //   * `file` - A static file serving route mapped to a directory.
@@ -197,7 +198,12 @@ func (handler *routeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if handler.serveMonitor(w, r, &route) {
 				return
 			}
+		} else if route.Handler == "metrics" {
+			if handler.serveMetrics(w, r, &route) {
+				return
+			}
 		} else if route.Handler == "file" && route.Target != nil {
+			// TODO(krig): Verify configuration file (ensure Target != nil) in config parser
 			if handler.serveFile(w, r, &route) {
 				return
 			}
@@ -223,6 +229,7 @@ func (handler *routeHandler) proxyForRoute(route *ConfigRoute) *ReverseProxy {
 		return proxy
 	}
 
+	// TODO(krig): Parse and verify URL in config parser?
 	url, err := url.Parse(*route.Target)
 	if err != nil {
 		log.Error(err)
@@ -343,6 +350,12 @@ func (handler *routeHandler) serveProxy(w http.ResponseWriter, r *http.Request, 
 		return true
 	}
 	rproxy.ServeHTTP(w, r, nil)
+	return true
+}
+
+func (handler *routeHandler) serveMetrics(w http.ResponseWriter, r *http.Request, route *ConfigRoute) bool {
+	log.Debugf("[metrics] %s", r.URL.Path)
+	http.Error(w, "Ain't got no metrics here.", 500)
 	return true
 }
 
