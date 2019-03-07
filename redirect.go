@@ -46,7 +46,6 @@ func ListenAndServeWithRedirect(addr string, handler http.Handler, cert string, 
 	srv.Serve(listener)
 }
 
-
 type splitListener struct {
 	net.Listener
 	config *tls.Config
@@ -114,4 +113,3 @@ func (handler *httpRedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 	}
 	handler.handler.ServeHTTP(w, r)
 }
-
