@@ -47,9 +47,17 @@ func (acib *AsyncCib) Start() {
 	msg := ""
 	lastLog := LogRecord{warning: "", error: ""}
 
+	cibFile := os.Getenv("CIB_file")
+
 	cibFetcher := func() {
 		for {
-			cib, err := pacemaker.OpenCib()
+			var cib *pacemaker.Cib = nil
+			var err error = nil
+			if cibFile != "" {
+				cib, err = pacemaker.OpenCib(pacemaker.FromFile(cibFile))
+			} else {
+				cib, err = pacemaker.OpenCib()
+			}
 			if err != nil {
 				msg = fmt.Sprintf("Failed to connect to Pacemaker: %v", err)
 				if msg != lastLog.warning {
