@@ -363,8 +363,9 @@ func (handler *routeHandler) serveProxy(w http.ResponseWriter, r *http.Request, 
 
 func (handler *routeHandler) serveMetrics(w http.ResponseWriter, r *http.Request, route *ConfigRoute) bool {
 	log.Debugf("[metrics] %s", r.URL.Path)
-	http.Error(w, "Ain't got no metrics here.", 500)
-	return true
+	w.Header().Set("Content-Type", "text/plain; version=0.0.4")
+	xmldoc := handler.cib.Get()
+	return handleMetrics(w, r, xmldoc)
 }
 
 func main() {
