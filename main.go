@@ -212,6 +212,10 @@ func (handler *routeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (handler *routeHandler) proxyForRoute(route *ConfigRoute) *ReverseProxy {
+	if route.Handler != "proxy" {
+		return nil
+	}
+
 	handler.proxymux.Lock()
 	proxy, ok := handler.proxies[route]
 	handler.proxymux.Unlock()
