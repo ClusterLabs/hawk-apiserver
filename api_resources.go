@@ -2,6 +2,7 @@ package main
 
 import (
 	"strconv"
+	"sort"
 )
 
 // Struct for primitive resource
@@ -331,6 +332,9 @@ func handleConfigResources(urllist []string, cib *Cib) (bool, interface{}) {
 	for key, value := range resources {
 		simple_resources = append(simple_resources, SimpleResource{Id: key, Type: value})
 	}
+	sort.Slice(simple_resources, func(i, j int) bool {
+		return simple_resources[i].Id < simple_resources[j].Id
+	})
 
 	if len(urllist) == 5 {
 		// for url /api/v1/configuration/resources/:id

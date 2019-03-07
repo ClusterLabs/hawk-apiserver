@@ -76,7 +76,7 @@ func handleConfiguration(w http.ResponseWriter, r *http.Request, cib_data string
 	return true
 }
 
-func handleStatusApi(w http.ResponseWriter, r *http.Request, mon_data string) bool {
+func handleStatus(w http.ResponseWriter, r *http.Request, mon_data string) bool {
 	// parse xml into Cib struct
 	var crmMon CrmMon
 	err := xml.Unmarshal([]byte(mon_data), &crmMon)
@@ -130,6 +130,14 @@ func IsPtr(value reflect.Value) bool {
 func IsStruct(value reflect.Value) bool {
 	switch value.Kind() {
 	case reflect.Struct:
+		return true
+	}
+	return false
+}
+
+func IsMap(value reflect.Value) bool {
+	switch value.Kind() {
+	case reflect.Map:
 		return true
 	}
 	return false
