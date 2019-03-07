@@ -276,7 +276,7 @@ func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, ro
 		all_types = ALL_STATUS_TYPES
 		match, _ = regexp.MatchString(prefix+all_types+"(/?|/.+/?)$", r.URL.Path)
 		if match {
-			return handleStatusApi(w, r, getStdout("crm_mon", "-X"))
+			return handleStatusApi(w, r, GetStdout("crm_mon", "-X"))
 		}
 
 		if strings.HasPrefix(r.URL.Path, prefix+"cib.xml") {

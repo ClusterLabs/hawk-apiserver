@@ -135,6 +135,14 @@ func IsStruct(value reflect.Value) bool {
 	return false
 }
 
+func IsMap(value reflect.Value) bool {
+	switch value.Kind() {
+	case reflect.Map:
+		return true
+	}
+	return false
+}
+
 func IsSlice(value reflect.Value) bool {
 	switch value.Kind() {
 	case reflect.Slice:

@@ -1,5 +1,9 @@
 package main
 
+import (
+	"sort"
+)
+
 type SimpleConstraints struct {
 	Id   string `json:"id"`
 	Type string `json:"type"`
@@ -22,6 +26,9 @@ func handleConfigConstraints(urllist []string, cib *Cib) (bool, interface{}) {
 	for key, value := range constraints {
 		simple_cons = append(simple_cons, SimpleConstraints{Id: key, Type: value})
 	}
+	sort.Slice(simple_cons, func(i, j int) bool {
+                return simple_cons[i].Id < simple_cons[j].Id
+        })
 
 	if len(urllist) == 5 {
 		switch constraints[urllist[4]] {
