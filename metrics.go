@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os/exec"
+	"sort"
 )
 
 type crmMon struct {
@@ -117,8 +118,7 @@ func parseMetrics(status *crmMon) *clusterMetrics {
 
 	rscIds := make(map[string]*resource)
 
-	for i := range status.Nodes.Node {
-		nod := status.Nodes.Node[i]
+	for _, nod := range status.Nodes.Node {
 		perNode := perNodeMetrics{ResourcesRunning: nod.ResourcesRunning}
 		ret.PerNode[nod.Name] = perNode
 
@@ -159,9 +159,8 @@ func parseMetrics(status *crmMon) *clusterMetrics {
 			ret.Node.TypeUnknown += 1
 		}
 
-		for j := range nod.Resources {
-			rsc := nod.Resources[j]
-			rscIds[rsc.ID] = &nod.Resources[j]
+		for _, rsc := range nod.Resources {
+			rscIds[rsc.ID] = &rsc
 			if rsc.Role == "Started" {
 				ret.Resource.Started += 1
 			} else if rsc.Role == "Stopped" {
@@ -227,7 +226,16 @@ func handleMetrics(w http.ResponseWriter, r *http.Request) bool {
 	io.WriteString(w, fmt.Sprintf("cluster_nodes{type=\"ping\"} %v\n", metrics.Node.TypePing))
 	io.WriteString(w, fmt.Sprintf("cluster_nodes{type=\"remote\"} %v\n", metrics.Node.TypeRemote))
 	io.WriteString(w, fmt.Sprintf("cluster_nodes{type=\"unknown\"} %v\n", metrics.Node.TypeUnknown))
-	for k, node := range metrics.PerNode {
+	// sort the keys to get consistent output
+	keys := make([]string, len(metrics.PerNode))
+	i := 0
+	for k := range metrics.PerNode {
+		keys[i] = k
+		i++
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		node := metrics.PerNode[k]
 		io.WriteString(w, fmt.Sprintf("cluster_resources_running{node=\"%v\"} %v\n", k, node.ResourcesRunning))
 	}
 	io.WriteString(w, fmt.Sprintf("cluster_resources_total %v\n", metrics.Resource.Total))
