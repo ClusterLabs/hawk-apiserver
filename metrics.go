@@ -64,7 +64,14 @@ type resource struct {
 	NodesRunningOn int    `xml:"nodes_running_on,attr"`
 }
 
+type clusterMetrics struct {
+	Node     nodeMetrics
+	Resource resourceMetrics
+	PerNode  map[string]perNodeMetrics
+}
+
 type nodeMetrics struct {
+	Total         int
 	Online        int
 	Standby       int
 	StandbyOnFail int
@@ -81,6 +88,8 @@ type nodeMetrics struct {
 }
 
 type resourceMetrics struct {
+	Total          int
+	Disabled       int
 	Stopped        int
 	Started        int
 	Slave          int
@@ -91,6 +100,95 @@ type resourceMetrics struct {
 	Managed        int
 	Failed         int
 	FailureIgnored int
+}
+
+type perNodeMetrics struct {
+	ResourcesRunning int
+}
+
+func parseMetrics(status *crmMon) *clusterMetrics {
+	ret := &clusterMetrics{}
+
+	ret.Node.Total = status.Summary.Nodes.Number
+	ret.Resource.Total = status.Summary.Resources.Number
+	ret.Resource.Disabled = status.Summary.Resources.Disabled
+	ret.PerNode = make(map[string]perNodeMetrics)
+
+	for i := range status.Nodes.Node {
+		nod := status.Nodes.Node[i]
+		perNode := perNodeMetrics{ResourcesRunning: nod.ResourcesRunning}
+		ret.PerNode[nod.Name] = perNode
+
+		if nod.Online {
+			ret.Node.Online += 1
+		}
+		if nod.Standby {
+			ret.Node.Standby += 1
+		}
+		if nod.StandbyOnFail {
+			ret.Node.StandbyOnFail += 1
+		}
+		if nod.Maintenance {
+			ret.Node.Maintenance += 1
+		}
+		if nod.Pending {
+			ret.Node.Pending += 1
+		}
+		if nod.Unclean {
+			ret.Node.Unclean += 1
+		}
+		if nod.Shutdown {
+			ret.Node.Shutdown += 1
+		}
+		if nod.ExpectedUp {
+			ret.Node.ExpectedUp += 1
+		}
+		if nod.DC {
+			ret.Node.DC += 1
+		}
+		if nod.Type == "member" {
+			ret.Node.TypeMember += 1
+		} else if nod.Type == "ping" {
+			ret.Node.TypePing += 1
+		} else if nod.Type == "remote" {
+			ret.Node.TypeRemote += 1
+		} else {
+			ret.Node.TypeUnknown += 1
+		}
+
+		for j := range nod.Resources {
+			rsc := nod.Resources[j]
+			if rsc.Role == "Started" {
+				ret.Resource.Started += 1
+			} else if rsc.Role == "Stopped" {
+				ret.Resource.Stopped += 1
+			} else if rsc.Role == "Slave" {
+				ret.Resource.Slave += 1
+			} else if rsc.Role == "Master" {
+				ret.Resource.Master += 1
+			}
+			if rsc.Active {
+				ret.Resource.Active += 1
+			}
+			if rsc.Orphaned {
+				ret.Resource.Orphaned += 1
+			}
+			if rsc.Blocked {
+				ret.Resource.Blocked += 1
+			}
+			if rsc.Managed {
+				ret.Resource.Managed += 1
+			}
+			if rsc.Failed {
+				ret.Resource.Failed += 1
+			}
+			if rsc.FailureIgnored {
+				ret.Resource.FailureIgnored += 1
+			}
+		}
+	}
+
+	return ret
 }
 
 func handleMetrics(w http.ResponseWriter, r *http.Request) bool {
@@ -107,109 +205,38 @@ func handleMetrics(w http.ResponseWriter, r *http.Request) bool {
 		return false
 	}
 
-	io.WriteString(w, fmt.Sprintf("cluster_nodes_total %v\n", status.Summary.Nodes.Number))
-	io.WriteString(w, fmt.Sprintf("cluster_resources_total %v\n", status.Summary.Resources.Number))
-	io.WriteString(w, fmt.Sprintf("cluster_resources_disabled %v\n", status.Summary.Resources.Disabled))
-	io.WriteString(w, fmt.Sprintf("cluster_resources_blocked %v\n", status.Summary.Resources.Blocked))
+	metrics := parseMetrics(&status)
 
-	nodemetrics := nodeMetrics{}
-	resourcemetrics := resourceMetrics{}
-
-	for i := range status.Nodes.Node {
-		nod := status.Nodes.Node[i]
-		io.WriteString(w, fmt.Sprintf("cluster_resources_running{node=\"%v\"} %v\n", nod.Name, nod.ResourcesRunning))
-		if nod.Online {
-			nodemetrics.Online += 1
-		}
-		if nod.Standby {
-			nodemetrics.Standby += 1
-		}
-		if nod.StandbyOnFail {
-			nodemetrics.StandbyOnFail += 1
-		}
-		if nod.Maintenance {
-			nodemetrics.Maintenance += 1
-		}
-		if nod.Pending {
-			nodemetrics.Pending += 1
-		}
-		if nod.Unclean {
-			nodemetrics.Unclean += 1
-		}
-		if nod.Shutdown {
-			nodemetrics.Shutdown += 1
-		}
-		if nod.ExpectedUp {
-			nodemetrics.ExpectedUp += 1
-		}
-		if nod.DC {
-			nodemetrics.DC += 1
-		}
-		if nod.Type == "member" {
-			nodemetrics.TypeMember += 1
-		} else if nod.Type == "ping" {
-			nodemetrics.TypePing += 1
-		} else if nod.Type == "remote" {
-			nodemetrics.TypeRemote += 1
-		} else {
-			nodemetrics.TypeUnknown += 1
-		}
-
-		for j := range nod.Resources {
-			rsc := nod.Resources[j]
-			if rsc.Role == "Started" {
-				resourcemetrics.Started += 1
-			} else if rsc.Role == "Stopped" {
-				resourcemetrics.Stopped += 1
-			} else if rsc.Role == "Slave" {
-				resourcemetrics.Slave += 1
-			} else if rsc.Role == "Master" {
-				resourcemetrics.Master += 1
-			}
-			if rsc.Active {
-				resourcemetrics.Active += 1
-			}
-			if rsc.Orphaned {
-				resourcemetrics.Orphaned += 1
-			}
-			if rsc.Blocked {
-				resourcemetrics.Blocked += 1
-			}
-			if rsc.Managed {
-				resourcemetrics.Managed += 1
-			}
-			if rsc.Failed {
-				resourcemetrics.Failed += 1
-			}
-			if rsc.FailureIgnored {
-				resourcemetrics.FailureIgnored += 1
-			}
-		}
+	io.WriteString(w, fmt.Sprintf("cluster_nodes_total %v\n", metrics.Node.Total))
+	io.WriteString(w, fmt.Sprintf("cluster_nodes_online %v\n", metrics.Node.Online))
+	io.WriteString(w, fmt.Sprintf("cluster_nodes_standby %v\n", metrics.Node.Standby))
+	io.WriteString(w, fmt.Sprintf("cluster_nodes_standby_onfail %v\n", metrics.Node.StandbyOnFail))
+	io.WriteString(w, fmt.Sprintf("cluster_nodes_maintenance %v\n", metrics.Node.Maintenance))
+	io.WriteString(w, fmt.Sprintf("cluster_nodes_pending %v\n", metrics.Node.Pending))
+	io.WriteString(w, fmt.Sprintf("cluster_nodes_unclean %v\n", metrics.Node.Unclean))
+	io.WriteString(w, fmt.Sprintf("cluster_nodes_shutdown %v\n", metrics.Node.Shutdown))
+	io.WriteString(w, fmt.Sprintf("cluster_nodes_expected_up %v\n", metrics.Node.ExpectedUp))
+	io.WriteString(w, fmt.Sprintf("cluster_nodes_dc %v\n", metrics.Node.DC))
+	io.WriteString(w, fmt.Sprintf("cluster_nodes{type=\"member\"} %v\n", metrics.Node.TypeMember))
+	io.WriteString(w, fmt.Sprintf("cluster_nodes{type=\"ping\"} %v\n", metrics.Node.TypePing))
+	io.WriteString(w, fmt.Sprintf("cluster_nodes{type=\"remote\"} %v\n", metrics.Node.TypeRemote))
+	io.WriteString(w, fmt.Sprintf("cluster_nodes{type=\"unknown\"} %v\n", metrics.Node.TypeUnknown))
+	for k := range metrics.PerNode {
+		node := metrics.PerNode[k]
+		io.WriteString(w, fmt.Sprintf("cluster_resources_running{node=\"%v\"} %v\n", k, node.ResourcesRunning))
 	}
-
-	io.WriteString(w, fmt.Sprintf("cluster_nodes_online %v\n", nodemetrics.Online))
-	io.WriteString(w, fmt.Sprintf("cluster_nodes_standby %v\n", nodemetrics.Standby))
-	io.WriteString(w, fmt.Sprintf("cluster_nodes_standby_onfail %v\n", nodemetrics.StandbyOnFail))
-	io.WriteString(w, fmt.Sprintf("cluster_nodes_maintenance %v\n", nodemetrics.Maintenance))
-	io.WriteString(w, fmt.Sprintf("cluster_nodes_pending %v\n", nodemetrics.Pending))
-	io.WriteString(w, fmt.Sprintf("cluster_nodes_unclean %v\n", nodemetrics.Unclean))
-	io.WriteString(w, fmt.Sprintf("cluster_nodes_shutdown %v\n", nodemetrics.Shutdown))
-	io.WriteString(w, fmt.Sprintf("cluster_nodes_expected_up %v\n", nodemetrics.ExpectedUp))
-	io.WriteString(w, fmt.Sprintf("cluster_nodes_dc %v\n", nodemetrics.DC))
-	io.WriteString(w, fmt.Sprintf("cluster_nodes{type=\"member\"} %v\n", nodemetrics.TypeMember))
-	io.WriteString(w, fmt.Sprintf("cluster_nodes{type=\"ping\"} %v\n", nodemetrics.TypePing))
-	io.WriteString(w, fmt.Sprintf("cluster_nodes{type=\"remote\"} %v\n", nodemetrics.TypeRemote))
-	io.WriteString(w, fmt.Sprintf("cluster_nodes{type=\"unknown\"} %v\n", nodemetrics.TypeUnknown))
-	io.WriteString(w, fmt.Sprintf("cluster_resources{role=\"stopped\"} %v\n", resourcemetrics.Stopped))
-	io.WriteString(w, fmt.Sprintf("cluster_resources{role=\"started\"} %v\n", resourcemetrics.Started))
-	io.WriteString(w, fmt.Sprintf("cluster_resources{role=\"slave\"} %v\n", resourcemetrics.Slave))
-	io.WriteString(w, fmt.Sprintf("cluster_resources{role=\"master\"} %v\n", resourcemetrics.Master))
-	io.WriteString(w, fmt.Sprintf("cluster_resources_active %v\n", resourcemetrics.Active))
-	io.WriteString(w, fmt.Sprintf("cluster_resources_orphaned %v\n", resourcemetrics.Orphaned))
-	io.WriteString(w, fmt.Sprintf("cluster_resources_blocked %v\n", resourcemetrics.Blocked))
-	io.WriteString(w, fmt.Sprintf("cluster_resources_managed %v\n", resourcemetrics.Managed))
-	io.WriteString(w, fmt.Sprintf("cluster_resources_failed %v\n", resourcemetrics.Failed))
-	io.WriteString(w, fmt.Sprintf("cluster_resources_failure_ignored %v\n", resourcemetrics.FailureIgnored))
+	io.WriteString(w, fmt.Sprintf("cluster_resources_total %v\n", metrics.Resource.Total))
+	io.WriteString(w, fmt.Sprintf("cluster_resources_disabled %v\n", metrics.Resource.Disabled))
+	io.WriteString(w, fmt.Sprintf("cluster_resources{role=\"stopped\"} %v\n", metrics.Resource.Stopped))
+	io.WriteString(w, fmt.Sprintf("cluster_resources{role=\"started\"} %v\n", metrics.Resource.Started))
+	io.WriteString(w, fmt.Sprintf("cluster_resources{role=\"slave\"} %v\n", metrics.Resource.Slave))
+	io.WriteString(w, fmt.Sprintf("cluster_resources{role=\"master\"} %v\n", metrics.Resource.Master))
+	io.WriteString(w, fmt.Sprintf("cluster_resources_active %v\n", metrics.Resource.Active))
+	io.WriteString(w, fmt.Sprintf("cluster_resources_orphaned %v\n", metrics.Resource.Orphaned))
+	io.WriteString(w, fmt.Sprintf("cluster_resources_blocked %v\n", metrics.Resource.Blocked))
+	io.WriteString(w, fmt.Sprintf("cluster_resources_managed %v\n", metrics.Resource.Managed))
+	io.WriteString(w, fmt.Sprintf("cluster_resources_failed %v\n", metrics.Resource.Failed))
+	io.WriteString(w, fmt.Sprintf("cluster_resources_failure_ignored %v\n", metrics.Resource.FailureIgnored))
 
 	return true
 }
