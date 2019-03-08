@@ -364,7 +364,7 @@ func (handler *routeHandler) serveProxy(w http.ResponseWriter, r *http.Request, 
 func (handler *routeHandler) serveMetrics(w http.ResponseWriter, r *http.Request, route *ConfigRoute) bool {
 	log.Debugf("[metrics] %s", r.URL.Path)
 	w.Header().Set("Content-Type", "text/plain; version=0.0.4")
-	return handleMetrics(w, r)
+	return handleMetrics(w)
 }
 
 func main() {

@@ -196,7 +196,7 @@ func parseMetrics(status *crmMon) *clusterMetrics {
 	return ret
 }
 
-func handleMetrics(w http.ResponseWriter, r *http.Request) bool {
+func handleMetrics(w http.ResponseWriter) bool {
 	monxml, err := exec.Command("/usr/sbin/crm_mon", "-1", "--as-xml", "--group-by-node", "--inactive").Output()
 	if err != nil {
 		log.Error(err)
