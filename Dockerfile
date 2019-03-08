@@ -16,7 +16,7 @@ rm -f /usr/lib/systemd/system/anaconda.target.wants/*;
 VOLUME [ "/sys/fs/cgroup" ]
 
 RUN zypper -n --gpg-auto-import-keys ar obs://network:ha-clustering:Factory network:ha-clustering:Factory
-RUN zypper -n --gpg-auto-import-keys ref && zypper -n --gpg-auto-import-keys in libpacemaker-devel go git
+RUN zypper -n --gpg-auto-import-keys ref && zypper -n --gpg-auto-import-keys in libpacemaker-devel pacemaker-cli go git
 
 CMD ["/usr/lib/systemd/systemd", "--system"]
 

@@ -47,9 +47,17 @@ func (acib *AsyncCib) Start() {
 	msg := ""
 	lastLog := LogRecord{warning: "", error: ""}
 
+	cibFile := os.Getenv("CIB_file")
+
 	cibFetcher := func() {
 		for {
-			cib, err := pacemaker.OpenCib()
+			var cib *pacemaker.Cib = nil
+			var err error = nil
+			if cibFile != "" {
+				cib, err = pacemaker.OpenCib(pacemaker.FromFile(cibFile))
+			} else {
+				cib, err = pacemaker.OpenCib()
+			}
 			if err != nil {
 				msg = fmt.Sprintf("Failed to connect to Pacemaker: %v", err)
 				if msg != lastLog.warning {
@@ -159,6 +167,7 @@ type Config struct {
 // Possible handlers (this list may be outdated)a:
 //
 //   * `api/v1` - Exposes a CIB API endpoint.
+//   * `metrics` - Prometheus metrics, typically mapped to `/metrics`.
 //   * `monitor` - Typically mapped to `/monitor` to handle
 //     long-polling for CIB updates.
 //   * `file` - A static file serving route mapped to a directory.
@@ -197,7 +206,12 @@ func (handler *routeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if handler.serveMonitor(w, r, &route) {
 				return
 			}
+		} else if route.Handler == "metrics" {
+			if handler.serveMetrics(w, r, &route) {
+				return
+			}
 		} else if route.Handler == "file" && route.Target != nil {
+			// TODO(krig): Verify configuration file (ensure Target != nil) in config parser
 			if handler.serveFile(w, r, &route) {
 				return
 			}
@@ -212,6 +226,10 @@ func (handler *routeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (handler *routeHandler) proxyForRoute(route *ConfigRoute) *ReverseProxy {
+	if route.Handler != "proxy" {
+		return nil
+	}
+
 	handler.proxymux.Lock()
 	proxy, ok := handler.proxies[route]
 	handler.proxymux.Unlock()
@@ -219,6 +237,7 @@ func (handler *routeHandler) proxyForRoute(route *ConfigRoute) *ReverseProxy {
 		return proxy
 	}
 
+	// TODO(krig): Parse and verify URL in config parser?
 	url, err := url.Parse(*route.Target)
 	if err != nil {
 		log.Error(err)
@@ -340,6 +359,12 @@ func (handler *routeHandler) serveProxy(w http.ResponseWriter, r *http.Request, 
 	}
 	rproxy.ServeHTTP(w, r, nil)
 	return true
+}
+
+func (handler *routeHandler) serveMetrics(w http.ResponseWriter, r *http.Request, route *ConfigRoute) bool {
+	log.Debugf("[metrics] %s", r.URL.Path)
+	w.Header().Set("Content-Type", "text/plain; version=0.0.4")
+	return handleMetrics(w)
 }
 
 func main() {

@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+<crm_mon version="2.0.1">
+    <summary>
+        <stack type="corosync" />
+        <current_dc present="true" version="2.0.0+20190125.788ee2c49-lp150.326.2-2.0.0+20190125.788ee2c49" name="webui" id="168633610" with_quorum="true" />
+        <last_update time="Fri Mar  8 09:05:47 2019" />
+        <last_change time="Thu Mar  7 20:45:02 2019" user="hacluster" client="crmd" origin="webui" />
+        <nodes_configured number="1" />
+        <resources_configured number="16" disabled="0" blocked="0" />
+        <cluster_options stonith-enabled="true" symmetric-cluster="true" no-quorum-policy="stop" maintenance-mode="false" />
+    </summary>
+    <nodes>
+        <node name="webui" id="168633610" online="true" standby="false" standby_onfail="false" maintenance="false" pending="false" unclean="false" shutdown="false" expected_up="true" is_dc="true" resources_running="7" type="member" >
+            <resource id="proxy-vip" resource_agent="ocf::heartbeat:IPaddr2" role="Started" active="true" orphaned="false" blocked="false" managed="true" failed="false" failure_ignored="false" nodes_running_on="1" />
+            <resource id="proxy" resource_agent="systemd:haproxy" role="Started" active="true" orphaned="false" blocked="false" managed="true" failed="false" failure_ignored="false" nodes_running_on="1" />
+            <resource id="dlm" resource_agent="ocf::pacemaker:controld" role="Started" active="true" orphaned="false" blocked="false" managed="true" failed="false" failure_ignored="false" nodes_running_on="1" />
+            <resource id="clusterfs" resource_agent="ocf::heartbeat:Filesystem" role="Started" target_role="Started" active="true" orphaned="false" blocked="false" managed="true" failed="false" failure_ignored="false" nodes_running_on="1" />
+            <resource id="stonith-sbd" resource_agent="stonith:external/sbd" role="Started" active="true" orphaned="false" blocked="false" managed="true" failed="false" failure_ignored="false" nodes_running_on="1" />
+            <resource id="DRBD" resource_agent="ocf::linbit:drbd" role="Master" active="true" orphaned="false" blocked="false" managed="true" failed="false" failure_ignored="false" nodes_running_on="1" />
+            <resource id="server-instance" resource_agent="ocf::heartbeat:apache" role="Started" active="true" orphaned="false" blocked="false" managed="true" failed="false" failure_ignored="false" nodes_running_on="1" />
+        </node>
+    </nodes>
+    <resources>
+        <clone id="c-clusterfs" multi_state="false" unique="false" managed="true" failed="false" failure_ignored="false" target_role="Started" >
+            <resource id="clusterfs" resource_agent="ocf::heartbeat:Filesystem" role="Started" target_role="Started" active="true" orphaned="false" blocked="false" managed="true" failed="false" failure_ignored="false" nodes_running_on="1" >
+                <node name="webui" id="168633610" cached="false"/>
+            </resource>
+            <resource id="clusterfs" resource_agent="ocf::heartbeat:Filesystem" role="Stopped" target_role="Started" active="false" orphaned="false" blocked="false" managed="true" failed="false" failure_ignored="false" nodes_running_on="0" />
+            <resource id="clusterfs" resource_agent="ocf::heartbeat:Filesystem" role="Stopped" target_role="Started" active="false" orphaned="false" blocked="false" managed="true" failed="false" failure_ignored="false" nodes_running_on="0" />
+            <resource id="clusterfs" resource_agent="ocf::heartbeat:Filesystem" role="Stopped" target_role="Started" active="false" orphaned="false" blocked="false" managed="true" failed="false" failure_ignored="false" nodes_running_on="0" />
+            <resource id="clusterfs" resource_agent="ocf::heartbeat:Filesystem" role="Stopped" target_role="Started" active="false" orphaned="false" blocked="false" managed="true" failed="false" failure_ignored="false" nodes_running_on="0" />
+            <resource id="clusterfs" resource_agent="ocf::heartbeat:Filesystem" role="Stopped" target_role="Started" active="false" orphaned="false" blocked="false" managed="true" failed="false" failure_ignored="false" nodes_running_on="0" />
+            <resource id="clusterfs" resource_agent="ocf::heartbeat:Filesystem" role="Stopped" target_role="Started" active="false" orphaned="false" blocked="false" managed="true" failed="false" failure_ignored="false" nodes_running_on="0" />
+            <resource id="clusterfs" resource_agent="ocf::heartbeat:Filesystem" role="Stopped" target_role="Started" active="false" orphaned="false" blocked="false" managed="true" failed="false" failure_ignored="false" nodes_running_on="0" />
+        </clone>
+        <clone id="ms-DRBD" multi_state="true" unique="false" managed="true" failed="false" failure_ignored="false" >
+            <resource id="DRBD" resource_agent="ocf::linbit:drbd" role="Master" active="true" orphaned="false" blocked="false" managed="true" failed="false" failure_ignored="false" nodes_running_on="1" >
+                <node name="webui" id="168633610" cached="false"/>
+            </resource>
+            <resource id="DRBD" resource_agent="ocf::linbit:drbd" role="Stopped" active="false" orphaned="false" blocked="false" managed="true" failed="false" failure_ignored="false" nodes_running_on="0" />
+        </clone>
+        <clone id="cl-servers" multi_state="false" unique="false" managed="true" failed="false" failure_ignored="false" >
+            <resource id="server-instance" resource_agent="ocf::heartbeat:apache" role="Started" active="true" orphaned="false" blocked="false" managed="true" failed="false" failure_ignored="false" nodes_running_on="1" >
+                <node name="webui" id="168633610" cached="false"/>
+            </resource>
+            <resource id="server-instance" resource_agent="ocf::heartbeat:apache" role="Stopped" active="false" orphaned="false" blocked="false" managed="true" failed="false" failure_ignored="false" nodes_running_on="0" />
+        </clone>
+    </resources>
+    <node_attributes>
+        <node name="webui">
+            <attribute name="master-DRBD" value="10000" />
+        </node>
+    </node_attributes>
+    <node_history>
+        <node name="webui">
+            <resource_history id="proxy-vip" orphan="false" migration-threshold="3">
+                <operation_history call="15" task="start" last-rc-change="Thu Mar  7 20:45:03 2019" last-run="Thu Mar  7 20:45:03 2019" exec-time="66ms" queue-time="0ms" rc="0" rc_text="ok" />
+            </resource_history>
+            <resource_history id="proxy" orphan="false" migration-threshold="3">
+                <operation_history call="22" task="start" last-rc-change="Thu Mar  7 20:45:03 2019" last-run="Thu Mar  7 20:45:03 2019" exec-time="2184ms" queue-time="0ms" rc="0" rc_text="ok" />
+                <operation_history call="31" task="monitor" interval="10000ms" last-rc-change="Thu Mar  7 20:45:06 2019" exec-time="4ms" queue-time="0ms" rc="0" rc_text="ok" />
+            </resource_history>
+            <resource_history id="dlm" orphan="false" migration-threshold="3">
+                <operation_history call="21" task="start" last-rc-change="Thu Mar  7 20:45:03 2019" last-run="Thu Mar  7 20:45:03 2019" exec-time="1052ms" queue-time="0ms" rc="0" rc_text="ok" />
+                <operation_history call="23" task="monitor" interval="60000ms" last-rc-change="Thu Mar  7 20:45:05 2019" exec-time="23ms" queue-time="0ms" rc="0" rc_text="ok" />
+            </resource_history>
+            <resource_history id="clusterfs" orphan="false" migration-threshold="3">
+                <operation_history call="24" task="start" last-rc-change="Thu Mar  7 20:45:05 2019" last-run="Thu Mar  7 20:45:05 2019" exec-time="65ms" queue-time="0ms" rc="0" rc_text="ok" />
+                <operation_history call="25" task="monitor" interval="20000ms" last-rc-change="Thu Mar  7 20:45:05 2019" exec-time="30ms" queue-time="1ms" rc="0" rc_text="ok" />
+            </resource_history>
+            <resource_history id="stonith-sbd" orphan="false" migration-threshold="3">
+                <operation_history call="30" task="start" last-rc-change="Thu Mar  7 20:45:05 2019" last-run="Thu Mar  7 20:45:05 2019" exec-time="1166ms" queue-time="0ms" rc="0" rc_text="ok" />
+            </resource_history>
+            <resource_history id="DRBD" orphan="false" migration-threshold="3">
+                <operation_history call="47" task="promote" last-rc-change="Thu Mar  7 20:45:06 2019" last-run="Thu Mar  7 20:45:06 2019" exec-time="65ms" queue-time="0ms" rc="0" rc_text="ok" />
+                <operation_history call="49" task="monitor" interval="29000ms" last-rc-change="Thu Mar  7 20:45:06 2019" exec-time="48ms" queue-time="0ms" rc="8" rc_text="master" />
+            </resource_history>
+            <resource_history id="server-instance" orphan="false" migration-threshold="3">
+                <operation_history call="43" task="start" last-rc-change="Thu Mar  7 20:45:06 2019" last-run="Thu Mar  7 20:45:06 2019" exec-time="225ms" queue-time="0ms" rc="0" rc_text="ok" />
+                <operation_history call="45" task="monitor" interval="10000ms" last-rc-change="Thu Mar  7 20:45:06 2019" exec-time="223ms" queue-time="0ms" rc="0" rc_text="ok" />
+            </resource_history>
+        </node>
+    </node_history>
+    <fence_history>
+    </fence_history>
+    <tickets>
+    </tickets>
+    <bans>
+    </bans>
+</crm_mon>
