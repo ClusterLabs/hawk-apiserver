@@ -1,3 +1,5 @@
 #!/bin/sh
 go build -v
-CIB_file=$(pwd)/test/cib2.xml dlv exec ./hawk-apiserver -- -cert test/hawk.pem -key test/hawk.key -config test/metrics.json -port 9091
+CIB_file=${1:-$(pwd)/test/cib4.xml}
+export CIB_file
+dlv exec ./hawk-apiserver -- -cert test/hawk.pem -key test/hawk.key -config test/metrics.json -port 9091
