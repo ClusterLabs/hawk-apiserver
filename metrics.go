@@ -89,6 +89,7 @@ type nodeMetrics struct {
 
 type resourceMetrics struct {
 	Total          int
+	Unique         int
 	Disabled       int
 	Stopped        int
 	Started        int
@@ -113,6 +114,8 @@ func parseMetrics(status *crmMon) *clusterMetrics {
 	ret.Resource.Total = status.Summary.Resources.Number
 	ret.Resource.Disabled = status.Summary.Resources.Disabled
 	ret.PerNode = make(map[string]perNodeMetrics)
+
+	rscIds := make(map[string]*resource)
 
 	for i := range status.Nodes.Node {
 		nod := status.Nodes.Node[i]
@@ -158,6 +161,7 @@ func parseMetrics(status *crmMon) *clusterMetrics {
 
 		for j := range nod.Resources {
 			rsc := nod.Resources[j]
+			rscIds[rsc.ID] = &nod.Resources[j]
 			if rsc.Role == "Started" {
 				ret.Resource.Started += 1
 			} else if rsc.Role == "Stopped" {
@@ -187,6 +191,8 @@ func parseMetrics(status *crmMon) *clusterMetrics {
 			}
 		}
 	}
+
+	ret.Resource.Unique = len(rscIds)
 
 	return ret
 }
@@ -226,6 +232,7 @@ func handleMetrics(w http.ResponseWriter, r *http.Request) bool {
 		io.WriteString(w, fmt.Sprintf("cluster_resources_running{node=\"%v\"} %v\n", k, node.ResourcesRunning))
 	}
 	io.WriteString(w, fmt.Sprintf("cluster_resources_total %v\n", metrics.Resource.Total))
+	io.WriteString(w, fmt.Sprintf("cluster_resources_unique %v\n", metrics.Resource.Unique))
 	io.WriteString(w, fmt.Sprintf("cluster_resources_disabled %v\n", metrics.Resource.Disabled))
 	io.WriteString(w, fmt.Sprintf("cluster_resources{role=\"stopped\"} %v\n", metrics.Resource.Stopped))
 	io.WriteString(w, fmt.Sprintf("cluster_resources{role=\"started\"} %v\n", metrics.Resource.Started))
