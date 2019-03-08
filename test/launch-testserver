@@ -1,0 +1,3 @@
+#!/bin/sh
+go build -v
+CIB_file=$(pwd)/test/example-cib-1.xml dlv exec ./hawk-apiserver -- -cert test/hawk.pem -key test/hawk.key -config test/metrics.json -port 9091
