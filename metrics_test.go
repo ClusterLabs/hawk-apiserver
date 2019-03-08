@@ -16,5 +16,5 @@ func TestParseMetrics(t *testing.T) {
 	assert.Nil(t, err, "Failed to unmarshal test data")
 
 	metrics := parseMetrics(&status)
-	assert.Equal(t, metrics.Node.Total, 1, "Should have one node")
+	assert.Equal(t, metrics.Node.Configured, 1, "Should have one node")
 }
