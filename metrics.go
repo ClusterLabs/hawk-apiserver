@@ -72,7 +72,7 @@ type clusterMetrics struct {
 }
 
 type nodeMetrics struct {
-	Total         int
+	Configured    int
 	Online        int
 	Standby       int
 	StandbyOnFail int
@@ -89,7 +89,7 @@ type nodeMetrics struct {
 }
 
 type resourceMetrics struct {
-	Total          int
+	Configured     int
 	Unique         int
 	Disabled       int
 	Stopped        int
@@ -111,8 +111,8 @@ type perNodeMetrics struct {
 func parseMetrics(status *crmMon) *clusterMetrics {
 	ret := &clusterMetrics{}
 
-	ret.Node.Total = status.Summary.Nodes.Number
-	ret.Resource.Total = status.Summary.Resources.Number
+	ret.Node.Configured = status.Summary.Nodes.Number
+	ret.Resource.Configured = status.Summary.Resources.Number
 	ret.Resource.Disabled = status.Summary.Resources.Disabled
 	ret.PerNode = make(map[string]perNodeMetrics)
 
@@ -212,7 +212,7 @@ func handleMetrics(w http.ResponseWriter, r *http.Request) bool {
 
 	metrics := parseMetrics(&status)
 
-	io.WriteString(w, fmt.Sprintf("cluster_nodes_total %v\n", metrics.Node.Total))
+	io.WriteString(w, fmt.Sprintf("cluster_nodes_configured %v\n", metrics.Node.Configured))
 	io.WriteString(w, fmt.Sprintf("cluster_nodes_online %v\n", metrics.Node.Online))
 	io.WriteString(w, fmt.Sprintf("cluster_nodes_standby %v\n", metrics.Node.Standby))
 	io.WriteString(w, fmt.Sprintf("cluster_nodes_standby_onfail %v\n", metrics.Node.StandbyOnFail))
@@ -238,10 +238,10 @@ func handleMetrics(w http.ResponseWriter, r *http.Request) bool {
 		node := metrics.PerNode[k]
 		io.WriteString(w, fmt.Sprintf("cluster_resources_running{node=\"%v\"} %v\n", k, node.ResourcesRunning))
 	}
-	io.WriteString(w, fmt.Sprintf("cluster_resources_total %v\n", metrics.Resource.Total))
+	io.WriteString(w, fmt.Sprintf("cluster_resources_configured %v\n", metrics.Resource.Configured))
 	io.WriteString(w, fmt.Sprintf("cluster_resources_unique %v\n", metrics.Resource.Unique))
 	io.WriteString(w, fmt.Sprintf("cluster_resources_disabled %v\n", metrics.Resource.Disabled))
-	io.WriteString(w, fmt.Sprintf("cluster_resources{role=\"stopped\"} %v\n", metrics.Resource.Stopped))
+	//io.WriteString(w, fmt.Sprintf("cluster_resources{role=\"stopped\"} %v\n", metrics.Resource.Stopped))
 	io.WriteString(w, fmt.Sprintf("cluster_resources{role=\"started\"} %v\n", metrics.Resource.Started))
 	io.WriteString(w, fmt.Sprintf("cluster_resources{role=\"slave\"} %v\n", metrics.Resource.Slave))
 	io.WriteString(w, fmt.Sprintf("cluster_resources{role=\"master\"} %v\n", metrics.Resource.Master))
