@@ -227,8 +227,7 @@ func handleMetrics(w http.ResponseWriter, r *http.Request) bool {
 	io.WriteString(w, fmt.Sprintf("cluster_nodes{type=\"ping\"} %v\n", metrics.Node.TypePing))
 	io.WriteString(w, fmt.Sprintf("cluster_nodes{type=\"remote\"} %v\n", metrics.Node.TypeRemote))
 	io.WriteString(w, fmt.Sprintf("cluster_nodes{type=\"unknown\"} %v\n", metrics.Node.TypeUnknown))
-	for k := range metrics.PerNode {
-		node := metrics.PerNode[k]
+	for k, node := range metrics.PerNode {
 		io.WriteString(w, fmt.Sprintf("cluster_resources_running{node=\"%v\"} %v\n", k, node.ResourcesRunning))
 	}
 	io.WriteString(w, fmt.Sprintf("cluster_resources_total %v\n", metrics.Resource.Total))
