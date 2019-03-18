@@ -250,6 +250,12 @@ func (handler *routeHandler) proxyForRoute(route *ConfigRoute) *ReverseProxy {
 	return proxy
 }
 
+const ALL_CONFIG_TYPES = "(cluster_property|rsc_defaults|op_defaults|" +
+	"nodes|resources|primitives|groups|masters|clones|bundles|" +
+	"constraints|locations|colocations|orders|alerts|tags|acls|fencing)"
+
+const ALL_STATUS_TYPES = "(nodes|resources|summary|failures)"
+
 func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, route *ConfigRoute) bool {
 	log.Debugf("[api/v1] %v", r.URL.Path)
 	if !checkHawkAuthMethods(r) {
@@ -258,22 +264,21 @@ func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, ro
 	}
 	if r.Method == "GET" {
 		prefix := route.Path + "/configuration/"
-		match, _ := regexp.MatchString(prefix+"nodes(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
+
+		// all types below cib/configuration
+		all_types := ALL_CONFIG_TYPES
+		match, _ := regexp.MatchString(prefix+all_types+"(/?|/.+/?)$", r.URL.Path)
 		if match {
-			return handleAPINodes(w, r, handler.cib.Get())
+			return handleConfiguration(w, r, handler.cib.Get())
 		}
-		match, _ = regexp.MatchString(prefix+"resources(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
+
+		prefix = route.Path + "/status/"
+		all_types = ALL_STATUS_TYPES
+		match, _ = regexp.MatchString(prefix+all_types+"(/?|/.+/?)$", r.URL.Path)
 		if match {
-			return handleAPIResources(w, r, handler.cib.Get())
+			return handleStatus(w, r, GetStdout("crm_mon", "-X"))
 		}
-		match, _ = regexp.MatchString(prefix+"cluster/?$", r.URL.Path)
-		if match {
-			return handleAPICluster(w, r, handler.cib.Get())
-		}
-		match, _ = regexp.MatchString(prefix+"constraints(/?|/[a-zA-Z0-9]+/?)$", r.URL.Path)
-		if match {
-			return handleAPIConstraints(w, r, handler.cib.Get())
-		}
+
 		if strings.HasPrefix(r.URL.Path, prefix+"cib.xml") {
 			xmldoc := handler.cib.Get()
 			w.Header().Set("Content-Type", "application/xml")

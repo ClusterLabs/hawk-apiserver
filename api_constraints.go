@@ -1,63 +1,108 @@
 package main
 
 import (
-	"encoding/json"
-	"encoding/xml"
-	"fmt"
-	log "github.com/sirupsen/logrus"
-	"io"
-	"net/http"
-	"strings"
+	"sort"
 )
 
-func handleAPIConstraints(w http.ResponseWriter, r *http.Request, cibData string) bool {
-	// parse xml into Cib struct
-	var cib Cib
-	err := xml.Unmarshal([]byte(cibData), &cib)
-	if err != nil {
-		log.Error(err)
-		return false
+type SimpleConstraints struct {
+	Id   string `json:"id"`
+	Type string `json:"type"`
+}
+
+// Handle function for api/v1/configuration/constraints
+func handleConfigConstraints(urllist []string, cib *Cib) (bool, interface{}) {
+	constraints := make(map[string]string)
+	for _, item := range cib.Configuration.Constraints.RscLocation {
+		constraints[item.Id] = "location"
+	}
+	for _, item := range cib.Configuration.Constraints.RscColocation {
+		constraints[item.Id] = "colocation"
+	}
+	for _, item := range cib.Configuration.Constraints.RscOrder {
+		constraints[item.Id] = "order"
 	}
 
-	cib.Configuration.URLType = "constraints"
+	simple_cons := make([]SimpleConstraints, 0)
+	for key, value := range constraints {
+		simple_cons = append(simple_cons, SimpleConstraints{Id: key, Type: value})
+	}
+	sort.Slice(simple_cons, func(i, j int) bool {
+                return simple_cons[i].Id < simple_cons[j].Id
+        })
 
-	w.Header().Set("Content-Type", "application/json")
-
-	urllist := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-	if len(urllist) == 3 {
-		// for url api/v[1-9]/constraints
-		cib.Configuration.Constraints.URLType = "all"
-	} else {
-		// for url api/v[1-9]/constraints/{resid}
-		consID := urllist[3]
-
-		mapIDType := make(map[string]TypeIndex)
-		for li, litem := range cib.Configuration.Constraints.RscLocation {
-			mapIDType[litem.Id] = TypeIndex{"location", li}
-		}
-		for ci, citem := range cib.Configuration.Constraints.RscColocation {
-			mapIDType[citem.Id] = TypeIndex{"colocation", ci}
-		}
-		for oi, oitem := range cib.Configuration.Constraints.RscOrder {
-			mapIDType[oitem.Id] = TypeIndex{"order", oi}
-		}
-
-		val, ok := mapIDType[consID]
-		if ok {
-			cib.Configuration.Constraints.URLType = val.Type
-			cib.Configuration.Constraints.URLIndex = val.Index
-		} else {
-			http.Error(w, fmt.Sprintf("No route for %v.", r.URL.Path), 500)
-			return false
+	if len(urllist) == 5 {
+		switch constraints[urllist[4]] {
+		case "location":
+			return handleConfigLocation(urllist, cib)
+		case "colocation":
+			return handleConfigColocation(urllist, cib)
+		case "order":
+			return handleConfigOrder(urllist, cib)
 		}
 	}
 
-	jsonData, jsonError := json.Marshal(&cib)
-	if jsonError != nil {
-		log.Error(jsonError)
-		return false
+	return true, simple_cons
+}
+
+// Handle function for api/v1/configuration/locations
+func handleConfigLocation(urllist []string, cib *Cib) (bool, interface{}) {
+	location_data := cib.Configuration.Constraints.RscLocation
+	if location_data == nil {
+		return true, nil
 	}
 
-	io.WriteString(w, string(jsonData)+"\n")
-	return true
+	locationId := ""
+	if len(urllist) == 5 {
+		// api/v1/configuration/locations/:id
+		locationId = urllist[4]
+		for _, item := range location_data {
+			if item.Id == locationId {
+				return true, item
+			}
+		}
+	}
+
+	return true, location_data
+}
+
+// Handle function for api/v1/configuration/colocations
+func handleConfigColocation(urllist []string, cib *Cib) (bool, interface{}) {
+	colocation_data := cib.Configuration.Constraints.RscColocation
+	if colocation_data == nil {
+		return true, nil
+	}
+
+	colocationId := ""
+	if len(urllist) == 5 {
+		// api/v1/configuration/colocations/:id
+		colocationId = urllist[4]
+		for _, item := range colocation_data {
+			if item.Id == colocationId {
+				return true, item
+			}
+		}
+	}
+
+	return true, colocation_data
+}
+
+// Handle function for api/v1/configuration/orders
+func handleConfigOrder(urllist []string, cib *Cib) (bool, interface{}) {
+	order_data := cib.Configuration.Constraints.RscOrder
+	if order_data == nil {
+		return true, nil
+	}
+
+	orderId := ""
+	if len(urllist) == 5 {
+		// api/v1/configuration/orders/:id
+		orderId = urllist[4]
+		for _, item := range order_data {
+			if item.Id == orderId {
+				return true, item
+			}
+		}
+	}
+
+	return true, order_data
 }

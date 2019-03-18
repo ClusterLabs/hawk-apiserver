@@ -1,0 +1,118 @@
+<cib crm_feature_set="3.1.0" validate-with="pacemaker-3.2" epoch="16" num_updates="41" admin_epoch="0" cib-last-written="Thu Mar 14 23:15:02 2019" update-origin="Hawk3-1" update-client="cibadmin" update-user="root" have-quorum="1" dc-uuid="168430212">
+  <configuration>
+    <crm_config>
+      <cluster_property_set id="cib-bootstrap-options">
+        <nvpair id="cib-bootstrap-options-have-watchdog" name="have-watchdog" value="false"/>
+        <nvpair id="cib-bootstrap-options-dc-version" name="dc-version" value="2.0.0+20181108.62ffcafbc-1.1-2.0.0+20181108.62ffcafbc"/>
+        <nvpair id="cib-bootstrap-options-cluster-infrastructure" name="cluster-infrastructure" value="corosync"/>
+        <nvpair id="cib-bootstrap-options-cluster-name" name="cluster-name" value="hacluster"/>
+        <nvpair name="stonith-enabled" value="false" id="cib-bootstrap-options-stonith-enabled"/>
+        <nvpair name="placement-strategy" value="balanced" id="cib-bootstrap-options-placement-strategy"/>
+        <nvpair name="no-quorum-policy" value="ignore" id="cib-bootstrap-options-no-quorum-policy"/>
+        <nvpair name="startup-fencing" value="false" id="cib-bootstrap-options-startup-fencing"/>
+      </cluster_property_set>
+    </crm_config>
+    <nodes>
+      <node id="168430211" uname="Hawk3-1"/>
+      <node id="168430212" uname="Hawk3-2"/>
+    </nodes>
+    <resources>
+      <bundle id="httpd-bundle">
+        <podman image="localhost/pcmktest:http" replicas="3"/>
+        <network ip-range-start="192.168.122.131" host-interface="eth0" host-netmask="24">
+          <port-mapping id="httpd-port" port="80"/>
+        </network>
+        <storage>
+          <storage-mapping id="httpd-root" source-dir-root="/var/local/containers" target-dir="/var/www/html" options="rw"/>
+          <storage-mapping id="httpd-logs" source-dir-root="/var/log/pacemaker/bundles" target-dir="/etc/httpd/logs" options="rw"/>
+        </storage>
+        <primitive class="ocf" id="httpd" provider="heartbeat" type="apache">
+          <instance_attributes id="httpd-attrs">
+            <nvpair id="httpd-attrs-statusurl" name="statusurl" value="http://localhost/server-status"/>
+          </instance_attributes>
+          <operations>
+            <op id="httpd-monitor" name="monitor" interval="30s"/>
+          </operations>
+        </primitive>
+      </bundle>
+    </resources>
+    <constraints/>
+    <rsc_defaults>
+      <meta_attributes id="rsc-options">
+        <nvpair name="resource-stickiness" value="INFINITY" id="rsc-options-resource-stickiness"/>
+        <nvpair name="migration-threshold" value="1" id="rsc-options-migration-threshold"/>
+      </meta_attributes>
+    </rsc_defaults>
+    <op_defaults>
+      <meta_attributes id="op-options">
+        <nvpair name="timeout" value="600" id="op-options-timeout"/>
+        <nvpair name="record-pending" value="true" id="op-options-record-pending"/>
+      </meta_attributes>
+    </op_defaults>
+    <alerts/>
+  </configuration>
+  <status>
+    <node_state id="168430211" uname="Hawk3-1" in_ccm="true" crmd="online" crm-debug-origin="do_update_resource" join="member" expected="member">
+      <lrm id="168430211">
+        <lrm_resources>
+          <lrm_resource id="httpd-bundle-ip-192.168.122.131" type="IPaddr2" class="ocf" provider="heartbeat">
+            <lrm_rsc_op id="httpd-bundle-ip-192.168.122.131_last_0" operation_key="httpd-bundle-ip-192.168.122.131_stop_0" operation="stop" crm-debug-origin="do_update_resource" crm_feature_set="3.1.0" transition-key="1:11:0:a39ed1f9-6f1b-4825-8013-d269952cf244" transition-magic="0:0;1:11:0:a39ed1f9-6f1b-4825-8013-d269952cf244" exit-reason="" on_node="Hawk3-1" call-id="34" rc-code="0" op-status="0" interval="0" last-run="1552576550" last-rc-change="1552576550" exec-time="99" queue-time="0" op-digest="8656419d4ed26465c724189832393477"/>
+            <lrm_rsc_op id="httpd-bundle-ip-192.168.122.131_last_failure_0" operation_key="httpd-bundle-ip-192.168.122.131_start_0" operation="start" crm-debug-origin="do_update_resource" crm_feature_set="3.1.0" transition-key="20:10:0:a39ed1f9-6f1b-4825-8013-d269952cf244" transition-magic="0:6;20:10:0:a39ed1f9-6f1b-4825-8013-d269952cf244" exit-reason="[findif] failed" on_node="Hawk3-1" call-id="29" rc-code="6" op-status="0" interval="0" last-run="1552576550" last-rc-change="1552576550" exec-time="80" queue-time="0" op-digest="8656419d4ed26465c724189832393477"/>
+          </lrm_resource>
+          <lrm_resource id="httpd-bundle-podman-0" type="podman" class="ocf" provider="heartbeat">
+            <lrm_rsc_op id="httpd-bundle-podman-0_last_0" operation_key="httpd-bundle-podman-0_monitor_0" operation="monitor" crm-debug-origin="do_update_resource" crm_feature_set="3.1.0" transition-key="3:10:7:a39ed1f9-6f1b-4825-8013-d269952cf244" transition-magic="0:7;3:10:7:a39ed1f9-6f1b-4825-8013-d269952cf244" exit-reason="" on_node="Hawk3-1" call-id="24" rc-code="7" op-status="0" interval="0" last-run="1552576549" last-rc-change="1552576549" exec-time="41" queue-time="0" op-digest="7df1e5d3de0dccde448666b42c7e1be4"/>
+          </lrm_resource>
+          <lrm_resource id="httpd-bundle-ip-192.168.122.132" type="IPaddr2" class="ocf" provider="heartbeat">
+            <lrm_rsc_op id="httpd-bundle-ip-192.168.122.132_last_0" operation_key="httpd-bundle-ip-192.168.122.132_monitor_0" operation="monitor" crm-debug-origin="do_update_resource" crm_feature_set="3.1.0" transition-key="5:10:7:a39ed1f9-6f1b-4825-8013-d269952cf244" transition-magic="0:7;5:10:7:a39ed1f9-6f1b-4825-8013-d269952cf244" exit-reason="" on_node="Hawk3-1" call-id="28" rc-code="7" op-status="0" interval="0" last-run="1552576549" last-rc-change="1552576549" exec-time="107" queue-time="0" op-digest="c3d96a2922c2946905f760df9a177cd1"/>
+          </lrm_resource>
+          <lrm_resource id="httpd-bundle-podman-1" type="podman" class="ocf" provider="heartbeat">
+            <lrm_rsc_op id="httpd-bundle-podman-1_last_0" operation_key="httpd-bundle-podman-1_monitor_0" operation="monitor" crm-debug-origin="do_update_resource" crm_feature_set="3.1.0" transition-key="6:10:7:a39ed1f9-6f1b-4825-8013-d269952cf244" transition-magic="0:7;6:10:7:a39ed1f9-6f1b-4825-8013-d269952cf244" exit-reason="" on_node="Hawk3-1" call-id="33" rc-code="7" op-status="0" interval="0" last-run="1552576550" last-rc-change="1552576550" exec-time="37" queue-time="0" op-digest="46f5cafb277b228cb71e8cfc524fe759"/>
+          </lrm_resource>
+          <lrm_resource id="httpd-bundle-ip-192.168.122.133" type="IPaddr2" class="ocf" provider="heartbeat">
+            <lrm_rsc_op id="httpd-bundle-ip-192.168.122.133_last_0" operation_key="httpd-bundle-ip-192.168.122.133_monitor_0" operation="monitor" crm-debug-origin="do_update_resource" crm_feature_set="3.1.0" transition-key="5:11:7:a39ed1f9-6f1b-4825-8013-d269952cf244" transition-magic="0:7;5:11:7:a39ed1f9-6f1b-4825-8013-d269952cf244" exit-reason="" on_node="Hawk3-1" call-id="38" rc-code="7" op-status="0" interval="0" last-run="1552576550" last-rc-change="1552576550" exec-time="67" queue-time="0" op-digest="f318115a675fd430c293a0dc2705f398"/>
+          </lrm_resource>
+          <lrm_resource id="httpd-bundle-podman-2" type="podman" class="ocf" provider="heartbeat">
+            <lrm_rsc_op id="httpd-bundle-podman-2_last_0" operation_key="httpd-bundle-podman-2_monitor_0" operation="monitor" crm-debug-origin="do_update_resource" crm_feature_set="3.1.0" transition-key="6:11:7:a39ed1f9-6f1b-4825-8013-d269952cf244" transition-magic="0:7;6:11:7:a39ed1f9-6f1b-4825-8013-d269952cf244" exit-reason="" on_node="Hawk3-1" call-id="42" rc-code="7" op-status="0" interval="0" last-run="1552576550" last-rc-change="1552576550" exec-time="25" queue-time="0" op-digest="f3d1a795bdbd7a1abaa4ca912a659d25"/>
+          </lrm_resource>
+        </lrm_resources>
+      </lrm>
+      <transient_attributes id="168430211">
+        <instance_attributes id="status-168430211">
+          <nvpair id="status-168430211-fail-count-httpd-bundle-ip-192.168.122.131.start_0" name="fail-count-httpd-bundle-ip-192.168.122.131#start_0" value="INFINITY"/>
+          <nvpair id="status-168430211-last-failure-httpd-bundle-ip-192.168.122.131.start_0" name="last-failure-httpd-bundle-ip-192.168.122.131#start_0" value="1552576549"/>
+        </instance_attributes>
+      </transient_attributes>
+    </node_state>
+    <node_state id="168430212" uname="Hawk3-2" in_ccm="true" crmd="online" crm-debug-origin="do_update_resource" join="member" expected="member">
+      <lrm id="168430212">
+        <lrm_resources>
+          <lrm_resource id="httpd-bundle-ip-192.168.122.131" type="IPaddr2" class="ocf" provider="heartbeat">
+            <lrm_rsc_op id="httpd-bundle-ip-192.168.122.131_last_0" operation_key="httpd-bundle-ip-192.168.122.131_monitor_0" operation="monitor" crm-debug-origin="do_update_resource" crm_feature_set="3.1.0" transition-key="11:10:7:a39ed1f9-6f1b-4825-8013-d269952cf244" transition-magic="0:7;11:10:7:a39ed1f9-6f1b-4825-8013-d269952cf244" exit-reason="" on_node="Hawk3-2" call-id="28" rc-code="7" op-status="0" interval="0" last-run="1552576548" last-rc-change="1552576548" exec-time="68" queue-time="0" op-digest="8656419d4ed26465c724189832393477"/>
+          </lrm_resource>
+          <lrm_resource id="httpd-bundle-podman-0" type="podman" class="ocf" provider="heartbeat">
+            <lrm_rsc_op id="httpd-bundle-podman-0_last_0" operation_key="httpd-bundle-podman-0_monitor_0" operation="monitor" crm-debug-origin="do_update_resource" crm_feature_set="3.1.0" transition-key="12:10:7:a39ed1f9-6f1b-4825-8013-d269952cf244" transition-magic="0:7;12:10:7:a39ed1f9-6f1b-4825-8013-d269952cf244" exit-reason="" on_node="Hawk3-2" call-id="32" rc-code="7" op-status="0" interval="0" last-run="1552576548" last-rc-change="1552576548" exec-time="52" queue-time="0" op-digest="7df1e5d3de0dccde448666b42c7e1be4"/>
+          </lrm_resource>
+          <lrm_resource id="httpd-bundle-ip-192.168.122.132" type="IPaddr2" class="ocf" provider="heartbeat">
+            <lrm_rsc_op id="httpd-bundle-ip-192.168.122.132_last_0" operation_key="httpd-bundle-ip-192.168.122.132_stop_0" operation="stop" crm-debug-origin="do_update_resource" crm_feature_set="3.1.0" transition-key="1:12:0:a39ed1f9-6f1b-4825-8013-d269952cf244" transition-magic="0:0;1:12:0:a39ed1f9-6f1b-4825-8013-d269952cf244" exit-reason="" on_node="Hawk3-2" call-id="50" rc-code="0" op-status="0" interval="0" last-run="1552576549" last-rc-change="1552576549" exec-time="42" queue-time="0" op-digest="c3d96a2922c2946905f760df9a177cd1"/>
+            <lrm_rsc_op id="httpd-bundle-ip-192.168.122.132_last_failure_0" operation_key="httpd-bundle-ip-192.168.122.132_start_0" operation="start" crm-debug-origin="do_update_resource" crm_feature_set="3.1.0" transition-key="15:11:0:a39ed1f9-6f1b-4825-8013-d269952cf244" transition-magic="0:6;15:11:0:a39ed1f9-6f1b-4825-8013-d269952cf244" exit-reason="[findif] failed" on_node="Hawk3-2" call-id="49" rc-code="6" op-status="0" interval="0" last-run="1552576549" last-rc-change="1552576549" exec-time="115" queue-time="0" op-digest="c3d96a2922c2946905f760df9a177cd1"/>
+          </lrm_resource>
+          <lrm_resource id="httpd-bundle-podman-1" type="podman" class="ocf" provider="heartbeat">
+            <lrm_rsc_op id="httpd-bundle-podman-1_last_0" operation_key="httpd-bundle-podman-1_monitor_0" operation="monitor" crm-debug-origin="do_update_resource" crm_feature_set="3.1.0" transition-key="15:10:7:a39ed1f9-6f1b-4825-8013-d269952cf244" transition-magic="0:7;15:10:7:a39ed1f9-6f1b-4825-8013-d269952cf244" exit-reason="" on_node="Hawk3-2" call-id="40" rc-code="7" op-status="0" interval="0" last-run="1552576549" last-rc-change="1552576549" exec-time="21" queue-time="0" op-digest="46f5cafb277b228cb71e8cfc524fe759"/>
+          </lrm_resource>
+          <lrm_resource id="httpd-bundle-ip-192.168.122.133" type="IPaddr2" class="ocf" provider="heartbeat">
+            <lrm_rsc_op id="httpd-bundle-ip-192.168.122.133_last_0" operation_key="httpd-bundle-ip-192.168.122.133_monitor_0" operation="monitor" crm-debug-origin="do_update_resource" crm_feature_set="3.1.0" transition-key="17:10:7:a39ed1f9-6f1b-4825-8013-d269952cf244" transition-magic="0:7;17:10:7:a39ed1f9-6f1b-4825-8013-d269952cf244" exit-reason="" on_node="Hawk3-2" call-id="44" rc-code="7" op-status="0" interval="0" last-run="1552576549" last-rc-change="1552576549" exec-time="122" queue-time="0" op-digest="f318115a675fd430c293a0dc2705f398"/>
+          </lrm_resource>
+          <lrm_resource id="httpd-bundle-podman-2" type="podman" class="ocf" provider="heartbeat">
+            <lrm_rsc_op id="httpd-bundle-podman-2_last_0" operation_key="httpd-bundle-podman-2_monitor_0" operation="monitor" crm-debug-origin="do_update_resource" crm_feature_set="3.1.0" transition-key="18:10:7:a39ed1f9-6f1b-4825-8013-d269952cf244" transition-magic="0:7;18:10:7:a39ed1f9-6f1b-4825-8013-d269952cf244" exit-reason="" on_node="Hawk3-2" call-id="48" rc-code="7" op-status="0" interval="0" last-run="1552576549" last-rc-change="1552576549" exec-time="48" queue-time="0" op-digest="f3d1a795bdbd7a1abaa4ca912a659d25"/>
+          </lrm_resource>
+        </lrm_resources>
+      </lrm>
+      <transient_attributes id="168430212">
+        <instance_attributes id="status-168430212">
+          <nvpair id="status-168430212-fail-count-httpd-bundle-ip-192.168.122.132.start_0" name="fail-count-httpd-bundle-ip-192.168.122.132#start_0" value="INFINITY"/>
+          <nvpair id="status-168430212-last-failure-httpd-bundle-ip-192.168.122.132.start_0" name="last-failure-httpd-bundle-ip-192.168.122.132#start_0" value="1552576549"/>
+        </instance_attributes>
+      </transient_attributes>
+    </node_state>
+  </status>
+</cib>
