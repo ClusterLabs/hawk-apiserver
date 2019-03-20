@@ -1,26 +1,22 @@
 package main
 
 import (
-	"github.com/stretchr/testify/assert"
+	"encoding/json"
 	"fmt"
+	"github.com/ClusterLabs/hawk-apiserver/api"
+	"github.com/ClusterLabs/hawk-apiserver/util"
+	"github.com/stretchr/testify/assert"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"io/ioutil"
-	"encoding/json"
 	"reflect"
 	"strings"
 	"testing"
 )
 
-func TestConfigParse(t *testing.T) {
-	config := Config{}
-	parseConfigFile("./config.json.example", &config)
-	assert.Equal(t, config.Port, 7630, "Port should be 7630")
-}
-
 func TestRouteHandler(t *testing.T) {
-	config := Config{}
-	parseConfigFile("./config.json.example", &config)
+	config := util.Config{}
+	util.ParseConfigFile("./config.json.example", &config)
 	routeHandler := newRouteHandler(&config)
 	assert.NotNil(t, routeHandler)
 
@@ -39,16 +35,16 @@ func TestGetMethods(t *testing.T) {
 	cibFile2 := "test/bundles_cib.xml"
 	crmMonFile1 := "test/crm-mon-1.xml"
 	allTestcases := []struct {
-		name		string
-		api		string
-		path		string
-		expected_resp	string
+		name          string
+		api           string
+		path          string
+		expectedResponse string
 	}{
 		{
 			name: "Test /api/v1/configuration/cluster_property",
-			api: "configuration/cluster_property",
+			api:  "configuration/cluster_property",
 			path: cibFile1,
-			expected_resp: `
+			expectedResponse: `
 {
    "cluster-infrastructure":"corosync",
    "cluster-name":"hawkdev",
@@ -61,9 +57,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/configuration/rsc_defaults",
-			api: "configuration/rsc_defaults",
+			api:  "configuration/rsc_defaults",
 			path: cibFile1,
-			expected_resp: `
+			expectedResponse: `
 {
    "migration-threshold":"3",
    "resource-stickiness":"1"
@@ -72,9 +68,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/configuration/op_defaults",
-			api: "configuration/op_defaults",
+			api:  "configuration/op_defaults",
 			path: cibFile1,
-			expected_resp: `
+			expectedResponse: `
 {
    "record-pending":"true",
    "timeout":"600"
@@ -83,9 +79,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/configuration/resources",
-			api: "configuration/resources",
+			api:  "configuration/resources",
 			path: cibFile1,
-			expected_resp: `
+			expectedResponse: `
 [
    {
       "id":"base-clone",
@@ -116,9 +112,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/configuration/resources/:id",
-			api: "configuration/resources/stonith-sbd",
+			api:  "configuration/resources/stonith-sbd",
 			path: cibFile1,
-			expected_resp: `
+			expectedResponse: `
 {
    "id":"stonith-sbd",
    "class":"stonith",
@@ -131,9 +127,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/configuration/primitives",
-			api: "configuration/primitives",
+			api:  "configuration/primitives",
 			path: cibFile1,
-			expected_resp: `
+			expectedResponse: `
 [
    {
       "id":"stonith-sbd",
@@ -148,9 +144,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/configuration/primitives/:id",
-			api: "configuration/primitives/stonith-sbd",
+			api:  "configuration/primitives/stonith-sbd",
 			path: cibFile1,
-			expected_resp: `
+			expectedResponse: `
 {
    "id":"stonith-sbd",
    "class":"stonith",
@@ -163,9 +159,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/configuration/groups",
-			api: "configuration/groups",
+			api:  "configuration/groups",
 			path: cibFile1,
-			expected_resp: `
+			expectedResponse: `
 [
    {
       "id":"g-proxy",
@@ -198,9 +194,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/configuration/groups/:id",
-			api: "configuration/groups/g-proxy",
+			api:  "configuration/groups/g-proxy",
 			path: cibFile1,
-			expected_resp: `
+			expectedResponse: `
 {
    "id":"g-proxy",
    "primitives":[
@@ -231,9 +227,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/configuration/groups/:id/:primitiveId",
-			api: "configuration/groups/g-proxy/proxy",
+			api:  "configuration/groups/g-proxy/proxy",
 			path: cibFile1,
-			expected_resp: `
+			expectedResponse: `
 {
    "id":"proxy",
    "class":"systemd",
@@ -250,9 +246,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/configuration/masters",
-			api: "configuration/masters",
+			api:  "configuration/masters",
 			path: cibFile1,
-			expected_resp: `
+			expectedResponse: `
 [
    {
       "id":"ms-DRBD",
@@ -293,9 +289,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/configuration/masters/:id",
-			api: "configuration/masters/ms-DRBD",
+			api:  "configuration/masters/ms-DRBD",
 			path: cibFile1,
-			expected_resp: `
+			expectedResponse: `
 {
    "id":"ms-DRBD",
    "meta":{
@@ -334,9 +330,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/configuration/clones",
-			api: "configuration/clones",
+			api:  "configuration/clones",
 			path: cibFile1,
-			expected_resp: `
+			expectedResponse: `
 [
    {
       "id":"base-clone",
@@ -427,9 +423,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/configuration/clones/:id",
-			api: "configuration/clones/base-clone",
+			api:  "configuration/clones/base-clone",
 			path: cibFile1,
-			expected_resp: `
+			expectedResponse: `
 {
    "id":"base-clone",
    "meta":{
@@ -466,9 +462,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/configuration/bundles",
-			api: "configuration/bundles",
+			api:  "configuration/bundles",
 			path: cibFile2,
-			expected_resp: `
+			expectedResponse: `
 [
    {
       "id":"httpd-bundle",
@@ -524,9 +520,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/configuration/bundles/:id",
-			api: "configuration/bundles/httpd-bundle",
+			api:  "configuration/bundles/httpd-bundle",
 			path: cibFile2,
-			expected_resp: `
+			expectedResponse: `
 {
    "id":"httpd-bundle",
    "container":{
@@ -580,9 +576,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/configuration/nodes",
-			api: "configuration/nodes",
+			api:  "configuration/nodes",
 			path: cibFile1,
-			expected_resp: `
+			expectedResponse: `
 [
    {
       "id":"168633610",
@@ -597,9 +593,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/configuration/nodes/:id",
-			api: "configuration/nodes/168633610",
+			api:  "configuration/nodes/168633610",
 			path: cibFile1,
-			expected_resp: `
+			expectedResponse: `
 {
    "id":"168633610",
    "uname":"webui"
@@ -608,9 +604,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/configuration/constraints",
-			api: "configuration/constraints",
+			api:  "configuration/constraints",
 			path: cibFile1,
-			expected_resp: `
+			expectedResponse: `
 [
    {
       "id":"base-then-clusterfs",
@@ -641,9 +637,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/configuration/constraints/:id",
-			api: "configuration/constraints/l-web-on-node2",
+			api:  "configuration/constraints/l-web-on-node2",
 			path: cibFile1,
-			expected_resp: `
+			expectedResponse: `
 {
    "id":"l-web-on-node2",
    "rsc":"cl-servers",
@@ -654,9 +650,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/configuration/locations",
-			api: "configuration/locations",
+			api:  "configuration/locations",
 			path: cibFile1,
-			expected_resp: `
+			expectedResponse: `
 [
    {
       "id":"l-proxy-on-webui",
@@ -681,9 +677,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/configuration/locations/:id",
-			api: "configuration/locations/l-web-on-node2",
+			api:  "configuration/locations/l-web-on-node2",
 			path: cibFile1,
-			expected_resp: `
+			expectedResponse: `
 {
    "id":"l-web-on-node2",
    "rsc":"cl-servers",
@@ -694,9 +690,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/configuration/colocations",
-			api: "configuration/colocations",
+			api:  "configuration/colocations",
 			path: cibFile1,
-			expected_resp: `
+			expectedResponse: `
 [
    {
       "id":"clusterfs-with-base",
@@ -709,9 +705,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/configuration/colocations/:id",
-			api: "configuration/colocations/clusterfs-with-base",
+			api:  "configuration/colocations/clusterfs-with-base",
 			path: cibFile1,
-			expected_resp: `
+			expectedResponse: `
 {
    "id":"clusterfs-with-base",
    "score":"INFINITY",
@@ -722,9 +718,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/configuration/orders",
-			api: "configuration/orders",
+			api:  "configuration/orders",
 			path: cibFile1,
-			expected_resp: `
+			expectedResponse: `
 [
    {
       "id":"base-then-clusterfs",
@@ -743,9 +739,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/configuration/orders/:id",
-			api: "configuration/orders/base-then-clusterfs",
+			api:  "configuration/orders/base-then-clusterfs",
 			path: cibFile1,
-			expected_resp: `
+			expectedResponse: `
 {
    "id":"base-then-clusterfs",
    "score":"INFINITY",
@@ -756,9 +752,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/status/summary",
-			api: "status/summary",
+			api:  "status/summary",
 			path: crmMonFile1,
-			expected_resp: `
+			expectedResponse: `
 {
    "current_dc_id":"168430211",
    "current_dc_name":"Hawk3-1",
@@ -780,9 +776,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/status/nodes",
-			api: "status/nodes",
+			api:  "status/nodes",
 			path: crmMonFile1,
-			expected_resp: `
+			expectedResponse: `
 [
    {
       "name":"Hawk3-1",
@@ -819,9 +815,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/status/nodes/:id",
-			api: "status/nodes/168430212",
+			api:  "status/nodes/168430212",
 			path: crmMonFile1,
-			expected_resp: `
+			expectedResponse: `
 {
    "name":"Hawk3-2",
    "id":"168430212",
@@ -841,9 +837,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/status/resources",
-			api: "status/resources",
+			api:  "status/resources",
 			path: crmMonFile1,
-			expected_resp: `
+			expectedResponse: `
 [
    {
       "id":"d1",
@@ -864,9 +860,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/status/resources/:id",
-			api: "status/resources/vip1",
+			api:  "status/resources/vip1",
 			path: crmMonFile1,
-			expected_resp: `
+			expectedResponse: `
 {
    "id":"vip1",
    "type":"primitive",
@@ -878,9 +874,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/status/failures",
-			api: "status/failures",
+			api:  "status/failures",
 			path: crmMonFile1,
-			expected_resp: `
+			expectedResponse: `
 [
    {
       "op_key":"ddd_start_0",
@@ -915,9 +911,9 @@ func TestGetMethods(t *testing.T) {
 		},
 		{
 			name: "Test /api/v1/status/failures/:node",
-			api: "status/failures/Hawk3-1",
+			api:  "status/failures/Hawk3-1",
 			path: crmMonFile1,
-			expected_resp: `
+			expectedResponse: `
 [
    {
       "op_key":"ddd_start_0",
@@ -943,16 +939,16 @@ func TestGetMethods(t *testing.T) {
 			request := newGetRequest(testcase.api)
 			response := httptest.NewRecorder()
 
-			api_type := strings.Split(testcase.api, "/")[0]
-			if api_type == "configuration" {
-				handleConfiguration(response, request, getCibContents(testcase.path))
-			} else if api_type == "status" {
-				handleStatus(response, request, getCibContents(testcase.path))
+			apiType := strings.Split(testcase.api, "/")[0]
+			if apiType == "configuration" {
+				api.HandleConfiguration(response, request, getCibContents(testcase.path))
+			} else if apiType == "status" {
+				api.HandleStatus(response, request, getCibContents(testcase.path))
 			}
 
 			assertStatus(t, response.Code, http.StatusOK)
 			assertContentType(t, response.Result().Header.Get("Content-Type"), "application/json")
-			assertResponseBody(t, response.Body.String(), testcase.expected_resp)
+			assertResponseBody(t, response.Body.String(), testcase.expectedResponse)
 		})
 	}
 }
@@ -973,7 +969,6 @@ func AreEqualJSON(s1, s2 string) (bool, error) {
 
 	return reflect.DeepEqual(o1, o2), nil
 }
-
 
 func getCibContents(path string) string {
 	data, _ := ioutil.ReadFile(path)

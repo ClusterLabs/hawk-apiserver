@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"strconv"
@@ -25,12 +25,12 @@ func (s *SimplePrimitive) Instance(item *Primitive) {
 	s.Class = item.Class
 	s.Provider = item.Provider
 	s.Type = item.Type
-	s.Meta = FetchNv(item.MetaAttributes)
-	s.Param = FetchNv(item.InstanceAttributes)
+	s.Meta = FetchNV(item.MetaAttributes)
+	s.Param = FetchNV(item.InstanceAttributes)
 
 	if item.Operations != nil {
 		for _, item := range item.Operations.Op {
-			s.Op = append(s.Op, FetchNv2(item))
+			s.Op = append(s.Op, FetchNV2(item))
 		}
 	}
 }
@@ -74,7 +74,7 @@ type SimpleGroup struct {
 // Casting from Group struct to SimpleGroup struct
 func (s *SimpleGroup) Instance(item *Group) {
 	s.Id = item.Id
-	s.Meta = FetchNv(item.MetaAttributes)
+	s.Meta = FetchNV(item.MetaAttributes)
 
 	for _, item := range item.Primitive {
 		simple_item := &SimplePrimitive{}
@@ -136,7 +136,7 @@ type SimpleMaster struct {
 // Casting from Master struct to SimpleMaster struct
 func (s *SimpleMaster) Instance(item *Master) {
 	s.Id = item.Id
-	s.Meta = FetchNv(item.MetaAttributes)
+	s.Meta = FetchNV(item.MetaAttributes)
 
 	if item.Primitive != nil {
 		simple_item := &SimplePrimitive{}
@@ -189,7 +189,7 @@ type SimpleClone struct {
 // Casting from Clone struct to SimpleClone struct
 func (s *SimpleClone) Instance(item *Clone) {
 	s.Id = item.Id
-	s.Meta = FetchNv(item.MetaAttributes)
+	s.Meta = FetchNV(item.MetaAttributes)
 
 	if item.Primitive != nil {
 		simple_item := &SimplePrimitive{}
@@ -244,27 +244,27 @@ type SimpleBundle struct {
 // Casting from Bundle struct to SimpleBundle struct
 func (s *SimpleBundle) Instance(item *Bundle) {
 	s.Id = item.Id
-	s.Meta = FetchNv(item.MetaAttributes)
+	s.Meta = FetchNV(item.MetaAttributes)
 
 	docker := item.Docker
 	rkt := item.Rkt
 	podman := item.Podman
 	if docker != nil {
-		s.Container = FetchNv2(docker)
+		s.Container = FetchNV2(docker)
 		s.Container["type"] = "docker"
 	} else if rkt != nil {
-		s.Container = FetchNv2(rkt)
+		s.Container = FetchNV2(rkt)
 		s.Container["type"] = "rkt"
 	} else if podman != nil {
-		s.Container = FetchNv2(podman)
+		s.Container = FetchNV2(podman)
 		s.Container["type"] = "podman"
 	}
 
-	s.SimpleNetwork = FetchNv2(item.Network)
+	s.SimpleNetwork = FetchNV2(item.Network)
 
 	if item.Storage != nil {
 		for _, s_item := range item.Storage.StorageMapping {
-			s.Storage = append(s.Storage, FetchNv2(s_item))
+			s.Storage = append(s.Storage, FetchNV2(s_item))
 		}
 	}
 

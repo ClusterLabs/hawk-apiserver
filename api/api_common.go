@@ -1,4 +1,6 @@
-package main
+package api
+
+//go:generate bash gen.sh
 
 import (
 	"encoding/json"
@@ -11,7 +13,6 @@ import (
 	"strings"
 )
 
-//go:generate bash gen.sh
 // Common function for pretty print.
 // Give pretty print by default;
 // Give nomal print for efficiency reason,
@@ -25,9 +26,9 @@ func MarshalOut(r *http.Request, easyStruct interface{}) ([]byte, error) {
 }
 
 // Apis under api/v1/configuration
-func handleConfiguration(w http.ResponseWriter, r *http.Request, cib_data string) bool {
+func HandleConfiguration(w http.ResponseWriter, r *http.Request, cibData string) bool {
 	var cib Cib
-	err := xml.Unmarshal([]byte(cib_data), &cib)
+	err := xml.Unmarshal([]byte(cibData), &cib)
 	if err != nil {
 		log.Error(err)
 		return false
@@ -76,10 +77,10 @@ func handleConfiguration(w http.ResponseWriter, r *http.Request, cib_data string
 	return true
 }
 
-func handleStatus(w http.ResponseWriter, r *http.Request, mon_data string) bool {
+func HandleStatus(w http.ResponseWriter, r *http.Request, monData string) bool {
 	// parse xml into Cib struct
 	var crmMon CrmMon
-	err := xml.Unmarshal([]byte(mon_data), &crmMon)
+	err := xml.Unmarshal([]byte(monData), &crmMon)
 	if err != nil {
 		log.Error(err)
 		return false
@@ -212,9 +213,9 @@ func FetchContent(ch chan string, outerFieldsNum int, in ...interface{}) {
 		head := rt.Field(0).Tag.Get("xml")
 
 		for i := 1; i < rt.NumField(); i++ {
-			child_tag := strings.Split(rt.Field(i).Tag.Get("xml"), ",")
+			childTag := strings.Split(rt.Field(i).Tag.Get("xml"), ",")
 			if !IsBlank(rv.Field(i)) {
-				FetchContent(ch, -1, rv.Field(i).Interface(), child_tag[0], head)
+				FetchContent(ch, -1, rv.Field(i).Interface(), childTag[0], head)
 			}
 
 			if i == outerFieldsNum-1 {
@@ -243,48 +244,48 @@ func FetchContent(ch chan string, outerFieldsNum int, in ...interface{}) {
 	}
 }
 
-func FetchNv2(in interface{}) map[string]interface{} {
+func FetchNV2(in interface{}) map[string]interface{} {
 	if GetNumField(in) == 0 {
 		return nil
 	}
 
 	ch := make(chan string)
 	nv := make(map[string]interface{})
-	sub_nv := make(map[string]interface{})
-	sub_slice := make([]map[string]interface{}, 0)
-	sub_key := ""
+	subNV := make(map[string]interface{})
+	subSlice := make([]map[string]interface{}, 0)
+	subKey := ""
 
 	go FetchContent(ch, GetNumField(in), in)
 	for n := range ch {
 		res := strings.Split(n, ";")
 		if res[0] == "@slice@" {
-			sub_nv = make(map[string]interface{})
-			sub_key = res[1]
+			subNV = make(map[string]interface{})
+			subKey = res[1]
 			continue
 		}
-		if sub_key != "" {
-			sub_nv[res[0]] = res[1]
+		if subKey != "" {
+			subNV[res[0]] = res[1]
 		} else {
 			nv[res[0]] = res[1]
 		}
 	}
 
-	if sub_key != "" {
-		sub_slice = append(sub_slice, sub_nv)
-		nv[sub_key] = sub_slice
+	if subKey != "" {
+		subSlice = append(subSlice, subNV)
+		nv[subKey] = subSlice
 	}
 
 	return nv
 }
 
-func FetchNv(in interface{}) map[string]string {
+func FetchNV(in interface{}) map[string]string {
 	if GetNumField(in) == 0 {
 		return nil
 	}
 
 	ch := make(chan string)
-	key_slice := make([]string, 0)
-	value_slice := make([]string, 0)
+	keySlice := make([]string, 0)
+	valueSlice := make([]string, 0)
 	nv := make(map[string]string)
 
 	go FetchContent(ch, GetNumField(in), in)
@@ -294,16 +295,16 @@ func FetchNv(in interface{}) map[string]string {
 		}
 		res := strings.Split(n, ";")
 		if res[0] == "name" {
-			key_slice = append(key_slice, res[1])
+			keySlice = append(keySlice, res[1])
 		}
 		if res[0] == "value" {
-			value_slice = append(value_slice, res[1])
+			valueSlice = append(valueSlice, res[1])
 		}
 
 	}
 
-	for index, _ := range key_slice {
-		nv[key_slice[index]] = value_slice[index]
+	for index, key := range keySlice {
+		nv[key] = valueSlice[index]
 	}
 	return nv
 }

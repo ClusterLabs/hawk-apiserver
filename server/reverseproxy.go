@@ -9,7 +9,7 @@
 // This file has been modified from the standard lib to
 // meet the needs of the application.
 
-package main
+package server
 
 import (
 	"crypto/tls"

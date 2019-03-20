@@ -1,4 +1,4 @@
-package main
+package api
 
 // Struct for node
 type SimpleNode struct {
@@ -15,8 +15,8 @@ func (s *SimpleNode) Instance(item *Node) {
 	s.Id = item.Id
 	s.Uname = item.Uname
 	s.Type = item.Type
-	s.Attributes = FetchNv(item.InstanceAttributes)
-	s.Utilization = FetchNv(item.Utilization)
+	s.Attributes = FetchNV(item.InstanceAttributes)
+	s.Utilization = FetchNV(item.Utilization)
 }
 
 // handle function for url /api/v1/configuration/nodes
