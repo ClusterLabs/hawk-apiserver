@@ -31,11 +31,11 @@ func (m *mockWriter) WriteHeader(statusCode int) {
 }
 
 func TestHandleMetrics(t *testing.T) {
-	os.Setenv("CIB_file", "./test/cib4.xml")
+	os.Setenv("CIB_file", "./test/old-cib.xml")
 
 	testObj := new(mockWriter)
 	testObj.On("Header").Once().
-			On("Write", mock.Anything).Return(0, nil).Times(29)
+			On("Write", mock.Anything).Return(0, nil)
 	ret := metrics.HandleMetrics(testObj)
 	assert.True(t, ret, "Should print metrics for the example CIB")
 	testObj.AssertExpectations(t)
