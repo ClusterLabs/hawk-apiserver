@@ -15,6 +15,7 @@ type mockWriter struct {
 }
 
 func (m *mockWriter) Header() http.Header {
+	_ = m.Called()
 	if m.head == nil {
 		m.head = make(http.Header)
 	}
@@ -33,8 +34,8 @@ func TestHandleMetrics(t *testing.T) {
 	os.Setenv("CIB_file", "./test/cib4.xml")
 
 	testObj := new(mockWriter)
-	testObj. //On("Header").Once().
-		On("Write", mock.Anything).Return(0, nil).Times(29)
+	testObj.On("Header").Once().
+			On("Write", mock.Anything).Return(0, nil).Times(29)
 	ret := metrics.HandleMetrics(testObj)
 	assert.True(t, ret, "Should print metrics for the example CIB")
 	testObj.AssertExpectations(t)
