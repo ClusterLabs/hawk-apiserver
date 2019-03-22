@@ -35,9 +35,9 @@ func TestGetMethods(t *testing.T) {
 	cibFile2 := "test/bundles_cib.xml"
 	crmMonFile1 := "test/crm-mon-1.xml"
 	allTestcases := []struct {
-		name          string
-		api           string
-		path          string
+		name             string
+		api              string
+		path             string
 		expectedResponse string
 	}{
 		{
