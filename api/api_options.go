@@ -19,13 +19,13 @@ func handleConfigOpDefaults(urllist []string, cib *Cib) (bool, interface{}) {
 
 // api/v1/status/summary
 func handleStateSummary(urllist []string, crmMon *CrmMon) (bool, interface{}) {
-	summary_data := crmMon.CrmMonSummary
-	if summary_data == nil {
+	summaryData := crmMon.CrmMonSummary
+	if summaryData == nil {
 		return true, nil
 	}
 
 	ch := make(chan string)
-	go FetchContent(ch, GetNumField(summary_data), summary_data)
+	go FetchContent(ch, GetNumField(summaryData), summaryData)
 	nv := make(map[string]string)
 	for n := range ch {
 		res := strings.Split(n, ";")

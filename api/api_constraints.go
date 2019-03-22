@@ -22,12 +22,12 @@ func handleConfigConstraints(urllist []string, cib *Cib) (bool, interface{}) {
 		constraints[item.Id] = "order"
 	}
 
-	simple_cons := make([]SimpleConstraints, 0)
+	simpleCons := make([]SimpleConstraints, 0)
 	for key, value := range constraints {
-		simple_cons = append(simple_cons, SimpleConstraints{Id: key, Type: value})
+		simpleCons = append(simpleCons, SimpleConstraints{Id: key, Type: value})
 	}
-	sort.Slice(simple_cons, func(i, j int) bool {
-                return simple_cons[i].Id < simple_cons[j].Id
+	sort.Slice(simpleCons, func(i, j int) bool {
+                return simpleCons[i].Id < simpleCons[j].Id
         })
 
 	if len(urllist) == 5 {
@@ -41,13 +41,13 @@ func handleConfigConstraints(urllist []string, cib *Cib) (bool, interface{}) {
 		}
 	}
 
-	return true, simple_cons
+	return true, simpleCons
 }
 
 // Handle function for api/v1/configuration/locations
 func handleConfigLocation(urllist []string, cib *Cib) (bool, interface{}) {
-	location_data := cib.Configuration.Constraints.RscLocation
-	if location_data == nil {
+	locationData := cib.Configuration.Constraints.RscLocation
+	if locationData == nil {
 		return true, nil
 	}
 
@@ -55,20 +55,20 @@ func handleConfigLocation(urllist []string, cib *Cib) (bool, interface{}) {
 	if len(urllist) == 5 {
 		// api/v1/configuration/locations/:id
 		locationId = urllist[4]
-		for _, item := range location_data {
+		for _, item := range locationData {
 			if item.Id == locationId {
 				return true, item
 			}
 		}
 	}
 
-	return true, location_data
+	return true, locationData
 }
 
 // Handle function for api/v1/configuration/colocations
 func handleConfigColocation(urllist []string, cib *Cib) (bool, interface{}) {
-	colocation_data := cib.Configuration.Constraints.RscColocation
-	if colocation_data == nil {
+	colocationData := cib.Configuration.Constraints.RscColocation
+	if colocationData == nil {
 		return true, nil
 	}
 
@@ -76,20 +76,20 @@ func handleConfigColocation(urllist []string, cib *Cib) (bool, interface{}) {
 	if len(urllist) == 5 {
 		// api/v1/configuration/colocations/:id
 		colocationId = urllist[4]
-		for _, item := range colocation_data {
+		for _, item := range colocationData {
 			if item.Id == colocationId {
 				return true, item
 			}
 		}
 	}
 
-	return true, colocation_data
+	return true, colocationData
 }
 
 // Handle function for api/v1/configuration/orders
 func handleConfigOrder(urllist []string, cib *Cib) (bool, interface{}) {
-	order_data := cib.Configuration.Constraints.RscOrder
-	if order_data == nil {
+	orderData := cib.Configuration.Constraints.RscOrder
+	if orderData == nil {
 		return true, nil
 	}
 
@@ -97,12 +97,12 @@ func handleConfigOrder(urllist []string, cib *Cib) (bool, interface{}) {
 	if len(urllist) == 5 {
 		// api/v1/configuration/orders/:id
 		orderId = urllist[4]
-		for _, item := range order_data {
+		for _, item := range orderData {
 			if item.Id == orderId {
 				return true, item
 			}
 		}
 	}
 
-	return true, order_data
+	return true, orderData
 }

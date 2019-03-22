@@ -5,7 +5,7 @@ import (
 	"sort"
 )
 
-// Struct for primitive resource
+// SimplePrimitive maps primitive resource to JSON
 type SimplePrimitive struct {
 	Id       string            `json:"id"`
 	Class    string            `json:"class"`
@@ -37,8 +37,8 @@ func (s *SimplePrimitive) Instance(item *Primitive) {
 
 // handle function for url /api/v1/configuration/primitives
 func handleConfigPrimitive(urllist []string, cib *Cib) (bool, interface{}) {
-	primitives_data := cib.Configuration.Resources.Primitive
-	if primitives_data == nil {
+	primitivesData := cib.Configuration.Resources.Primitive
+	if primitivesData == nil {
 		return true, nil
 	}
 
@@ -49,21 +49,21 @@ func handleConfigPrimitive(urllist []string, cib *Cib) (bool, interface{}) {
 	}
 
 	primitives := make([]SimplePrimitive, 0)
-	for _, item := range primitives_data {
-		simple_item := &SimplePrimitive{}
-		simple_item.Instance(item)
+	for _, item := range primitivesData {
+		simpleItem := &SimplePrimitive{}
+		simpleItem.Instance(item)
 		if primitiveId == "" {
 			// /api/v1/configuration/primitives
-			primitives = append(primitives, *simple_item)
+			primitives = append(primitives, *simpleItem)
 		} else if item.Id == primitiveId {
 			// /api/v1/configuration/primitives/:id
-			return true, simple_item
+			return true, simpleItem
 		}
 	}
 	return true, primitives
 }
 
-// Struct for group resource
+// SimpleGroup maps CIB groups to JSON
 type SimpleGroup struct {
 	Id              string             `json:"id"`
 	Meta            map[string]string  `json:"meta,omitempty"`
@@ -77,16 +77,16 @@ func (s *SimpleGroup) Instance(item *Group) {
 	s.Meta = FetchNV(item.MetaAttributes)
 
 	for _, item := range item.Primitive {
-		simple_item := &SimplePrimitive{}
-		simple_item.Instance(item)
-		s.SimplePrimitive = append(s.SimplePrimitive, simple_item)
+		simpleItem := &SimplePrimitive{}
+		simpleItem.Instance(item)
+		s.SimplePrimitive = append(s.SimplePrimitive, simpleItem)
 	}
 }
 
 // handle function for url /api/v1/configuration/groups
 func handleConfigGroup(urllist []string, cib *Cib) (bool, interface{}) {
-	groups_data := cib.Configuration.Resources.Group
-	if groups_data == nil {
+	groupsData := cib.Configuration.Resources.Group
+	if groupsData == nil {
 		return true, nil
 	}
 
@@ -101,22 +101,21 @@ func handleConfigGroup(urllist []string, cib *Cib) (bool, interface{}) {
 	}
 
 	groups := make([]SimpleGroup, 0)
-	for _, item := range groups_data {
-		simple_item := &SimpleGroup{}
-		simple_item.Instance(item)
+	for _, item := range groupsData {
+		simpleItem := &SimpleGroup{}
+		simpleItem.Instance(item)
 		if groupId == "" {
 			// /api/v1/configuration/groups
-			groups = append(groups, *simple_item)
+			groups = append(groups, *simpleItem)
 		} else if item.Id == groupId {
 			if primitiveId == "" {
 				// /api/v1/configuration/groups/:id
-				return true, simple_item
-			} else {
-				// /api/v1/configuration/groups/:id/:primitiveId
-				for index, item := range simple_item.SimplePrimitive {
-					if item.Id == primitiveId {
-						return true, simple_item.SimplePrimitive[index]
-					}
+				return true, simpleItem
+			}
+			// /api/v1/configuration/groups/:id/:primitiveId
+			for index, item := range simpleItem.SimplePrimitive {
+				if item.Id == primitiveId {
+					return true, simpleItem.SimplePrimitive[index]
 				}
 			}
 		}
@@ -124,7 +123,7 @@ func handleConfigGroup(urllist []string, cib *Cib) (bool, interface{}) {
 	return true, groups
 }
 
-// Struct for master resource
+// SimpleMaster maps the CIB master tag
 type SimpleMaster struct {
 	Id              string            `json:"id"`
 	Meta            map[string]string `json:"meta,omitempty"`
@@ -139,20 +138,20 @@ func (s *SimpleMaster) Instance(item *Master) {
 	s.Meta = FetchNV(item.MetaAttributes)
 
 	if item.Primitive != nil {
-		simple_item := &SimplePrimitive{}
-		simple_item.Instance(item.Primitive)
-		s.SimplePrimitive = simple_item
+		simpleItem := &SimplePrimitive{}
+		simpleItem.Instance(item.Primitive)
+		s.SimplePrimitive = simpleItem
 	} else if item.Group != nil {
-		simple_item := &SimpleGroup{}
-		simple_item.Instance(item.Group)
-		s.SimpleGroup = simple_item
+		simpleItem := &SimpleGroup{}
+		simpleItem.Instance(item.Group)
+		s.SimpleGroup = simpleItem
 	}
 }
 
 // handle function for url /api/v1/configuration/masters
 func handleConfigMaster(urllist []string, cib *Cib) (bool, interface{}) {
-	masters_data := cib.Configuration.Resources.Master
-	if masters_data == nil {
+	mastersData := cib.Configuration.Resources.Master
+	if mastersData == nil {
 		return true, nil
 	}
 
@@ -163,21 +162,21 @@ func handleConfigMaster(urllist []string, cib *Cib) (bool, interface{}) {
 	}
 
 	masters := make([]SimpleMaster, 0)
-	for _, item := range masters_data {
-		simple_item := &SimpleMaster{}
-		simple_item.Instance(item)
+	for _, item := range mastersData {
+		simpleItem := &SimpleMaster{}
+		simpleItem.Instance(item)
 		if masterId == "" {
 			// /api/v1/configuration/masters
-			masters = append(masters, *simple_item)
+			masters = append(masters, *simpleItem)
 		} else if item.Id == masterId {
 			// /api/v1/configuration/masters/:id
-			return true, simple_item
+			return true, simpleItem
 		}
 	}
 	return true, masters
 }
 
-// Struct for clone resource
+// SimpleClone maps CIB clones to JSON
 type SimpleClone struct {
 	Id              string            `json:"id"`
 	Meta            map[string]string `json:"meta,omitempty"`
@@ -192,20 +191,20 @@ func (s *SimpleClone) Instance(item *Clone) {
 	s.Meta = FetchNV(item.MetaAttributes)
 
 	if item.Primitive != nil {
-		simple_item := &SimplePrimitive{}
-		simple_item.Instance(item.Primitive)
-		s.SimplePrimitive = simple_item
+		simpleItem := &SimplePrimitive{}
+		simpleItem.Instance(item.Primitive)
+		s.SimplePrimitive = simpleItem
 	} else if item.Group != nil {
-		simple_item := &SimpleGroup{}
-		simple_item.Instance(item.Group)
-		s.SimpleGroup = simple_item
+		simpleItem := &SimpleGroup{}
+		simpleItem.Instance(item.Group)
+		s.SimpleGroup = simpleItem
 	}
 }
 
 // handle function for url /api/v1/configuration/clones
 func handleConfigClone(urllist []string, cib *Cib) (bool, interface{}) {
-	clones_data := cib.Configuration.Resources.Clone
-	if clones_data == nil {
+	clonesData := cib.Configuration.Resources.Clone
+	if clonesData == nil {
 		return true, nil
 	}
 
@@ -216,21 +215,21 @@ func handleConfigClone(urllist []string, cib *Cib) (bool, interface{}) {
 	}
 
 	clones := make([]SimpleClone, 0)
-	for _, item := range clones_data {
-		simple_item := &SimpleClone{}
-		simple_item.Instance(item)
+	for _, item := range clonesData {
+		simpleItem := &SimpleClone{}
+		simpleItem.Instance(item)
 		if cloneId == "" {
 			// /api/v1/configuration/clones
-			clones = append(clones, *simple_item)
+			clones = append(clones, *simpleItem)
 		} else if item.Id == cloneId {
 			// /api/v1/configuration/clones/:id
-			return true, simple_item
+			return true, simpleItem
 		}
 	}
 	return true, clones
 }
 
-// Struct for bundle resource
+// SimpleBundle maps CIB bundles to JSON
 type SimpleBundle struct {
 	Id              string                 `json:"id"`
 	Meta            map[string]string      `json:"meta,omitempty"`
@@ -263,22 +262,22 @@ func (s *SimpleBundle) Instance(item *Bundle) {
 	s.SimpleNetwork = FetchNV2(item.Network)
 
 	if item.Storage != nil {
-		for _, s_item := range item.Storage.StorageMapping {
-			s.Storage = append(s.Storage, FetchNV2(s_item))
+		for _, sItem := range item.Storage.StorageMapping {
+			s.Storage = append(s.Storage, FetchNV2(sItem))
 		}
 	}
 
 	if item.Primitive != nil {
-		simple_item := &SimplePrimitive{}
-		simple_item.Instance(item.Primitive)
-		s.SimplePrimitive = simple_item
+		simpleItem := &SimplePrimitive{}
+		simpleItem.Instance(item.Primitive)
+		s.SimplePrimitive = simpleItem
 	}
 }
 
 // handle function for url /api/v1/configuration/bundles
 func handleConfigBundle(urllist []string, cib *Cib) (bool, interface{}) {
-	bundles_data := cib.Configuration.Resources.Bundle
-	if bundles_data == nil {
+	bundlesData := cib.Configuration.Resources.Bundle
+	if bundlesData == nil {
 		return true, nil
 	}
 
@@ -289,22 +288,22 @@ func handleConfigBundle(urllist []string, cib *Cib) (bool, interface{}) {
 	}
 
 	bundles := make([]SimpleBundle, 0)
-	for _, item := range bundles_data {
-		simple_item := &SimpleBundle{}
-		simple_item.Instance(item)
+	for _, item := range bundlesData {
+		simpleItem := &SimpleBundle{}
+		simpleItem.Instance(item)
 		if bundleId == "" {
 			// /api/v1/configuration/bundles
-			bundles = append(bundles, *simple_item)
+			bundles = append(bundles, *simpleItem)
 		} else if item.Id == bundleId {
 			// /api/v1/configuration/bundles/:id
-			return true, simple_item
+			return true, simpleItem
 		}
 	}
 
 	return true, bundles
 }
 
-// Struct for all types resource
+// SimpleResource maps a CIB resource to JSON
 type SimpleResource struct {
 	Id   string `json:"id"`
 	Type string `json:"type"`
@@ -328,12 +327,12 @@ func handleConfigResources(urllist []string, cib *Cib) (bool, interface{}) {
 	for _, item := range cib.Configuration.Resources.Bundle {
 		resources[item.Id] = "bundle"
 	}
-	simple_resources := make([]SimpleResource, 0)
+	simpleResources := make([]SimpleResource, 0)
 	for key, value := range resources {
-		simple_resources = append(simple_resources, SimpleResource{Id: key, Type: value})
+		simpleResources = append(simpleResources, SimpleResource{Id: key, Type: value})
 	}
-	sort.Slice(simple_resources, func(i, j int) bool {
-		return simple_resources[i].Id < simple_resources[j].Id
+	sort.Slice(simpleResources, func(i, j int) bool {
+		return simpleResources[i].Id < simpleResources[j].Id
 	})
 
 	if len(urllist) == 5 {
@@ -352,10 +351,10 @@ func handleConfigResources(urllist []string, cib *Cib) (bool, interface{}) {
 		}
 	}
 
-	return true, simple_resources
+	return true, simpleResources
 }
 
-// Struct for primitive status
+// SimplePrimitiveState maps CIB primitive state data to JSON
 type SimplePrimitiveState struct {
 	Id    string `json:"id"`
 	Type  string `json:"type"`
@@ -372,13 +371,13 @@ func (s *SimplePrimitiveState) Instance(item *ResourcesResource) {
 	s.Agent = item.ResourceAgent
 	s.Role = item.Role
 
-	nodes_running_on, _ := strconv.Atoi(item.NodesRunningOn)
-	if nodes_running_on == 1 {
+	nodesRunningOn, _ := strconv.Atoi(item.NodesRunningOn)
+	if nodesRunningOn == 1 {
 		s.Node = item.ResourceNode[0].Name
 	}
 }
 
-// Struct for group status
+// SimpleGroupState maps group state to JSON
 type SimpleGroupState struct {
 	Id                   string                 `json:"id"`
 	Type                 string                 `json:"type"`
@@ -393,14 +392,14 @@ func (s *SimpleGroupState) Instance(item *ResourcesGroup) {
 
 	primitives := make([]SimplePrimitiveState, 0)
 	for _, item := range item.GroupResource {
-		simple_item := &SimplePrimitiveState{}
-		simple_item.Instance(item)
-		primitives = append(primitives, *simple_item)
+		simpleItem := &SimplePrimitiveState{}
+		simpleItem.Instance(item)
+		primitives = append(primitives, *simpleItem)
 	}
 	s.SimplePrimitiveState = primitives
 }
 
-// Struct for master/clone status
+// SimpleCloneState maps clone state to JSON
 type SimpleCloneState struct {
 	Id                   string                  `json:"id"`
 	Type                 string                  `json:"type"`
@@ -422,22 +421,22 @@ func (s *SimpleCloneState) Instance(item *ResourcesClone) {
 	}
 
 	for _, item := range item.CloneResource {
-		simple_item := &SimplePrimitiveState{}
-		simple_item.Instance(item)
-		s.SimplePrimitiveState = append(s.SimplePrimitiveState, simple_item)
+		simpleItem := &SimplePrimitiveState{}
+		simpleItem.Instance(item)
+		s.SimplePrimitiveState = append(s.SimplePrimitiveState, simpleItem)
 	}
 
 	for _, item := range item.CloneGroup {
-		simple_item := &SimpleGroupState{}
-		simple_item.Instance(item)
-		s.SimpleGroupState = append(s.SimpleGroupState, simple_item)
+		simpleItem := &SimpleGroupState{}
+		simpleItem.Instance(item)
+		s.SimpleGroupState = append(s.SimpleGroupState, simpleItem)
 	}
 }
 
 // handle function for url /api/v1/status/resources
 func handleStateResources(urllist []string, crmMon *CrmMon) (bool, interface{}) {
-	resources_data := crmMon.CrmMonResources
-	if resources_data == nil {
+	resourcesData := crmMon.CrmMonResources
+	if resourcesData == nil {
 		return true, nil
 	}
 
@@ -448,31 +447,31 @@ func handleStateResources(urllist []string, crmMon *CrmMon) (bool, interface{}) 
 		resId = urllist[4]
 	}
 
-	for _, item := range resources_data.ResourcesResource {
-		simple_item := &SimplePrimitiveState{}
-		simple_item.Instance(item)
+	for _, item := range resourcesData.ResourcesResource {
+		simpleItem := &SimplePrimitiveState{}
+		simpleItem.Instance(item)
 		if item.Id == resId {
-			return true, simple_item
+			return true, simpleItem
 		}
-		allStatus = append(allStatus, *simple_item)
+		allStatus = append(allStatus, *simpleItem)
 	}
 
-	for _, item := range resources_data.ResourcesGroup {
-		simple_item := &SimpleGroupState{}
-		simple_item.Instance(item)
+	for _, item := range resourcesData.ResourcesGroup {
+		simpleItem := &SimpleGroupState{}
+		simpleItem.Instance(item)
 		if item.Id == resId {
-			return true, simple_item
+			return true, simpleItem
 		}
-		allStatus = append(allStatus, *simple_item)
+		allStatus = append(allStatus, *simpleItem)
 	}
 
-	for _, item := range resources_data.ResourcesClone {
-		simple_item := &SimpleCloneState{}
-		simple_item.Instance(item)
+	for _, item := range resourcesData.ResourcesClone {
+		simpleItem := &SimpleCloneState{}
+		simpleItem.Instance(item)
 		if item.Id == resId {
-			return true, simple_item
+			return true, simpleItem
 		}
-		allStatus = append(allStatus, *simple_item)
+		allStatus = append(allStatus, *simpleItem)
 	}
 
 	return true, allStatus
@@ -480,23 +479,23 @@ func handleStateResources(urllist []string, crmMon *CrmMon) (bool, interface{}) 
 
 // handle function for url /api/v1/status/failures
 func handleStateFailures(urllist []string, crmMon *CrmMon) (bool, interface{}) {
-	failures_data := crmMon.CrmMonFailures.FailuresFailure
-	if failures_data == nil {
+	failuresData := crmMon.CrmMonFailures.FailuresFailure
+	if failuresData == nil {
 		return true, nil
 	}
 
 	nodeId := ""
 	if len(urllist) == 5 {
 		// api/v1/status/failures/:node
-		var results_by_node []interface{}
+		var resultsByNode []interface{}
 		nodeId = urllist[4]
-		for _, item := range failures_data {
+		for _, item := range failuresData {
 			if item.Node == nodeId {
-				results_by_node = append(results_by_node, item)
+				resultsByNode = append(resultsByNode, item)
 			}
 		}
-		return true, results_by_node
+		return true, resultsByNode
 	}
 
-	return true, failures_data
+	return true, failuresData
 }

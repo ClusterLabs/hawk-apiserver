@@ -35,6 +35,8 @@ func TestCommonFunctions(t *testing.T) {
 }
 
 func TestGetNumField(t *testing.T) {
+	pint := new(int64)
+	*pint = 4
 	allTests := []struct {
 		Name  string
 		Input interface{}
@@ -54,6 +56,11 @@ func TestGetNumField(t *testing.T) {
 			"Ptr",
 			&Person{"Xin", 100},
 			2,
+		},
+		{
+			"Ptr(int)",
+			pint,
+			0,
 		},
 		{
 			"Slice",
@@ -91,11 +98,11 @@ func assertTrue(t *testing.T, got bool) {
 func TestFetchNV(t *testing.T) {
 	t.Run("TestExtractMetas", func(t *testing.T) {
 		nvs := []*api.Nvpair{
-			&api.Nvpair{Name: "target-role", Value: "Stopped"},
-			&api.Nvpair{Name: "description", Value: "test"},
+			{Name: "target-role", Value: "Stopped"},
+			{Name: "description", Value: "test"},
 		}
 		metas := []*api.MetaAttributes{
-			&api.MetaAttributes{Nvpair: nvs},
+			{Nvpair: nvs},
 		}
 		res := api.FetchNV(metas)
 
