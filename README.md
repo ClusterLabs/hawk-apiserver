@@ -4,6 +4,7 @@
 [![Maintainability](https://api.codeclimate.com/v1/badges/9f372cd2a2dac74962e2/maintainability)](https://codeclimate.com/github/ClusterLabs/hawk-apiserver/maintainability)
 [![Test Coverage](https://api.codeclimate.com/v1/badges/9f372cd2a2dac74962e2/test_coverage)](https://codeclimate.com/github/ClusterLabs/hawk-apiserver/test_coverage)
 [![GoDoc](https://godoc.org/github.com/ClusterLabs/hawk-apiserver?status.svg)](https://godoc.org/github.com/ClusterLabs/hawk-apiserver)
+[![Go Report Card](https://goreportcard.com/badge/github.com/ClusterLabs/hawk-apiserver)](https://goreportcard.com/report/github.com/ClusterLabs/hawk-apiserver)
 
 HTTPS API server / minimalist web proxy for Hawk.
 
