@@ -39,24 +39,24 @@ func (handler *routeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasPrefix(r.URL.Path, route.Path) {
 			continue
 		}
-		if route.Handler == "api/v1" {
+		switch route.Handler {
+		case "api/v1":
 			if handler.serveAPI(w, r, &route) {
 				return
 			}
-		} else if route.Handler == "monitor" {
+		case "monitor":
 			if handler.serveMonitor(w, r, &route) {
 				return
 			}
-		} else if route.Handler == "metrics" {
+		case "metrics":
 			if handler.serveMetrics(w, r, &route) {
 				return
 			}
-		} else if route.Handler == "file" && route.Target != nil {
-			// TODO(krig): Verify configuration file (ensure Target != nil) in config parser
+		case "file":
 			if handler.serveFile(w, r, &route) {
 				return
 			}
-		} else if route.Handler == "proxy" && route.Target != nil {
+		case "proxy":
 			if handler.serveProxy(w, r, &route) {
 				return
 			}
@@ -177,6 +177,10 @@ func (handler *routeHandler) serveMonitor(w http.ResponseWriter, r *http.Request
 }
 
 func (handler *routeHandler) serveFile(w http.ResponseWriter, r *http.Request, route *util.ConfigRoute) bool {
+	// TODO(krig): Verify configuration file (ensure Target != nil) in config parser
+	if route.Target == nil {
+		return false
+	}
 	filename := path.Clean(fmt.Sprintf("%v%v", *route.Target, r.URL.Path))
 	info, err := os.Stat(filename)
 	if !os.IsNotExist(err) && !info.IsDir() {
@@ -197,6 +201,9 @@ func (handler *routeHandler) serveFile(w http.ResponseWriter, r *http.Request, r
 }
 
 func (handler *routeHandler) serveProxy(w http.ResponseWriter, r *http.Request, route *util.ConfigRoute) bool {
+	if route.Target == nil {
+		return false
+	}
 	log.Debugf("[proxy] %s -> %s", r.URL.Path, *route.Target)
 	rproxy := handler.proxyForRoute(route)
 	if rproxy == nil {
