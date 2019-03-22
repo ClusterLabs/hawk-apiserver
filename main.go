@@ -219,7 +219,7 @@ func (handler *routeHandler) serveMetrics(w http.ResponseWriter, r *http.Request
 	return metrics.HandleMetrics(w)
 }
 
-func main() {
+func initConfig() util.Config {
 	log.SetFormatter(&log.TextFormatter{
 		DisableTimestamp: true,
 		DisableSorting:   true,
@@ -276,6 +276,11 @@ func main() {
 	}
 	log.SetLevel(lvl)
 
+	return config
+}
+
+func main() {
+	config := initConfig()
 	routehandler := newRouteHandler(&config)
 	routehandler.cib.Start()
 	gziphandler := server.NewGzipHandler(routehandler)
