@@ -1,4 +1,6 @@
-package main
+package api
+
+//go:generate bash gen.sh
 
 import (
 	"encoding/json"
@@ -11,11 +13,9 @@ import (
 	"strings"
 )
 
-//go:generate bash gen.sh
-// Common function for pretty print.
-// Give pretty print by default;
-// Give nomal print for efficiency reason,
-// by setting request header "PrettyPrint" as non "1" value on client.
+// MarshalOut is used to pretty-print JSON data if the HTTP header
+// "PrettyPrint" is set to "1" or is not set, so to disable
+// pretty-printing, set any other value in the header.
 func MarshalOut(r *http.Request, easyStruct interface{}) ([]byte, error) {
 	value := r.Header.Get("PrettyPrint")
 	if value == "" || value == "1" {
@@ -24,10 +24,10 @@ func MarshalOut(r *http.Request, easyStruct interface{}) ([]byte, error) {
 	return json.Marshal(easyStruct)
 }
 
-// Apis under api/v1/configuration
-func handleConfiguration(w http.ResponseWriter, r *http.Request, cib_data string) bool {
+// HandleConfiguration handles APIs under api/v1/configuration
+func HandleConfiguration(w http.ResponseWriter, r *http.Request, cibData string) bool {
 	var cib Cib
-	err := xml.Unmarshal([]byte(cib_data), &cib)
+	err := xml.Unmarshal([]byte(cibData), &cib)
 	if err != nil {
 		log.Error(err)
 		return false
@@ -76,10 +76,11 @@ func handleConfiguration(w http.ResponseWriter, r *http.Request, cib_data string
 	return true
 }
 
-func handleStatus(w http.ResponseWriter, r *http.Request, mon_data string) bool {
+// HandleStatus handles status API requests.
+func HandleStatus(w http.ResponseWriter, r *http.Request, monData string) bool {
 	// parse xml into Cib struct
 	var crmMon CrmMon
-	err := xml.Unmarshal([]byte(mon_data), &crmMon)
+	err := xml.Unmarshal([]byte(monData), &crmMon)
 	if err != nil {
 		log.Error(err)
 		return false
@@ -111,46 +112,32 @@ func handleStatus(w http.ResponseWriter, r *http.Request, mon_data string) bool 
 	return true
 }
 
+// IsString checks if value is a string.
 func IsString(value reflect.Value) bool {
-	switch value.Kind() {
-	case reflect.String:
-		return true
-	}
-	return false
+	return value.Kind() == reflect.String
 }
 
+// IsPtr checks if value is a bool.
 func IsPtr(value reflect.Value) bool {
-	switch value.Kind() {
-	case reflect.Ptr:
-		return true
-	}
-	return false
+	return value.Kind() == reflect.Ptr
 }
 
+// IsStruct checks if value is a struct.
 func IsStruct(value reflect.Value) bool {
-	switch value.Kind() {
-	case reflect.Struct:
-		return true
-	}
-	return false
+	return value.Kind() == reflect.Struct
 }
 
+// IsMap checks if value is a map.
 func IsMap(value reflect.Value) bool {
-	switch value.Kind() {
-	case reflect.Map:
-		return true
-	}
-	return false
+	return value.Kind() == reflect.Map
 }
 
+// IsSlice checks if value is a slice.
 func IsSlice(value reflect.Value) bool {
-	switch value.Kind() {
-	case reflect.Slice:
-		return true
-	}
-	return false
+	return value.Kind() == reflect.Slice
 }
 
+// IsBlank returns true if value is unset (empty string, zero value, etc.).
 func IsBlank(value reflect.Value) bool {
 	switch value.Kind() {
 	case reflect.String:
@@ -169,20 +156,27 @@ func IsBlank(value reflect.Value) bool {
 	return reflect.DeepEqual(value.Interface(), reflect.Zero(value.Type()).Interface())
 }
 
-func GetNumField(in interface{}) int {
-	rv := reflect.ValueOf(in)
+func retryGetNumField(rv reflect.Value) int {
 	if IsBlank(rv) {
 		return 0
 	} else if IsStruct(rv) {
-		return reflect.TypeOf(in).NumField()
+		return rv.NumField()
 	} else if IsPtr(rv) {
-		return reflect.Indirect(rv).NumField()
+		return retryGetNumField(reflect.Indirect(rv))
 	} else if IsSlice(rv) {
 		return rv.Len()
 	}
 	return 0
 }
 
+// GetNumField returns NumField() for structs or pointers to structs, and len for slices
+func GetNumField(in interface{}) int {
+	return retryGetNumField(reflect.ValueOf(in))
+}
+
+// FetchContent parses the content of an XML structure and
+// sends anything interesting into the provided channel.
+//
 // For some specific structs from api_structs.go,
 // like ClusterPropertySet, Operations.Op or MetaAttributes,
 // it's more flexible using reflect recurrently to parse the contents and
@@ -212,9 +206,9 @@ func FetchContent(ch chan string, outerFieldsNum int, in ...interface{}) {
 		head := rt.Field(0).Tag.Get("xml")
 
 		for i := 1; i < rt.NumField(); i++ {
-			child_tag := strings.Split(rt.Field(i).Tag.Get("xml"), ",")
+			childTag := strings.Split(rt.Field(i).Tag.Get("xml"), ",")
 			if !IsBlank(rv.Field(i)) {
-				FetchContent(ch, -1, rv.Field(i).Interface(), child_tag[0], head)
+				FetchContent(ch, -1, rv.Field(i).Interface(), childTag[0], head)
 			}
 
 			if i == outerFieldsNum-1 {
@@ -243,48 +237,51 @@ func FetchContent(ch chan string, outerFieldsNum int, in ...interface{}) {
 	}
 }
 
-func FetchNv2(in interface{}) map[string]interface{} {
+// FetchNV2 scans the untyped input for key/value pairs.
+func FetchNV2(in interface{}) map[string]interface{} {
 	if GetNumField(in) == 0 {
 		return nil
 	}
 
 	ch := make(chan string)
 	nv := make(map[string]interface{})
-	sub_nv := make(map[string]interface{})
-	sub_slice := make([]map[string]interface{}, 0)
-	sub_key := ""
+	subNV := make(map[string]interface{})
+	subSlice := make([]map[string]interface{}, 0)
+	subKey := ""
 
 	go FetchContent(ch, GetNumField(in), in)
 	for n := range ch {
 		res := strings.Split(n, ";")
 		if res[0] == "@slice@" {
-			sub_nv = make(map[string]interface{})
-			sub_key = res[1]
+			subNV = make(map[string]interface{})
+			subKey = res[1]
 			continue
 		}
-		if sub_key != "" {
-			sub_nv[res[0]] = res[1]
+		if subKey != "" {
+			subNV[res[0]] = res[1]
 		} else {
 			nv[res[0]] = res[1]
 		}
 	}
 
-	if sub_key != "" {
-		sub_slice = append(sub_slice, sub_nv)
-		nv[sub_key] = sub_slice
+	if subKey != "" {
+		subSlice = append(subSlice, subNV)
+		nv[subKey] = subSlice
 	}
 
 	return nv
 }
 
-func FetchNv(in interface{}) map[string]string {
+// FetchNV tries to parse name/value pairs
+// from the provided object.
+func FetchNV(in interface{}) map[string]string {
 	if GetNumField(in) == 0 {
 		return nil
 	}
 
 	ch := make(chan string)
-	key_slice := make([]string, 0)
-	value_slice := make([]string, 0)
+	keySlice := make([]string, 0)
+	valueSlice := make([]string, 0)
 	nv := make(map[string]string)
 
 	go FetchContent(ch, GetNumField(in), in)
@@ -294,16 +291,16 @@ func FetchNv(in interface{}) map[string]string {
 		}
 		res := strings.Split(n, ";")
 		if res[0] == "name" {
-			key_slice = append(key_slice, res[1])
+			keySlice = append(keySlice, res[1])
 		}
 		if res[0] == "value" {
-			value_slice = append(value_slice, res[1])
+			valueSlice = append(valueSlice, res[1])
 		}
 
 	}
 
-	for index, _ := range key_slice {
-		nv[key_slice[index]] = value_slice[index]
+	for index, key := range keySlice {
+		nv[key] = valueSlice[index]
 	}
 	return nv
 }

@@ -1,6 +1,6 @@
-package main
+package api
 
-// Struct for node
+// SimpleNode maps a CIB node to JSON
 type SimpleNode struct {
 	Id          string            `json:"id"`
 	Uname       string            `json:"uname"`
@@ -15,14 +15,14 @@ func (s *SimpleNode) Instance(item *Node) {
 	s.Id = item.Id
 	s.Uname = item.Uname
 	s.Type = item.Type
-	s.Attributes = FetchNv(item.InstanceAttributes)
-	s.Utilization = FetchNv(item.Utilization)
+	s.Attributes = FetchNV(item.InstanceAttributes)
+	s.Utilization = FetchNV(item.Utilization)
 }
 
 // handle function for url /api/v1/configuration/nodes
 func handleConfigNodes(urllist []string, cib *Cib) (bool, interface{}) {
-	nodes_data := cib.Configuration.Nodes.Node
-	if nodes_data == nil {
+	nodesData := cib.Configuration.Nodes.Node
+	if nodesData == nil {
 		return true, nil
 	}
 
@@ -33,15 +33,15 @@ func handleConfigNodes(urllist []string, cib *Cib) (bool, interface{}) {
 	}
 
 	nodes := make([]SimpleNode, 0)
-	for _, item := range nodes_data {
-		simple_item := &SimpleNode{}
-		simple_item.Instance(item)
+	for _, item := range nodesData {
+		simpleItem := &SimpleNode{}
+		simpleItem.Instance(item)
 		if nodeId == "" {
 			// /api/v1/configuration/nodes
-			nodes = append(nodes, *simple_item)
+			nodes = append(nodes, *simpleItem)
 		} else if item.Id == nodeId {
 			// /api/v1/configuration/nodes/:id
-			return true, simple_item
+			return true, simpleItem
 		}
 	}
 	return true, nodes
@@ -49,8 +49,8 @@ func handleConfigNodes(urllist []string, cib *Cib) (bool, interface{}) {
 
 // /api/v1/status/nodes
 func handleStateNodes(urllist []string, crmMon *CrmMon) (bool, interface{}) {
-	nodes_data := crmMon.CrmMonNodes.NodesNode
-	if nodes_data == nil {
+	nodesData := crmMon.CrmMonNodes.NodesNode
+	if nodesData == nil {
 		return true, nil
 	}
 
@@ -60,10 +60,10 @@ func handleStateNodes(urllist []string, crmMon *CrmMon) (bool, interface{}) {
 		nodeId = urllist[4]
 	}
 
-	for index, item := range nodes_data {
+	for index, item := range nodesData {
 		if item.Id == nodeId {
-			return true, nodes_data[index]
+			return true, nodesData[index]
 		}
 	}
-	return true, nodes_data
+	return true, nodesData
 }

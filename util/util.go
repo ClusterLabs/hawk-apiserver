@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	"bufio"
@@ -10,11 +10,6 @@ import (
 	"os/exec"
 	"strings"
 )
-
-// parseConfigFile
-//
-// Configuration file parser. The configuration file format is
-// described in config.json.example and README.md.
 
 type offsetContext struct {
 	start int
@@ -49,7 +44,37 @@ func fatalSyntaxError(js string, err error) {
 	log.Fatalf("%s^", strings.Repeat(" ", ctx.pos))
 }
 
-func parseConfigFile(cfgfile string, target *Config) {
+// Config is the internal representation of the configuration file.
+type Config struct {
+	Listen   string        `json:"listen"`
+	Port     int           `json:"port"`
+	Key      string        `json:"key"`
+	Cert     string        `json:"cert"`
+	LogLevel string        `json:"loglevel"`
+	Route    []ConfigRoute `json:"route"`
+}
+
+// ConfigRoute is used in the configuration to map routes to handlers.
+//
+// Possible handlers (this list may be outdated)a:
+//
+//   * `api/v1` - Exposes a CIB API endpoint.
+//   * `metrics` - Prometheus metrics, typically mapped to `/metrics`.
+//   * `monitor` - Typically mapped to `/monitor` to handle
+//     long-polling for CIB updates.
+//   * `file` - A static file serving route mapped to a directory.
+//   * `proxy` - Proxies requests to another server.
+type ConfigRoute struct {
+	Handler string  `json:"handler"`
+	Path    string  `json:"path"`
+	Target  *string `json:"target"`
+}
+
+// ParseConfigFile is a configuration file parser.
+//
+// The configuration file format is described in
+// config.json.example and README.md.
+func ParseConfigFile(cfgfile string, target *Config) {
 	log.Printf("Reading %v...", cfgfile)
 	raw, err := ioutil.ReadFile(cfgfile)
 	if err != nil {
@@ -62,18 +87,18 @@ func parseConfigFile(cfgfile string, target *Config) {
 	}
 }
 
-// checkHawkAuthMethods
+// CheckHawkAuthMethods validates a HTTP request,
+// returning true if it's good.
 //
-// Validates a HTTP request, returning true
-// if it's good.
 // Current methods:
+//
 // * Hawk attrd cookie
 // * Basic Auth (user/passwd)
 //
 // Future methods?
+//
 // * API key?
-
-func checkHawkAuthMethods(r *http.Request) bool {
+func CheckHawkAuthMethods(r *http.Request) bool {
 	// Try hawk attrd cookie
 	var user string
 	var session string
@@ -108,18 +133,16 @@ func checkHawkAuthMethods(r *http.Request) bool {
 	if !ok {
 		return false
 	}
-	if !checkBasicAuth(user, pass) {
+	if !CheckBasicAuth(user, pass) {
 		return false
 	}
 	return true
 }
 
-// checkBasicAuth
-//
-// Does HTTP Basic Auth checking against
-// a system user/pass with some help
-// from /usr/sbin/hawk_chkpwd
-func checkBasicAuth(user, pass string) bool {
+// CheckBasicAuth does HTTP Basic Auth checking against
+// a system user/pass with some help from
+// /usr/sbin/hawk_chkpwd.
+func CheckBasicAuth(user, pass string) bool {
 	// /usr/sbin/hawk_chkpwd passwd <user>
 	// write password
 	// close
@@ -137,6 +160,9 @@ func checkBasicAuth(user, pass string) bool {
 	return true
 }
 
+// GetStdout runs the given command with the given
+// arguments and returns its output, or exits on
+// error.
 func GetStdout(cmd string, args ...string) string {
 	out, err := exec.Command(cmd, args...).Output()
 	if err != nil {

@@ -1,4 +1,4 @@
-package main
+package metrics
 
 import (
 	"encoding/xml"
@@ -123,70 +123,70 @@ func parseMetrics(status *crmMon) *clusterMetrics {
 		ret.PerNode[nod.Name] = perNode
 
 		if nod.Online {
-			ret.Node.Online += 1
+			ret.Node.Online++
 		}
 		if nod.Standby {
-			ret.Node.Standby += 1
+			ret.Node.Standby++
 		}
 		if nod.StandbyOnFail {
-			ret.Node.StandbyOnFail += 1
+			ret.Node.StandbyOnFail++
 		}
 		if nod.Maintenance {
-			ret.Node.Maintenance += 1
+			ret.Node.Maintenance++
 		}
 		if nod.Pending {
-			ret.Node.Pending += 1
+			ret.Node.Pending++
 		}
 		if nod.Unclean {
-			ret.Node.Unclean += 1
+			ret.Node.Unclean++
 		}
 		if nod.Shutdown {
-			ret.Node.Shutdown += 1
+			ret.Node.Shutdown++
 		}
 		if nod.ExpectedUp {
-			ret.Node.ExpectedUp += 1
+			ret.Node.ExpectedUp++
 		}
 		if nod.DC {
-			ret.Node.DC += 1
+			ret.Node.DC++
 		}
 		if nod.Type == "member" {
-			ret.Node.TypeMember += 1
+			ret.Node.TypeMember++
 		} else if nod.Type == "ping" {
-			ret.Node.TypePing += 1
+			ret.Node.TypePing++
 		} else if nod.Type == "remote" {
-			ret.Node.TypeRemote += 1
+			ret.Node.TypeRemote++
 		} else {
-			ret.Node.TypeUnknown += 1
+			ret.Node.TypeUnknown++
 		}
 
 		for _, rsc := range nod.Resources {
 			rscIds[rsc.ID] = &rsc
 			if rsc.Role == "Started" {
-				ret.Resource.Started += 1
+				ret.Resource.Started++
 			} else if rsc.Role == "Stopped" {
-				ret.Resource.Stopped += 1
+				ret.Resource.Stopped++
 			} else if rsc.Role == "Slave" {
-				ret.Resource.Slave += 1
+				ret.Resource.Slave++
 			} else if rsc.Role == "Master" {
-				ret.Resource.Master += 1
+				ret.Resource.Master++
 			}
 			if rsc.Active {
-				ret.Resource.Active += 1
+				ret.Resource.Active++
 			}
 			if rsc.Orphaned {
-				ret.Resource.Orphaned += 1
+				ret.Resource.Orphaned++
 			}
 			if rsc.Blocked {
-				ret.Resource.Blocked += 1
+				ret.Resource.Blocked++
 			}
 			if rsc.Managed {
-				ret.Resource.Managed += 1
+				ret.Resource.Managed++
 			}
 			if rsc.Failed {
-				ret.Resource.Failed += 1
+				ret.Resource.Failed++
 			}
 			if rsc.FailureIgnored {
-				ret.Resource.FailureIgnored += 1
+				ret.Resource.FailureIgnored++
 			}
 		}
 	}
@@ -196,7 +196,11 @@ func parseMetrics(status *crmMon) *clusterMetrics {
 	return ret
 }
 
-func handleMetrics(w http.ResponseWriter) bool {
+// HandleMetrics is the handler for metrics
+// requests, and outputs metrics in the
+// Prometheus text format (as text/plain).
+func HandleMetrics(w http.ResponseWriter) bool {
+	w.Header().Set("Content-Type", "text/plain; version=0.0.4")
 	monxml, err := exec.Command("/usr/sbin/crm_mon", "-1", "--as-xml", "--group-by-node", "--inactive").Output()
 	if err != nil {
 		log.Error(err)

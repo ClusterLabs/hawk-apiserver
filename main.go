@@ -3,7 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/krig/go-pacemaker"
+	"github.com/ClusterLabs/hawk-apiserver/api"
+	"github.com/ClusterLabs/hawk-apiserver/cib"
+	"github.com/ClusterLabs/hawk-apiserver/metrics"
+	"github.com/ClusterLabs/hawk-apiserver/server"
+	"github.com/ClusterLabs/hawk-apiserver/util"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
@@ -13,183 +17,20 @@ import (
 	"regexp"
 	"strings"
 	"sync"
-	"time"
 )
 
-// AsyncCib wraps the CIB retrieval from go-pacemaker in an
-// asynchronous interface, so that other parts of the server have a
-// single copy of the CIB available at any time.
-//
-// Also provides a subscription interface for the long polling request
-// end point, via Wait().
-type AsyncCib struct {
-	xmldoc   string
-	version  *pacemaker.CibVersion
-	lock     sync.Mutex
-	notifier chan chan string
-}
-
-// LogRecord records the last warning and error messages, to avoid
-// spamming the log with duplicate messages.
-type LogRecord struct {
-	warning string
-	error   string
-}
-
-// Start launches two goroutines, one which runs the go-pacemaker
-// mainloop and one which listens for CIB events (the CIB fetcher
-// goroutine).
-func (acib *AsyncCib) Start() {
-	if acib.notifier == nil {
-		acib.notifier = make(chan chan string)
-	}
-
-	msg := ""
-	lastLog := LogRecord{warning: "", error: ""}
-
-	cibFile := os.Getenv("CIB_file")
-
-	cibFetcher := func() {
-		for {
-			var cib *pacemaker.Cib = nil
-			var err error = nil
-			if cibFile != "" {
-				cib, err = pacemaker.OpenCib(pacemaker.FromFile(cibFile))
-			} else {
-				cib, err = pacemaker.OpenCib()
-			}
-			if err != nil {
-				msg = fmt.Sprintf("Failed to connect to Pacemaker: %v", err)
-				if msg != lastLog.warning {
-					log.Warnf(msg)
-					lastLog.warning = msg
-				}
-				time.Sleep(5 * time.Second)
-			}
-			for cib != nil {
-				func() {
-					cibxml, err := cib.Query()
-					if err != nil {
-						msg = fmt.Sprintf("Failed to query CIB: %v", err)
-						if msg != lastLog.error {
-							log.Errorf(msg)
-							lastLog.error = msg
-						}
-					} else {
-						acib.notifyNewCib(cibxml)
-					}
-				}()
-
-				waiter := make(chan int)
-				_, err = cib.Subscribe(func(event pacemaker.CibEvent, doc *pacemaker.CibDocument) {
-					if event == pacemaker.UpdateEvent {
-						acib.notifyNewCib(doc)
-					} else {
-						msg = fmt.Sprintf("lost connection: %v", event)
-						if msg != lastLog.warning {
-							log.Warnf(msg)
-							lastLog.warning = msg
-						}
-						waiter <- 1
-					}
-				})
-				if err != nil {
-					log.Infof("Failed to subscribe, rechecking every 5 seconds")
-					time.Sleep(5 * time.Second)
-				} else {
-					<-waiter
-				}
-			}
-		}
-	}
-
-	go cibFetcher()
-	go pacemaker.Mainloop()
-}
-
-// Wait blocks for up to `timeout` seconds for a CIB change event.
-func (acib *AsyncCib) Wait(timeout int, defval string) string {
-	requestChan := make(chan string)
-	select {
-	case acib.notifier <- requestChan:
-	case <-time.After(time.Duration(timeout) * time.Second):
-		return defval
-	}
-	return <-requestChan
-}
-
-// Get returns the current CIB XML document (or nil).
-func (acib *AsyncCib) Get() string {
-	acib.lock.Lock()
-	defer acib.lock.Unlock()
-	return acib.xmldoc
-}
-
-// Version returns the current CIB version (or nil).
-func (acib *AsyncCib) Version() *pacemaker.CibVersion {
-	acib.lock.Lock()
-	defer acib.lock.Unlock()
-	return acib.version
-}
-
-func (acib *AsyncCib) notifyNewCib(cibxml *pacemaker.CibDocument) {
-	text := cibxml.ToString()
-	version := cibxml.Version()
-	log.Infof("[CIB]: %v", version)
-	acib.lock.Lock()
-	acib.xmldoc = text
-	acib.version = version
-	acib.lock.Unlock()
-	// Notify anyone waiting
-Loop:
-	for {
-		select {
-		case clientchan := <-acib.notifier:
-			clientchan <- version.String()
-		default:
-			break Loop
-		}
-	}
-}
-
-// Config is the internal representation of the configuration file.
-type Config struct {
-	Listen   string        `json:"listen"`
-	Port     int           `json:"port"`
-	Key      string        `json:"key"`
-	Cert     string        `json:"cert"`
-	LogLevel string        `json:"loglevel"`
-	Route    []ConfigRoute `json:"route"`
-}
-
-// ConfigRoute is used in the configuration to map routes to handlers.
-//
-// Possible handlers (this list may be outdated)a:
-//
-//   * `api/v1` - Exposes a CIB API endpoint.
-//   * `metrics` - Prometheus metrics, typically mapped to `/metrics`.
-//   * `monitor` - Typically mapped to `/monitor` to handle
-//     long-polling for CIB updates.
-//   * `file` - A static file serving route mapped to a directory.
-//   * `proxy` - Proxies requests to another server.
-type ConfigRoute struct {
-	Handler string  `json:"handler"`
-	Path    string  `json:"path"`
-	Target  *string `json:"target"`
-}
-
 type routeHandler struct {
-	cib      AsyncCib
-	config   *Config
-	proxies  map[*ConfigRoute]*ReverseProxy
+	cib      cib.AsyncCib
+	config   *util.Config
+	proxies  map[*util.ConfigRoute]*server.ReverseProxy
 	proxymux sync.Mutex
 }
 
 // newRoutehandler creates a routeHandler object from a configuration
-func newRouteHandler(config *Config) *routeHandler {
+func newRouteHandler(config *util.Config) *routeHandler {
 	return &routeHandler{
 		config:  config,
-		proxies: make(map[*ConfigRoute]*ReverseProxy),
+		proxies: make(map[*util.ConfigRoute]*server.ReverseProxy),
 	}
 }
 
@@ -198,24 +39,24 @@ func (handler *routeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasPrefix(r.URL.Path, route.Path) {
 			continue
 		}
-		if route.Handler == "api/v1" {
+		switch route.Handler {
+		case "api/v1":
 			if handler.serveAPI(w, r, &route) {
 				return
 			}
-		} else if route.Handler == "monitor" {
+		case "monitor":
 			if handler.serveMonitor(w, r, &route) {
 				return
 			}
-		} else if route.Handler == "metrics" {
+		case "metrics":
 			if handler.serveMetrics(w, r, &route) {
 				return
 			}
-		} else if route.Handler == "file" && route.Target != nil {
-			// TODO(krig): Verify configuration file (ensure Target != nil) in config parser
+		case "file":
 			if handler.serveFile(w, r, &route) {
 				return
 			}
-		} else if route.Handler == "proxy" && route.Target != nil {
+		case "proxy":
 			if handler.serveProxy(w, r, &route) {
 				return
 			}
@@ -225,7 +66,7 @@ func (handler *routeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (handler *routeHandler) proxyForRoute(route *ConfigRoute) *ReverseProxy {
+func (handler *routeHandler) proxyForRoute(route *util.ConfigRoute) *server.ReverseProxy {
 	if route.Handler != "proxy" {
 		return nil
 	}
@@ -243,22 +84,22 @@ func (handler *routeHandler) proxyForRoute(route *ConfigRoute) *ReverseProxy {
 		log.Error(err)
 		return nil
 	}
-	proxy = NewSingleHostReverseProxy(url, "", http.DefaultMaxIdleConnsPerHost)
+	proxy = server.NewSingleHostReverseProxy(url, "", http.DefaultMaxIdleConnsPerHost)
 	handler.proxymux.Lock()
 	handler.proxies[route] = proxy
 	handler.proxymux.Unlock()
 	return proxy
 }
 
-const ALL_CONFIG_TYPES = "(cluster_property|rsc_defaults|op_defaults|" +
+const allConfigTypes = "(cluster_property|rsc_defaults|op_defaults|" +
 	"nodes|resources|primitives|groups|masters|clones|bundles|" +
 	"constraints|locations|colocations|orders|alerts|tags|acls|fencing)"
 
-const ALL_STATUS_TYPES = "(nodes|resources|summary|failures)"
+const allStatusTypes = "(nodes|resources|summary|failures)"
 
-func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, route *ConfigRoute) bool {
+func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, route *util.ConfigRoute) bool {
 	log.Debugf("[api/v1] %v", r.URL.Path)
-	if !checkHawkAuthMethods(r) {
+	if !util.CheckHawkAuthMethods(r) {
 		http.Error(w, "Unauthorized request.", 401)
 		return true
 	}
@@ -266,17 +107,17 @@ func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, ro
 		prefix := route.Path + "/configuration/"
 
 		// all types below cib/configuration
-		all_types := ALL_CONFIG_TYPES
-		match, _ := regexp.MatchString(prefix+all_types+"(/?|/.+/?)$", r.URL.Path)
+		allTypes := allConfigTypes
+		match, _ := regexp.MatchString(prefix+allTypes+"(/?|/.+/?)$", r.URL.Path)
 		if match {
-			return handleConfiguration(w, r, handler.cib.Get())
+			return api.HandleConfiguration(w, r, handler.cib.Get())
 		}
 
 		prefix = route.Path + "/status/"
-		all_types = ALL_STATUS_TYPES
-		match, _ = regexp.MatchString(prefix+all_types+"(/?|/.+/?)$", r.URL.Path)
+		allTypes = allStatusTypes
+		match, _ = regexp.MatchString(prefix+allTypes+"(/?|/.+/?)$", r.URL.Path)
 		if match {
-			return handleStatus(w, r, GetStdout("crm_mon", "-X"))
+			return api.HandleStatus(w, r, util.GetStdout("crm_mon", "-X"))
 		}
 
 		if strings.HasPrefix(r.URL.Path, prefix+"cib.xml") {
@@ -290,7 +131,7 @@ func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, ro
 	return true
 }
 
-func (handler *routeHandler) serveMonitor(w http.ResponseWriter, r *http.Request, route *ConfigRoute) bool {
+func (handler *routeHandler) serveMonitor(w http.ResponseWriter, r *http.Request, route *util.ConfigRoute) bool {
 	if r.URL.Path != route.Path && r.URL.Path != fmt.Sprintf("%s.json", route.Path) {
 		return false
 	}
@@ -335,7 +176,11 @@ func (handler *routeHandler) serveMonitor(w http.ResponseWriter, r *http.Request
 	return true
 }
 
-func (handler *routeHandler) serveFile(w http.ResponseWriter, r *http.Request, route *ConfigRoute) bool {
+func (handler *routeHandler) serveFile(w http.ResponseWriter, r *http.Request, route *util.ConfigRoute) bool {
+	// TODO(krig): Verify configuration file (ensure Target != nil) in config parser
+	if route.Target == nil {
+		return false
+	}
 	filename := path.Clean(fmt.Sprintf("%v%v", *route.Target, r.URL.Path))
 	info, err := os.Stat(filename)
 	if !os.IsNotExist(err) && !info.IsDir() {
@@ -355,7 +200,10 @@ func (handler *routeHandler) serveFile(w http.ResponseWriter, r *http.Request, r
 	return false
 }
 
-func (handler *routeHandler) serveProxy(w http.ResponseWriter, r *http.Request, route *ConfigRoute) bool {
+func (handler *routeHandler) serveProxy(w http.ResponseWriter, r *http.Request, route *util.ConfigRoute) bool {
+	if route.Target == nil {
+		return false
+	}
 	log.Debugf("[proxy] %s -> %s", r.URL.Path, *route.Target)
 	rproxy := handler.proxyForRoute(route)
 	if rproxy == nil {
@@ -366,25 +214,24 @@ func (handler *routeHandler) serveProxy(w http.ResponseWriter, r *http.Request, 
 	return true
 }
 
-func (handler *routeHandler) serveMetrics(w http.ResponseWriter, r *http.Request, route *ConfigRoute) bool {
+func (handler *routeHandler) serveMetrics(w http.ResponseWriter, r *http.Request, route *util.ConfigRoute) bool {
 	log.Debugf("[metrics] %s", r.URL.Path)
-	w.Header().Set("Content-Type", "text/plain; version=0.0.4")
-	return handleMetrics(w)
+	return metrics.HandleMetrics(w)
 }
 
-func main() {
+func initConfig() util.Config {
 	log.SetFormatter(&log.TextFormatter{
 		DisableTimestamp: true,
 		DisableSorting:   true,
 	})
 
-	config := Config{
+	config := util.Config{
 		Listen:   "0.0.0.0",
 		Port:     17630,
 		Key:      "/etc/hawk/hawk.key",
 		Cert:     "/etc/hawk/hawk.pem",
 		LogLevel: "info",
-		Route: []ConfigRoute{
+		Route: []util.ConfigRoute{
 			{
 				Handler: "api/v1",
 				Path:    "/api/v1",
@@ -403,7 +250,7 @@ func main() {
 	flag.Parse()
 
 	if *cfgfile != "" {
-		parseConfigFile(*cfgfile, &config)
+		util.ParseConfigFile(*cfgfile, &config)
 	}
 
 	if *listen != "0.0.0.0" {
@@ -429,9 +276,14 @@ func main() {
 	}
 	log.SetLevel(lvl)
 
+	return config
+}
+
+func main() {
+	config := initConfig()
 	routehandler := newRouteHandler(&config)
 	routehandler.cib.Start()
-	gziphandler := NewGzipHandler(routehandler)
+	gziphandler := server.NewGzipHandler(routehandler)
 	fmt.Printf("Listening to https://%s:%d\n", config.Listen, config.Port)
-	ListenAndServeWithRedirect(fmt.Sprintf("%s:%d", config.Listen, config.Port), gziphandler, config.Cert, config.Key)
+	server.ListenAndServeWithRedirect(fmt.Sprintf("%s:%d", config.Listen, config.Port), gziphandler, config.Cert, config.Key)
 }

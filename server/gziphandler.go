@@ -1,4 +1,4 @@
-package main
+package server
 
 // Original code under Apache 2.0 license.
 
