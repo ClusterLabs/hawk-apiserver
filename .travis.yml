@@ -4,10 +4,6 @@ sudo: required
 go:
   - 1.x
 
-env:
-  global:
-    - CC_TEST_REPORTER_ID=88795f8e4fefcdb16839fb681856e38e7dc631ebb43f9c10ea66f57ee4e29cf8
-
 services:
   - docker
 
@@ -34,7 +30,7 @@ jobs:
       if: type != pull_request
       env:
         - FOLDER=/package
-        - PACKAGE_NAME=salt-saphana
+        - PACKAGE_NAME=hawk-apiserver
 
       before_install:
         - docker pull shap/continuous_deliver:latest
@@ -53,7 +49,7 @@ jobs:
       - stage: submit
         if: type != pull_request AND branch = master
         env:
-          - PACKAGE_NAME=salt-saphana
+          - PACKAGE_NAME=hawk-apiserver
 
         before_install:
           - docker pull shap/continuous_deliver:latest
