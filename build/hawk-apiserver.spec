@@ -1,7 +1,7 @@
 #
 # spec file for package hawk-apiserver
 #
-# Copyright (c) 2018 SUSE LINUX GmbH, Nuernberg, Germany.
+# Copyright (c) 2019 SUSE LINUX GmbH, Nuernberg, Germany.
 #
 # All modifications and additions to the file contributed by third parties
 # remain the property of their copyright owners, unless otherwise agreed
@@ -12,17 +12,17 @@
 # license that conforms to the Open Source Definition (Version 1.9)
 # published by the Open Source Initiative.
 
-# Please submit bugfixes or comments via http://bugs.opensuse.org/
+# Please submit bugfixes or comments via https://bugs.opensuse.org/
 #
 
 
 Name:           hawk-apiserver
-Version:        0.0.2
+Version:        0.0.2+git113.7d43fb3
 Release:        0
 Summary:        Web server and API provider for Hawk
 License:        GPL-3.0-or-later
 Group:          Productivity/Clustering/HA
-Url:            https://github.com/krig/hawk-apiserver
+Url:            https://github.com/ClusterLabs/hawk-apiserver
 Source:         %{name}-%{version}.tar.xz
 Source2:        %{name}-rpmlintrc
 BuildRequires:  golang-packaging
@@ -48,7 +48,7 @@ as possible.
 %setup -q
 
 %build
-%{goprep} github.com/krig/hawk-apiserver
+%{goprep} github.com/ClusterLabs/hawk-apiserver
 %{gobuild}
 
 %install
@@ -64,10 +64,10 @@ install -Dm0644 man/hawk-apiserver.8 %{buildroot}%{_mandir}/man8/hawk-apiserver.
 %{_sbindir}/%{name}
 %{_mandir}/man8/hawk-apiserver.8.gz
 %if 0%{?suse_version} == 1315
-%exclude %go_contribdir/github.com/krig/hawk-apiserver/vendor/github.com/krig/go-pacemaker.a
-%exclude %go_contribdir/github.com/krig/hawk-apiserver/vendor/github.com/sirupsen/logrus.a
-%exclude %go_contribdir/github.com/krig/hawk-apiserver/vendor/golang.org/x/crypto/ssh/terminal.a
-%exclude %go_contribdir/github.com/krig/hawk-apiserver/vendor/golang.org/x/sys/unix.a
+%exclude %go_contribdir/github.com/ClusterLabs/hawk-apiserver/vendor/github.com/ClusterLabs/go-pacemaker.a
+%exclude %go_contribdir/github.com/ClusterLabs/hawk-apiserver/vendor/github.com/sirupsen/logrus.a
+%exclude %go_contribdir/github.com/ClusterLabs/hawk-apiserver/vendor/golang.org/x/crypto/ssh/terminal.a
+%exclude %go_contribdir/github.com/ClusterLabs/hawk-apiserver/vendor/golang.org/x/sys/unix.a
 %endif
 
 %changelog
