@@ -23,7 +23,7 @@ Summary:        Web server and API provider for Hawk
 License:        GPL-3.0-or-later
 Group:          Productivity/Clustering/HA
 Url:            https://github.com/ClusterLabs/hawk-apiserver
-Source:         %{name}-%{version}.tar.xz
+Source:         %{name}-%{version}.tar.gz
 Source2:        %{name}-rpmlintrc
 BuildRequires:  golang-packaging
 BuildRequires:  libpacemaker-devel >= 1.1.16
