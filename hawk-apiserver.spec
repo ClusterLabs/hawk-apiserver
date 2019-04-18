@@ -17,7 +17,7 @@
 
 
 Name:           hawk-apiserver
-Version:        0.0.2+git113.7d43fb3
+Version:        0.0.3
 Release:        0
 Summary:        Web server and API provider for Hawk
 License:        GPL-3.0-or-later
