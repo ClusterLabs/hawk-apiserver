@@ -2,7 +2,7 @@ package cib
 
 import (
 	"fmt"
-	pacemaker "github.com/krig/go-pacemaker"
+	pacemaker "github.com/ClusterLabs/go-pacemaker"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"sync"

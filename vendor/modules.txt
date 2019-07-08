@@ -1,0 +1,25 @@
+# github.com/ClusterLabs/go-pacemaker v0.0.0-20190227130546-72ac078bff0a
+github.com/ClusterLabs/go-pacemaker
+# github.com/ClusterLabs/hawk-apiserver v0.0.0-20190424115045-1788e37b6324
+github.com/ClusterLabs/hawk-apiserver/api
+github.com/ClusterLabs/hawk-apiserver/cib
+github.com/ClusterLabs/hawk-apiserver/metrics
+github.com/ClusterLabs/hawk-apiserver/server
+github.com/ClusterLabs/hawk-apiserver/util
+# github.com/davecgh/go-spew v1.1.1
+github.com/davecgh/go-spew/spew
+# github.com/konsorten/go-windows-terminal-sequences v1.0.1
+github.com/konsorten/go-windows-terminal-sequences
+# github.com/krig/go-pacemaker v0.0.0-20190227130546-72ac078bff0a
+github.com/krig/go-pacemaker
+# github.com/pmezard/go-difflib v1.0.0
+github.com/pmezard/go-difflib/difflib
+# github.com/sirupsen/logrus v1.4.2
+github.com/sirupsen/logrus
+# github.com/stretchr/objx v0.1.1
+github.com/stretchr/objx
+# github.com/stretchr/testify v1.2.2
+github.com/stretchr/testify/assert
+github.com/stretchr/testify/mock
+# golang.org/x/sys v0.0.0-20190422165155-953cdadca894
+golang.org/x/sys/unix
