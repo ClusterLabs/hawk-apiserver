@@ -19,6 +19,8 @@ import (
 	"sync"
 )
 
+//go:generate swagger generate spec
+
 type routeHandler struct {
 	cib      cib.AsyncCib
 	config   *util.Config
