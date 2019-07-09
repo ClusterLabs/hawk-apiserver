@@ -26,7 +26,10 @@ other dashboards or for monitoring tools like Prometheus.
 
 ## Source installation + dependencies
 
-Building requires Go v1.9.
+### Dependencies:
+
+- GO >= 1.9
+- following pkgs: `libqb-devel libpacemaker-devel`.
 
 ``` bash
 go get -u github.com/ClusterLabs/hawk-apiserver
