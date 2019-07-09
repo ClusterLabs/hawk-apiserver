@@ -8,6 +8,15 @@
 
 HTTPS API server / minimalist web proxy for Hawk.
 
+# Table of content
+
+- [Rationale](#Rationale)
+- [Build](#build)
+- [Devel](#devel)
+- [Testing](#testing)
+- [openapi specification](#openapi)
+
+# Rationale
 This project currently provides a minimalistic web server which
 handles SSL certificate termination, proxying and static file serving
 for Hawk, a HA cluster dashboard and control interface written in Ruby
@@ -24,7 +33,7 @@ REST API for Pacemaker and Pacemaker-based HA clusters, including the
 ability to provide status information and metrics for inclusion in
 other dashboards or for monitoring tools like Prometheus.
 
-## Source installation + dependencies
+# Build 
 
 ### Dependencies:
 
@@ -37,6 +46,8 @@ go get -u github.com/ClusterLabs/hawk-apiserver
 
 The rest of the instructions assume that the current working directory
 is `$GOPATH/src/github.com/ClusterLabs/hawk-apiserver`.
+
+# Devel
 
 ## Generating the API structures
 
@@ -71,7 +82,7 @@ go generate
 go build
 ```
 
-## Running the tests
+# Testing
 
 ``` bash
 go test
@@ -247,18 +258,7 @@ using `vagrant ssh webui`, cd to `$GOPATH/src/github.com/ClusterLabs/hawk-apiser
 then install the dependencies using `go get ./...` and finally `go build` to
 build. Running `hawk-apiserver` binary will start a server on port `17630`.
 
+### Openapi
 
-### Event subscription
-
-There should be some way to subscribe to CIB events via the API.
-
-Exactly what form this should take (WebSockets, long polling, etc.)
-remains to be decided.
-
-
-## TODO
-
-* Unix socket reverse proxy support
-
-* Cache for the file handler to avoid stat()ing on every request
+This project support the openapi specification V2.0, via [go-swagger](https://github.com/go-swagger/go-swagger)
 
