@@ -51,10 +51,11 @@ is `$GOPATH/src/github.com/ClusterLabs/hawk-apiserver`.
 
 ## Generating the API structures
 
-Generating `api_structs.go` requires the `cibToGoStruct` utility found
-at https://github.com/liangxin1300/CibToGo to be installed. This file
-is generated from the pacemaker schema, so a new schema version in
-Pacemaker requires regenerating this file.
+For generating `api_structs.go`  use `tools/api-go-structs-generation.py`
+
+Install the pkg requirements with `pip install -r /tools/api-go-structs-requirements.txt`
+
+This file is generated from the pacemaker schema, so a new schema version in Pacemaker requires regenerating this file.
 
 Since a version of `api_structs.go` is already checked into the
 repository, running this utility is only necessary if this file hasn't
