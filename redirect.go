@@ -124,6 +124,7 @@ func ListenAndServeWithRedirect(addr string, handler http.Handler, cert string, 
 		Handler: &HTTPRedirectHandler{
 			handler: handler,
 		},
+		TLSConfig: config,
 	}
 	srv.SetKeepAlivesEnabled(true)
 	srv.Serve(listener)
