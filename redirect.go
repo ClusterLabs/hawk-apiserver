@@ -29,7 +29,7 @@ func (l *SplitListener) Accept() (net.Conn, error) {
 
 	bconn := &Conn{
 		Conn: c,
-		buf: bufio.NewReader(c),
+		buf:  bufio.NewReader(c),
 	}
 
 	// inspect the first bytes to see if it is HTTPS
@@ -46,7 +46,7 @@ func (l *SplitListener) Accept() (net.Conn, error) {
 	// SSL 3.0 or TLS 1.0, 1.1 and 1.2
 	if hdr[0] == 0x16 && hdr[1] == 0x3 && hdr[5] == 0x1 {
 		return tls.Server(bconn, l.config), nil
-	// SSL 2
+		// SSL 2
 	} else if hdr[0] == 0x80 {
 		return tls.Server(bconn, l.config), nil
 	}
@@ -69,11 +69,11 @@ type HTTPRedirectHandler struct {
 func (handler *HTTPRedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.TLS == nil {
 		u := url.URL{
-			Scheme: "https",
-			Opaque: r.URL.Opaque,
-			User: r.URL.User,
-			Host: r.Host,
-			Path: r.URL.Path,
+			Scheme:   "https",
+			Opaque:   r.URL.Opaque,
+			User:     r.URL.User,
+			Host:     r.Host,
+			Path:     r.URL.Path,
 			RawQuery: r.URL.RawQuery,
 			Fragment: r.URL.Fragment,
 		}
@@ -84,8 +84,20 @@ func (handler *HTTPRedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 	handler.handler.ServeHTTP(w, r)
 }
 
+// ListenAndServeWithRedirect redirect http to https
 func ListenAndServeWithRedirect(addr string, handler http.Handler, cert string, key string) {
-	config := &tls.Config{}
+	config := &tls.Config{
+		MinVersion:               tls.VersionTLS12,
+		CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
+		PreferServerCipherSuites: true,
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+			tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+		},
+	}
+
 	if config.NextProtos == nil {
 		config.NextProtos = []string{"http1/1"}
 	}
@@ -104,15 +116,15 @@ func ListenAndServeWithRedirect(addr string, handler http.Handler, cert string, 
 
 	listener := &SplitListener{
 		Listener: ln,
-		config: config,
+		config:   config,
 	}
-
 
 	srv := &http.Server{
 		Addr: addr,
 		Handler: &HTTPRedirectHandler{
 			handler: handler,
 		},
+		TLSConfig: config,
 	}
 	srv.SetKeepAlivesEnabled(true)
 	srv.Serve(listener)

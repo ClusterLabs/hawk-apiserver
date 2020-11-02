@@ -201,26 +201,6 @@ func NewSingleHostReverseProxy(target *url.URL, without string, keepalive int) *
 	return rp
 }
 
-// UseInsecureTransport is used to facilitate HTTPS proxying
-// when it is OK for upstream to be using a bad certificate,
-// since this transport skips verification.
-func (rp *ReverseProxy) UseInsecureTransport() {
-	if rp.Transport == nil {
-		transport := &http.Transport{
-			Proxy:               http.ProxyFromEnvironment,
-			Dial:                defaultDialer.Dial,
-			TLSHandshakeTimeout: 10 * time.Second,
-			TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
-		}
-		rp.Transport = transport
-	} else if transport, ok := rp.Transport.(*http.Transport); ok {
-		if transport.TLSClientConfig == nil {
-			transport.TLSClientConfig = &tls.Config{}
-		}
-		transport.TLSClientConfig.InsecureSkipVerify = true
-	}
-}
-
 // ServeHTTP serves the proxied request to the upstream by performing a roundtrip.
 // It is designed to handle websocket connection upgrades as well.
 func (rp *ReverseProxy) ServeHTTP(rw http.ResponseWriter, outreq *http.Request, respUpdateFn respUpdateFn) error {
@@ -478,7 +458,7 @@ func newConnHijackerTransport(base http.RoundTripper) *connHijackerTransport {
 	if b, _ := base.(*http.Transport); b != nil {
 		tlsClientConfig := b.TLSClientConfig
 		if tlsClientConfig != nil && tlsClientConfig.NextProtos != nil {
-			tlsClientConfig = cloneTLSConfig(tlsClientConfig)
+			tlsClientConfig = b.Clone().TLSClientConfig.Clone()
 			tlsClientConfig.NextProtos = nil
 		}
 
