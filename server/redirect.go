@@ -6,14 +6,13 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"net/url"
 )
 
 // ListenAndServeWithRedirect enables seamless HTTP -> HTTPS redirect
 // on the same port. This is useful for Hawk so that if someone
 // accesses the :7630 port over HTTP, it'll automagically redirect to
 // HTTPS.
-func ListenAndServeWithRedirect(addr string, handler http.Handler, cert string, key string) {
+func ListenAndServeWithRedirect(addr string, cert string, key string) {
 	config := &tls.Config{
 		MinVersion:               tls.VersionTLS12,
 		CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
@@ -25,6 +24,8 @@ func ListenAndServeWithRedirect(addr string, handler http.Handler, cert string, 
 			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
 		},
 	}
+
+	// TODO: investigate why this is needed
 	if config.NextProtos == nil {
 		config.NextProtos = []string{"http1/1"}
 	}
@@ -47,13 +48,9 @@ func ListenAndServeWithRedirect(addr string, handler http.Handler, cert string, 
 	}
 
 	srv := &http.Server{
-		Addr: addr,
-		Handler: &httpRedirectHandler{
-			handler: handler,
-		},
+		Addr:      addr,
 		TLSConfig: config,
 	}
-	srv.SetKeepAlivesEnabled(true)
 	srv.Serve(listener)
 }
 
@@ -79,9 +76,6 @@ func (l *splitListener) Accept() (net.Conn, error) {
 		log.Printf("Short %s: %s\n", c.RemoteAddr().String(), err.Error())
 		// couldn't peek, assume it's HTTPS
 		return tls.Server(bconn, l.config), nil
-		// log.Printf("Short %s\n", c.RemoteAddr().String())
-		// bconn.Close()
-		// return nil, err
 	}
 
 	// SSL 3.0 or TLS 1.0, 1.1 and 1.2
@@ -101,26 +95,4 @@ type conn struct {
 
 func (c *conn) Read(b []byte) (int, error) {
 	return c.buf.Read(b)
-}
-
-type httpRedirectHandler struct {
-	handler http.Handler
-}
-
-func (handler *httpRedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.TLS == nil {
-		u := url.URL{
-			Scheme:   "https",
-			Opaque:   r.URL.Opaque,
-			User:     r.URL.User,
-			Host:     r.Host,
-			Path:     r.URL.Path,
-			RawQuery: r.URL.RawQuery,
-			Fragment: r.URL.Fragment,
-		}
-		log.Printf("http -> %s\n", u.String())
-		http.Redirect(w, r, u.String(), http.StatusMovedPermanently)
-		return
-	}
-	handler.handler.ServeHTTP(w, r)
 }

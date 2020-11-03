@@ -276,7 +276,6 @@ func main() {
 	config := initConfig()
 	routehandler := newRouteHandler(&config)
 	routehandler.cib.Start()
-	gziphandler := server.NewGzipHandler(routehandler)
 	fmt.Printf("Listening to https://%s:%d\n", config.Listen, config.Port)
-	server.ListenAndServeWithRedirect(fmt.Sprintf("%s:%d", config.Listen, config.Port), gziphandler, config.Cert, config.Key)
+	server.ListenAndServeWithRedirect(fmt.Sprintf("%s:%d", config.Listen, config.Port), config.Cert, config.Key)
 }
