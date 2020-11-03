@@ -14,7 +14,17 @@ import (
 // accesses the :7630 port over HTTP, it'll automagically redirect to
 // HTTPS.
 func ListenAndServeWithRedirect(addr string, handler http.Handler, cert string, key string) {
-	config := &tls.Config{}
+	config := &tls.Config{
+		MinVersion:               tls.VersionTLS12,
+		CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
+		PreferServerCipherSuites: true,
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+			tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+		},
+	}
 	if config.NextProtos == nil {
 		config.NextProtos = []string{"http1/1"}
 	}
@@ -41,17 +51,7 @@ func ListenAndServeWithRedirect(addr string, handler http.Handler, cert string, 
 		Handler: &httpRedirectHandler{
 			handler: handler,
 		},
-		config := &tls.Config{
-			MinVersion:               tls.VersionTLS12,
-			CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
-			PreferServerCipherSuites: true,
-			CipherSuites: []uint16{	
-				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-				tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-				tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-				tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-			},
-		}
+		TLSConfig: config,
 	}
 	srv.SetKeepAlivesEnabled(true)
 	srv.Serve(listener)
