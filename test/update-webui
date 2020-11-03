@@ -1,4 +1,3 @@
 #!/bin/sh
 rsync -Pavz hawk-apiserver webui:/usr/sbin/hawk-apiserver
-rsync -Pavz test/metrics.json webui:/etc/hawk/server.json
 ssh webui systemctl restart hawk

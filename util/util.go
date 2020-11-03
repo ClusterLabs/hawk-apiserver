@@ -59,7 +59,6 @@ type Config struct {
 // Possible handlers (this list may be outdated)a:
 //
 //   * `api/v1` - Exposes a CIB API endpoint.
-//   * `metrics` - Prometheus metrics, typically mapped to `/metrics`.
 //   * `monitor` - Typically mapped to `/monitor` to handle
 //     long-polling for CIB updates.
 //   * `file` - A static file serving route mapped to a directory.

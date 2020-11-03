@@ -30,9 +30,7 @@ updates of the interface on cluster events.
 
 In the future, the API server will provide a complete and documented
 REST API for Pacemaker and Pacemaker-based HA clusters, including the
-ability to provide status information and metrics for inclusion in
-other dashboards or for monitoring tools like Prometheus.
-
+ability to provide status information.
 # Build 
 
 ### Dependencies:

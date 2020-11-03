@@ -3,12 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/ClusterLabs/hawk-apiserver/api"
-	"github.com/ClusterLabs/hawk-apiserver/cib"
-	"github.com/ClusterLabs/hawk-apiserver/metrics"
-	"github.com/ClusterLabs/hawk-apiserver/server"
-	"github.com/ClusterLabs/hawk-apiserver/util"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"net/url"
@@ -17,6 +11,12 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/ClusterLabs/hawk-apiserver/api"
+	"github.com/ClusterLabs/hawk-apiserver/cib"
+	"github.com/ClusterLabs/hawk-apiserver/server"
+	"github.com/ClusterLabs/hawk-apiserver/util"
+	log "github.com/sirupsen/logrus"
 )
 
 //go:generate swagger generate spec
@@ -48,10 +48,6 @@ func (handler *routeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		case "monitor":
 			if handler.serveMonitor(w, r, &route) {
-				return
-			}
-		case "metrics":
-			if handler.serveMetrics(w, r, &route) {
 				return
 			}
 		case "file":
@@ -214,11 +210,6 @@ func (handler *routeHandler) serveProxy(w http.ResponseWriter, r *http.Request, 
 	}
 	rproxy.ServeHTTP(w, r, nil)
 	return true
-}
-
-func (handler *routeHandler) serveMetrics(w http.ResponseWriter, r *http.Request, route *util.ConfigRoute) bool {
-	log.Debugf("[metrics] %s", r.URL.Path)
-	return metrics.HandleMetrics(w)
 }
 
 func initConfig() util.Config {
