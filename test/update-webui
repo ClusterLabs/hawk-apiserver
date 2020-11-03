@@ -1,3 +1,0 @@
-#!/bin/sh
-rsync -Pavz hawk-apiserver webui:/usr/sbin/hawk-apiserver
-ssh webui systemctl restart hawk
