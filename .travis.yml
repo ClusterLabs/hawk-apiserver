@@ -16,9 +16,9 @@ jobs:
   include:
     - stage: test
       script:
-          - go test
           - go build
           - go vet
+          - go test
     - stage: delivery
       if: type != pull_request
       env:
