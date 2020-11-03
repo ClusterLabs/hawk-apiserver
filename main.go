@@ -36,6 +36,9 @@ func newRouteHandler(config *util.Config) *routeHandler {
 		proxies: make(map[*util.ConfigRoute]*server.ReverseProxy),
 	}
 }
+func redirectTLS(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "https://localhost:7630"+r.RequestURI, http.StatusMovedPermanently)
+}
 
 func (handler *routeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for _, route := range handler.config.Route {
@@ -298,5 +301,13 @@ func main() {
 		TLSConfig:    cfg,
 		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
 	}
+	// redirect http to https
+	go func() {
+		if err := http.ListenAndServe(":80", http.HandlerFunc(redirectTLS)); err != nil {
+			log.Fatalf("ListenAndServe error: %v", err)
+		}
+	}()
+
+	// serve https
 	log.Fatal(srv.ListenAndServeTLS(config.Cert, config.Key))
 }
