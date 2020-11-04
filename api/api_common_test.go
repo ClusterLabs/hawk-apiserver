@@ -1,7 +1,6 @@
-package main
+package api
 
 import (
-	"github.com/ClusterLabs/hawk-apiserver/api"
 	"reflect"
 	"testing"
 )

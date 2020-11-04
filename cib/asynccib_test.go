@@ -1,14 +1,13 @@
-package main
+package cib
 
 import (
+	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
-	"github.com/ClusterLabs/hawk-apiserver/cib"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestAsyncCib(t *testing.T) {
-	testFile := "./test/old-cib.xml"
+	testFile := "../test/old-cib.xml"
 	testVersion := "0:86:125"
 	os.Setenv("CIB_file", testFile)
 	c := cib.AsyncCib{}
