@@ -231,7 +231,3 @@ using the live CIB as input.
 The simulator run and the results are returned as part of the request
 body.
 
-### Openapi
-
-This project support the openapi specification V2.0, via [go-swagger](https://github.com/go-swagger/go-swagger)
-
