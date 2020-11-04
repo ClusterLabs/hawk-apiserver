@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/tls"
 	"flag"
 	"fmt"
 	"io"
@@ -281,33 +280,6 @@ func main() {
 	routehandler := newRouteHandler(&config)
 	routehandler.cib.Start()
 
-	cfg := &tls.Config{
-		MinVersion:               tls.VersionTLS12,
-		CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
-		PreferServerCipherSuites: true,
-		CipherSuites: []uint16{
-			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-			tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-		},
-	}
-
-	cfg.Certificates = make([]tls.Certificate, 1)
-	cfg.Certificates[0], _ = tls.LoadX509KeyPair(config.Cert, config.Key)
-	srv := &http.Server{
-		Addr:         fmt.Sprintf("%s:%d", config.Listen, config.Port),
-		Handler:      routehandler,
-		TLSConfig:    cfg,
-		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
-	}
-	// redirect http to https
-	go func() {
-		if err := http.ListenAndServe(":80", http.HandlerFunc(redirectTLS)); err != nil {
-			log.Fatalf("ListenAndServe error: %v", err)
-		}
-	}()
-
-	// serve https
-	log.Fatal(srv.ListenAndServeTLS(config.Cert, config.Key))
+	log.Infof("Listening to https://%s:%d\n", config.Listen, config.Port)
+	server.ListenAndServeWithRedirect(fmt.Sprintf("%s:%d", config.Listen, config.Port), routehandler, config.Cert, config.Key)
 }
