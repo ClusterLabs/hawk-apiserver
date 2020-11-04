@@ -1,14 +1,15 @@
 package main
 
 import (
-	"github.com/ClusterLabs/hawk-apiserver/util"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/ClusterLabs/hawk-apiserver/internal"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRouteHandler(t *testing.T) {
-	config := util.Config{}
-	util.ParseConfigFile("./config.json.example", &config)
+	config := internal.Config{}
+	internal.ParseConfigFile("./config.json.example", &config)
 	routeHandler := newRouteHandler(&config)
 	assert.NotNil(t, routeHandler)
 

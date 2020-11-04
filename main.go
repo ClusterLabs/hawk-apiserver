@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path"
 	"regexp"
 	"strings"
@@ -14,8 +15,8 @@ import (
 
 	"github.com/ClusterLabs/hawk-apiserver/api"
 	"github.com/ClusterLabs/hawk-apiserver/cib"
+	"github.com/ClusterLabs/hawk-apiserver/internal"
 	"github.com/ClusterLabs/hawk-apiserver/server"
-	"github.com/ClusterLabs/hawk-apiserver/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -23,16 +24,16 @@ import (
 
 type routeHandler struct {
 	cib      cib.AsyncCib
-	config   *util.Config
-	proxies  map[*util.ConfigRoute]*server.ReverseProxy
+	config   *internal.Config
+	proxies  map[*internal.ConfigRoute]*server.ReverseProxy
 	proxymux sync.Mutex
 }
 
 // newRoutehandler creates a routeHandler object from a configuration
-func newRouteHandler(config *util.Config) *routeHandler {
+func newRouteHandler(config *internal.Config) *routeHandler {
 	return &routeHandler{
 		config:  config,
-		proxies: make(map[*util.ConfigRoute]*server.ReverseProxy),
+		proxies: make(map[*internal.ConfigRoute]*server.ReverseProxy),
 	}
 }
 func redirectTLS(w http.ResponseWriter, r *http.Request) {
@@ -67,7 +68,7 @@ func (handler *routeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (handler *routeHandler) proxyForRoute(route *util.ConfigRoute) *server.ReverseProxy {
+func (handler *routeHandler) proxyForRoute(route *internal.ConfigRoute) *server.ReverseProxy {
 	if route.Handler != "proxy" {
 		return nil
 	}
@@ -98,9 +99,9 @@ const allConfigTypes = "(cluster_property|rsc_defaults|op_defaults|" +
 
 const allStatusTypes = "(nodes|resources|summary|failures)"
 
-func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, route *util.ConfigRoute) bool {
+func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, route *internal.ConfigRoute) bool {
 	log.Debugf("[api/v1] %v", r.URL.Path)
-	if !util.CheckHawkAuthMethods(r) {
+	if !internal.CheckHawkAuthMethods(r) {
 		http.Error(w, "Unauthorized request.", 401)
 		return true
 	}
@@ -118,7 +119,11 @@ func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, ro
 		allTypes = allStatusTypes
 		match, _ = regexp.MatchString(prefix+allTypes+"(/?|/.+/?)$", r.URL.Path)
 		if match {
-			return api.HandleStatus(w, r, util.GetStdout("crm_mon", "-X"))
+			out, err := exec.Command("crm_mon", "-x").Output()
+			if err != nil {
+				log.Fatal(err)
+			}
+			return api.HandleStatus(w, r, string(out))
 		}
 
 		if strings.HasPrefix(r.URL.Path, prefix+"cib.xml") {
@@ -132,7 +137,7 @@ func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, ro
 	return true
 }
 
-func (handler *routeHandler) serveMonitor(w http.ResponseWriter, r *http.Request, route *util.ConfigRoute) bool {
+func (handler *routeHandler) serveMonitor(w http.ResponseWriter, r *http.Request, route *internal.ConfigRoute) bool {
 	if r.URL.Path != route.Path && r.URL.Path != fmt.Sprintf("%s.json", route.Path) {
 		return false
 	}
@@ -177,7 +182,7 @@ func (handler *routeHandler) serveMonitor(w http.ResponseWriter, r *http.Request
 	return true
 }
 
-func (handler *routeHandler) serveFile(w http.ResponseWriter, r *http.Request, route *util.ConfigRoute) bool {
+func (handler *routeHandler) serveFile(w http.ResponseWriter, r *http.Request, route *internal.ConfigRoute) bool {
 	// TODO(krig): Verify configuration file (ensure Target != nil) in config parser
 	if route.Target == nil {
 		return false
@@ -201,7 +206,7 @@ func (handler *routeHandler) serveFile(w http.ResponseWriter, r *http.Request, r
 	return false
 }
 
-func (handler *routeHandler) serveProxy(w http.ResponseWriter, r *http.Request, route *util.ConfigRoute) bool {
+func (handler *routeHandler) serveProxy(w http.ResponseWriter, r *http.Request, route *internal.ConfigRoute) bool {
 	if route.Target == nil {
 		return false
 	}
@@ -215,19 +220,19 @@ func (handler *routeHandler) serveProxy(w http.ResponseWriter, r *http.Request, 
 	return true
 }
 
-func initConfig() util.Config {
+func initConfig() internal.Config {
 	log.SetFormatter(&log.TextFormatter{
 		DisableTimestamp: true,
 		DisableSorting:   true,
 	})
 
-	config := util.Config{
+	config := internal.Config{
 		Listen:   "0.0.0.0",
 		Port:     17630,
 		Key:      "/etc/hawk/hawk.key",
 		Cert:     "/etc/hawk/hawk.pem",
 		LogLevel: "info",
-		Route: []util.ConfigRoute{
+		Route: []internal.ConfigRoute{
 			{
 				Handler: "api/v1",
 				Path:    "/api/v1",
@@ -246,7 +251,7 @@ func initConfig() util.Config {
 	flag.Parse()
 
 	if *cfgfile != "" {
-		util.ParseConfigFile(*cfgfile, &config)
+		internal.ParseConfigFile(*cfgfile, &config)
 	}
 
 	if *listen != "0.0.0.0" {
