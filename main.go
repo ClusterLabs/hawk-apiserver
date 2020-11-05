@@ -3,11 +3,16 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 
 	"github.com/ClusterLabs/hawk-apiserver/internal"
 	"github.com/ClusterLabs/hawk-apiserver/server"
 	log "github.com/sirupsen/logrus"
 )
+
+// the released version and buildDate. They are set by makefile or RPM
+var version = "was not built correctly"
+var buildDate = "was not built correctly"
 
 func initConfig() internal.Config {
 	log.SetFormatter(&log.TextFormatter{
@@ -21,13 +26,7 @@ func initConfig() internal.Config {
 		Key:      "/etc/hawk/hawk.key",
 		Cert:     "/etc/hawk/hawk.pem",
 		LogLevel: "info",
-		Route: []internal.ConfigRoute{
-			{
-				Handler: "api/v1",
-				Path:    "/api/v1",
-				Target:  nil,
-			},
-		},
+		Route:    []internal.ConfigRoute{},
 	}
 
 	listen := flag.String("listen", config.Listen, "Address to listen to")
@@ -36,7 +35,7 @@ func initConfig() internal.Config {
 	cert := flag.String("cert", config.Cert, "TLS cert file")
 	loglevel := flag.String("loglevel", config.LogLevel, "Log level (debug|info|warning|error|fatal|panic)")
 	cfgfile := flag.String("config", "", "Configuration file")
-
+	versionFlag := flag.Bool("version", false, "show version of hawk-apiserver")
 	flag.Parse()
 
 	if *cfgfile != "" {
@@ -58,6 +57,11 @@ func initConfig() internal.Config {
 	if *loglevel != "info" {
 		config.LogLevel = *loglevel
 	}
+	if *versionFlag == true {
+		log.Infof("hawk-apiserver version: %s", version)
+		log.Infof("Binary was builded at: %s ", buildDate)
+		os.Exit(0)
+	}
 
 	lvl, err := log.ParseLevel(config.LogLevel)
 	if err != nil {
@@ -75,5 +79,6 @@ func main() {
 	routehandler.Cib.Start()
 
 	log.Infof("Listening to https://%s:%d\n", config.Listen, config.Port)
+	//TODO: this function should return errors
 	server.ListenAndServeWithRedirect(fmt.Sprintf("%s:%d", config.Listen, config.Port), routehandler, config.Cert, config.Key)
 }
