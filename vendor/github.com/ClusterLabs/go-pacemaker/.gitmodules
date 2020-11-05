@@ -1,3 +1,0 @@
-[submodule "vendor/gopkg.in/xmlpath.v2"]
-	path = vendor/gopkg.in/xmlpath.v2
-	url = https://github.com/go-xmlpath/xmlpath.git
