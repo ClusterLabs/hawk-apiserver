@@ -6,13 +6,10 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path"
-	"regexp"
 	"strings"
 	"sync"
 
-	"github.com/ClusterLabs/hawk-apiserver/api"
 	"github.com/ClusterLabs/hawk-apiserver/cib"
 	"github.com/ClusterLabs/hawk-apiserver/server"
 	log "github.com/sirupsen/logrus"
@@ -39,10 +36,6 @@ func (handler *routeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		switch route.Handler {
-		case "api/v1":
-			if handler.serveAPI(w, r, &route) {
-				return
-			}
 		case "monitor":
 			if handler.serveMonitor(w, r, &route) {
 				return
@@ -84,50 +77,6 @@ func (handler *routeHandler) proxyForRoute(route *ConfigRoute) *server.ReversePr
 	handler.proxies[route] = proxy
 	handler.proxymux.Unlock()
 	return proxy
-}
-
-const allConfigTypes = "(cluster_property|rsc_defaults|op_defaults|" +
-	"nodes|resources|primitives|groups|masters|clones|bundles|" +
-	"constraints|locations|colocations|orders|alerts|tags|acls|fencing)"
-
-const allStatusTypes = "(nodes|resources|summary|failures)"
-
-func (handler *routeHandler) serveAPI(w http.ResponseWriter, r *http.Request, route *ConfigRoute) bool {
-	log.Debugf("[api/v1] %v", r.URL.Path)
-	if !CheckHawkAuthMethods(r) {
-		http.Error(w, "Unauthorized request.", 401)
-		return true
-	}
-	if r.Method == "GET" {
-		prefix := route.Path + "/configuration/"
-
-		// all types below cib/configuration
-		allTypes := allConfigTypes
-		match, _ := regexp.MatchString(prefix+allTypes+"(/?|/.+/?)$", r.URL.Path)
-		if match {
-			return api.HandleConfiguration(w, r, handler.Cib.Get())
-		}
-
-		prefix = route.Path + "/status/"
-		allTypes = allStatusTypes
-		match, _ = regexp.MatchString(prefix+allTypes+"(/?|/.+/?)$", r.URL.Path)
-		if match {
-			out, err := exec.Command("crm_mon", "-x").Output()
-			if err != nil {
-				log.Fatal(err)
-			}
-			return api.HandleStatus(w, r, string(out))
-		}
-
-		if strings.HasPrefix(r.URL.Path, prefix+"cib.xml") {
-			xmldoc := handler.Cib.Get()
-			w.Header().Set("Content-Type", "application/xml")
-			io.WriteString(w, xmldoc)
-			return true
-		}
-	}
-	http.Error(w, fmt.Sprintf("[api/v1]: No route for %v.", r.URL.Path), 500)
-	return true
 }
 
 func (handler *routeHandler) serveMonitor(w http.ResponseWriter, r *http.Request, route *ConfigRoute) bool {

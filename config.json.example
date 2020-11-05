@@ -6,10 +6,6 @@
   "loglevel": "info",
   "route": [
     {
-      "handler": "api/v1",
-      "path": "/api/v1"
-    },
-    {
       "handler": "monitor",
       "path": "/monitor"
     },
