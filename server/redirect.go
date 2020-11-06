@@ -52,11 +52,13 @@ func ListenAndServeWithRedirect(addr string, handler http.Handler, cert string, 
 		Handler: &httpRedirectHandler{
 			handler: handler,
 		},
-		TLSConfig:    config,
-		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
+		TLSConfig: config,
 	}
-	srv.SetKeepAlivesEnabled(true)
-	srv.Serve(listener)
+	err = srv.Serve(listener)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 }
 
 type splitListener struct {
