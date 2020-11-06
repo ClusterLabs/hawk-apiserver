@@ -1,6 +1,5 @@
 # Hawk API Server
 
-[![Build Status](https://travis-ci.org/ClusterLabs/hawk-apiserver.svg?branch=master)](https://travis-ci.org/ClusterLabs/hawk-apiserver)
 [![GoDoc](https://godoc.org/github.com/ClusterLabs/hawk-apiserver?status.svg)](https://godoc.org/github.com/ClusterLabs/hawk-apiserver)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ClusterLabs/hawk-apiserver)](https://goreportcard.com/report/github.com/ClusterLabs/hawk-apiserver)
 
