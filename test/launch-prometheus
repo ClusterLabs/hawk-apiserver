@@ -1,8 +1,0 @@
-#!/bin/sh
-SCRIPT=`realpath $0`
-SCRIPTPATH=`dirname $SCRIPT`
-docker run --net=host -p 9090:9090 \
-       -v $SCRIPTPATH/hawk.pem:/etc/hawk/hawk.pem \
-       -v $SCRIPTPATH/hawk.key:/etc/hawk/hawk.key \
-       -v $SCRIPTPATH/prometheus.yml:/etc/prometheus/prometheus.yml \
-       prom/prometheus

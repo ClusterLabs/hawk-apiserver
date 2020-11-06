@@ -14,7 +14,18 @@ import (
 // accesses the :7630 port over HTTP, it'll automagically redirect to
 // HTTPS.
 func ListenAndServeWithRedirect(addr string, handler http.Handler, cert string, key string) {
-	config := &tls.Config{}
+	config := &tls.Config{
+		MinVersion:               tls.VersionTLS12,
+		CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
+		PreferServerCipherSuites: true,
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+			tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+		},
+	}
+
 	if config.NextProtos == nil {
 		config.NextProtos = []string{"http1/1"}
 	}
@@ -41,6 +52,8 @@ func ListenAndServeWithRedirect(addr string, handler http.Handler, cert string, 
 		Handler: &httpRedirectHandler{
 			handler: handler,
 		},
+		TLSConfig:    config,
+		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
 	}
 	srv.SetKeepAlivesEnabled(true)
 	srv.Serve(listener)
@@ -68,9 +81,6 @@ func (l *splitListener) Accept() (net.Conn, error) {
 		log.Printf("Short %s: %s\n", c.RemoteAddr().String(), err.Error())
 		// couldn't peek, assume it's HTTPS
 		return tls.Server(bconn, l.config), nil
-		// log.Printf("Short %s\n", c.RemoteAddr().String())
-		// bconn.Close()
-		// return nil, err
 	}
 
 	// SSL 3.0 or TLS 1.0, 1.1 and 1.2
@@ -97,6 +107,7 @@ type httpRedirectHandler struct {
 }
 
 func (handler *httpRedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
 	if r.TLS == nil {
 		u := url.URL{
 			Scheme:   "https",

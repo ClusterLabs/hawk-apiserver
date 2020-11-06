@@ -1,15 +1,15 @@
-package main
+package internal
 
 import (
-	"github.com/ClusterLabs/hawk-apiserver/util"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRouteHandler(t *testing.T) {
-	config := util.Config{}
-	util.ParseConfigFile("./config.json.example", &config)
-	routeHandler := newRouteHandler(&config)
+	config := Config{}
+	parseConfigFile("../config.json.example", &config)
+	routeHandler := NewRouteHandler(&config)
 	assert.NotNil(t, routeHandler)
 
 	for route := range config.Route {
@@ -19,9 +19,4 @@ func TestRouteHandler(t *testing.T) {
 			assert.Equal(t, p1, p2, "route cache returns inconsistent results")
 		}
 	}
-}
-
-func TestInitProcedure(t *testing.T) {
-	config := initConfig()
-	assert.Equal(t, config.Port, 17630, "Expected default port")
 }

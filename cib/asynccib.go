@@ -2,11 +2,12 @@ package cib
 
 import (
 	"fmt"
-	pacemaker "github.com/krig/go-pacemaker"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"sync"
 	"time"
+
+	pacemaker "github.com/ClusterLabs/go-pacemaker"
+	log "github.com/sirupsen/logrus"
 )
 
 // AsyncCib wraps the CIB retrieval from go-pacemaker in an
