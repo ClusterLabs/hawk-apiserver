@@ -61,11 +61,5 @@ install -D -m 0755 %{name} "%{buildroot}%{_sbindir}/%{name}"
 %doc README.md
 %license LICENSE
 %{_sbindir}/%{name}
-%if 0%{?suse_version} == 1315
-%exclude %go_contribdir/github.com/krig/hawk-apiserver/vendor/github.com/krig/go-pacemaker.a
-%exclude %go_contribdir/github.com/krig/hawk-apiserver/vendor/github.com/sirupsen/logrus.a
-%exclude %go_contribdir/github.com/krig/hawk-apiserver/vendor/golang.org/x/crypto/ssh/terminal.a
-%exclude %go_contribdir/github.com/krig/hawk-apiserver/vendor/golang.org/x/sys/unix.a
-%endif
 
 %changelog
