@@ -21,17 +21,17 @@ The **primary goal** for this project is to provide the minimal web server
 needed by Hawk while consuming as few system resources as
 possible. Second, it provides the `/monitor` API endpoint which
 handles long-lived connections from the frontend to enable instant
-updates of the interface on cluster events.
+updates of the interface on cluster events, leveraged by [go-pacemaker](https://github.com/ClusterLabs/go-pacemaker)
 
+The API server is still under its basic development phase.
 
 # Devel
-
 
 ### Dependencies:
 
 - following pkgs: `libqb-devel libpacemaker-devel`.
 
-Use `go build .` and other standards golang commands to test the project.
+* Use `make` to interact with the standards dev lifecycle.
 
 Generating an SSL certificates:
 
