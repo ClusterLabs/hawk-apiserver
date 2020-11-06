@@ -8,24 +8,8 @@ services:
   - docker
 
 stages:
-  - test
   - delivery
   - submit
-
-before_install:
-  - sudo apt-get -y install libxml2-dev libglib2.0-dev pacemaker-dev
-jobs:
-  include:
-    - stage: test
-      script:
-          - go build
-          - go vet
-          - go test
-    - stage: delivery
-      if: type != pull_request
-      env:
-        - FOLDER=/package
-        - PACKAGE_NAME=hawk-apiserver
 
       before_install:
         - docker pull shap/continuous_deliver:latest
