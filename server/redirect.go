@@ -106,6 +106,7 @@ type httpRedirectHandler struct {
 }
 
 func (handler *httpRedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
 	if r.TLS == nil {
 		u := url.URL{
 			Scheme:   "https",
