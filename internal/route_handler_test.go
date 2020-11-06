@@ -8,7 +8,7 @@ import (
 
 func TestRouteHandler(t *testing.T) {
 	config := Config{}
-	ParseConfigFile("../config.json.example", &config)
+	parseConfigFile("../config.json.example", &config)
 	routeHandler := NewRouteHandler(&config)
 	assert.NotNil(t, routeHandler)
 

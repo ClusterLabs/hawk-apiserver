@@ -52,7 +52,8 @@ func ListenAndServeWithRedirect(addr string, handler http.Handler, cert string, 
 		Handler: &httpRedirectHandler{
 			handler: handler,
 		},
-		TLSConfig: config,
+		TLSConfig:    config,
+		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
 	}
 	srv.SetKeepAlivesEnabled(true)
 	srv.Serve(listener)
