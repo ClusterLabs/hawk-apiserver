@@ -30,9 +30,10 @@ updates of the interface on cluster events.
 ### Dependencies:
 
 - following pkgs: `libqb-devel libpacemaker-devel`.
+
 Use `go build .` and other standards golang commands to test the project.
 
-## Generating an SSL certificate
+Generating an SSL certificates:
 
 ``` bash
 SSLGEN_KEY=hawk.key SSLGEN_CERT=hawk.pem ./tools/generate-ssl-cert
@@ -40,7 +41,7 @@ SSLGEN_KEY=hawk.key SSLGEN_CERT=hawk.pem ./tools/generate-ssl-cert
 
 # Usage:
 
-The `hawk-api-server` is used currently mainly for hawk usage purposes.
+The `hawk-api-server` is used currently mainly for hawk usage purposes, and in future as API-server.
 
 ## Configuration
 
@@ -93,7 +94,7 @@ Example:
 
 - HTTPS server
 - reverse proxy
-- ``/monitor`  API endpoint which handles long-lived connections from the frontend to enable instant
+- `/monitor`  API endpoint which handles long-lived connections from the frontend to enable instant
               updates of the interface on cluster events.
 
 
