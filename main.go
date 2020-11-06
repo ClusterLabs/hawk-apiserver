@@ -12,7 +12,6 @@ import (
 
 // the released version and buildDate. They are set by makefile or RPM
 var version = "was not built correctly"
-var buildDate = "was not built correctly"
 
 func initConfig() internal.Config {
 	log.SetFormatter(&log.TextFormatter{
@@ -59,7 +58,6 @@ func initConfig() internal.Config {
 	}
 	if *versionFlag == true {
 		log.Infof("hawk-apiserver version: %s", version)
-		log.Infof("Binary was builded at: %s ", buildDate)
 		os.Exit(0)
 	}
 
