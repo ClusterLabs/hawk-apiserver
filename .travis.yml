@@ -13,7 +13,7 @@ stages:
   - submit
 
 before_install:
-  - sudo apt-get -y install libxml2-dev  glib2-dev pacemaker-dev
+  - sudo apt-get -y install libxml2-dev libglib2.0-dev pacemaker-dev
 jobs:
   include:
     - stage: test
