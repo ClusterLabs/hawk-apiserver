@@ -27,7 +27,7 @@ func ListenAndServeWithRedirect(addr string, handler http.Handler, cert string, 
 	}
 
 	if config.NextProtos == nil {
-		config.NextProtos = []string{"http1/1"}
+		config.NextProtos = []string{"http/1.1"}
 	}
 
 	var err error
