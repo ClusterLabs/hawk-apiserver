@@ -131,7 +131,7 @@ func (handler *routeHandler) serveFile(w http.ResponseWriter, r *http.Request, r
 	}
 	filename := path.Clean(fmt.Sprintf("%v%v", *route.Target, r.URL.Path))
 	info, err := os.Stat(filename)
-	if !os.IsNotExist(err) && !info.IsDir() {
+	if err == nil && !info.IsDir() {
 		log.Debugf("[file] %s", filename)
 		e := fmt.Sprintf(`W/"%x-%x"`, info.ModTime().Unix(), info.Size())
 		if match := r.Header.Get("If-None-Match"); match != "" {
