@@ -3,6 +3,7 @@ package cib
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"sync"
 	"time"
 
@@ -127,11 +128,23 @@ func (acib *AsyncCib) Version() *pacemaker.CibVersion {
 }
 
 func (acib *AsyncCib) notifyNewCib(cibxml *pacemaker.CibDocument) {
-	text := cibxml.ToString()
+	/* The pacemaker-3.0.0 drops the support of xml general purpose routines.
+	 * There is no more dump_xml_unformatted to convert  xmlNode -> char*
+	 * And we don't want to reinvent it. Let's just call the 'cibadmin -Q'
+	 * and get it as the text.
+	 */
+	cmd := exec.Command("/usr/sbin/cibadmin", "-Q") // Invalid command for testing
+	text, err := cmd.CombinedOutput()
+
+	if err != nil {
+		msg := fmt.Sprintf("Failed to connect execute cibadmin: %v", err)
+		log.Warnf(msg)
+	}
+
 	version := cibxml.Version()
 	log.Infof("[CIB]: %v", version)
 	acib.lock.Lock()
-	acib.xmldoc = text
+	acib.xmldoc = string(text)
 	acib.version = version
 	acib.lock.Unlock()
 	// Notify anyone waiting
