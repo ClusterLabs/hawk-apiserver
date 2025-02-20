@@ -1,5 +1,5 @@
-github.com/ClusterLabs/go-pacemaker v0.0.0-20250220115233-10980d836a2d h1:WzNeCbZ9oQlHwfnddSgJU0VTYo7emfAVxX5AXhNakZE=
-github.com/ClusterLabs/go-pacemaker v0.0.0-20250220115233-10980d836a2d/go.mod h1:Z8/kfx30NVPr2Q3t7b7sVdRs//Ba+CR/yCD1gwk4Nrg=
+github.com/ClusterLabs/go-pacemaker v0.0.0-20250220164558-6fc9deff3ba6 h1:LzCpdqoa6sIDmOm4dttDEF+QpQXaOUsz+UR4kpo/wh0=
+github.com/ClusterLabs/go-pacemaker v0.0.0-20250220164558-6fc9deff3ba6/go.mod h1:Z8/kfx30NVPr2Q3t7b7sVdRs//Ba+CR/yCD1gwk4Nrg=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
