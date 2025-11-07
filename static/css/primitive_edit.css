@@ -1,0 +1,74 @@
+.accordion details {
+  margin-top: 10px;
+}
+
+.accordion summary {
+  cursor: pointer;
+}
+
+.kvsection-row {
+  display: flex;
+  align-items: center;
+  /* TODO: there should be not gap between button and select/input 
+   * but the gap between label and select/inpus should stay */
+  gap: 26px;
+  margin-bottom: 8px;
+}
+
+.kvsection-row label {
+  margin-left: auto;
+  flex: 0 0 80px;
+  text-align: right;
+}
+
+.kvsection-row button {
+  flex: 0 0 auto;
+  height: 100%;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.accordion details {
+  border-top: 1px solid #ddd;
+  padding-top: 10px;
+  margin-top: 10px;
+}
+
+.container-fluid {
+  margin-right: auto;
+  margin-left: auto;
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+.edit-layout {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  min-height: 0;
+}
+
+.edit-left {
+  flex: 1 1 0;
+  background: white;
+  padding: 20px;
+}
+
+.edit-right {
+  flex: 1 1 0;
+  background: #f5f5f5; /* or #f9f9f9 for a softer grey */
+  padding: 20px;
+  border: none; /* Optional, if any border is being inherited */
+
+  overflow-y: auto;
+  min-height: 0;
+}
+
+input[readonly] {
+  background-color: #f5f5f5; /* light gray background */
+  color: #555;               /* dark gray text */
+  border: 1px solid #ccc;    /* subtle border */
+}

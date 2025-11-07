@@ -1,0 +1,149 @@
+{{ define "content" }}
+<link rel="stylesheet" href="/static/css/primitive_edit.css">
+<script>
+  /* It's a glue code.
+   * The go template symtax will not work in the script
+   * if the script is in a different file. So we pass the
+   * template data here.
+   */
+  window.resourceData = {
+    ResourceID: "{{ .ResourceID }}",
+    ResourceAgent: "{{ .ResourceAgent }}"
+  };
+</script>
+<script src="/static/js/XCSS.js"></script>
+<script src="/static/js/classes/InfoPopup.js"></script>
+<script src="/static/js/classes/SelectOption.js"></script>
+<script src="/static/js/classes/OperationPopup.js"></script>
+<script src="/static/js/classes/DeletePopup.js"></script>
+<script src="/static/js/classes/RenamePopup.js"></script>
+<script src="/static/js/classes/XAlert.js"></script>
+<script src="/static/js/classes/Select.js"></script>
+<script src="/static/js/classes/XSelect.js"></script>
+<script src="/static/js/classes/Input.js"></script>
+<script src="/static/js/classes/OperationInput.js"></script>
+<script src="/static/js/classes/XKvGroupBase.js"></script>
+<script src="/static/js/classes/XKvGroup.js"></script>
+<script src="/static/js/classes/XOperationsKvGroup.js"></script>
+<script src="/static/js/classes/Primitive.js"></script>
+<script src="/static/js/classes/Span.js"></script>
+<script src="/static/js/primitive_edit.js" defer></script>
+
+<div class="edit-layout">
+  <div class="edit-left">
+
+    {{ if .AlertMessage }}
+      <x-alert
+        type="{{ .AlertType }}"
+        message="{{ .AlertMessage }}"
+        visible="true">
+      </x-alert>
+    {{ end }}
+
+
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h2><i class="fas fa-pencil-alt"></i> Edit Primitive: {{ .ResourceID }}</h2>
+      <div id="copy-rename-delete-container">
+        <button class="btn btn-white" name="copy" onclick="toggleUpdateCreateMode(true)"><i class="fas fa-copy"></i> Copy</button>
+        <button class="btn btn-white" name="rename" onclick="new RenamePopup()"><i class="fas fa-font"></i> Rename</button>
+        <button class="btn btn-white text-danger" name="delete" onclick="new DeletePopup()"><i class="fas fa-trash"></i> Delete</button>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="kvsection-row">
+        <label>Resource ID</label>
+        <input id="input-resource-id" type="text" value="{{ .ResourceID }}" class="form-control" name="primitive[id]" readonly style="width:60%;">
+      </div>
+
+      <x-select
+        id="class-xselect"
+        label="Class"
+        description="Standard which the resource agent conforms to."
+        value="{{ .Class }}"
+        options-api="/api/data-interface/fetch-resource-classes"
+        onchange="changeClass()"
+        disabled="true">
+      </x-select>
+
+      <x-select
+        id="provider-xselect"
+        label="Provider"
+        description="Vendor or project which provided the resource agent."
+        value="{{ .Provider }}"
+        options-api="/api/data-interface/fetch-resource-providers"
+        onchange="changeProvider()"
+        disabled="true"
+        hide-when-empty="true">
+      </x-select>
+
+      <x-select
+        id="type-xselect"
+        label="Type"
+        description="Resource agent name."
+        value="{{ .Type }}"
+        options-api="/api/data-interface/fetch-resource-types"
+        disabled="true">
+      </x-select>
+
+      <button class="btn btn-white btn-info" onclick="new InfoPopup()"><i class="fas fa-info"></i></button>
+
+    </div>
+
+    <div class="accordion">
+      <details id="details-instance_attributes" open>
+        <summary><strong>Parameters</strong></summary>
+        <x-kvgroup
+          id="kvgroup-instance_attributes"
+          name="instance_attributes"
+          options-api="/api/data-interface/fetch-resource-params"
+          submit-api="/api/data-interface/submit-resource-params">
+        </x-kvgroup>
+      </details>
+
+      <details id="details-operations" open>
+        <summary><strong>Operations</strong></summary>
+        <x-operations-kvgroup
+          id="kvgroup-operations"
+          options-api="/api/data-interface/fetch-resource-operations"
+          submit-api="/api/data-interface/submit-resource-operations">
+        </x-operations-kvgroup>
+      </details>
+
+      <details id="details-meta_attributes" open>
+        <summary><strong>Meta Attributes</strong></summary>
+        <x-kvgroup
+          id="kvgroup-meta_attributes"
+          name="meta_attributes"
+          options-api="/api/data-interface/fetch-resource-meta-attributes"
+          submit-api="/api/data-interface/submit-resource-meta-attributes">
+        </x-kvgroup>
+      </details>
+
+      <!-- FIXME (low-prio). This part is awkward. We don't need the Utilization to close,
+          but let's leave it as in the hawk and change it later. 
+          Besides, I don't know how to forbid it to close. -->
+      <details open>
+        <summary><strong>Utilization</strong></summary>
+      </details>
+
+      <div style="margin-top: 20px; text-align: center;">
+        <button id="apply-create-button" name="submit" class="btn btn-success" onclick="clickApplyCreateButton(this)">Apply</button>
+        <!-- I would rather expect `onclick="history.back()"` however old hawk forwards to /cib/live/config/edit -->
+        <a class="btn btn-white" href="/cib/live/config/edit">Back</a>
+      </div>
+      
+    </div>
+  </div>
+  <div class="edit-right">
+    <h4>Primitive</h3>
+    <p>Primitive resources are the most basic type of resource.</p>
+    <p>To create a primitive, define an ID and specify some parameters like class, provider, and type.</p>
+    <p>An example of a primitive resource is <code>ocf:heartbeat:IPaddr</code>, which can be used to configure a floating IP address for your cluster.</p>
+    <br>
+    <h4 id="agent-shortdesc"></h3><div id="agent-longdesc"></div>
+    <br>
+    <h4 id="field-shortdesc"></h3><p id="field-longdesc"></p>
+  </div>
+</div>
+{{ end }}
