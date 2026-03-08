@@ -1,0 +1,176 @@
+* {
+  box-sizing: border-box;
+}
+
+body, html {
+  margin: 0;
+  height: 100%;
+  font-family: "Roboto", sans-serif;
+  font-weight: 400;
+}
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+main.main {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+
+  display: flex;
+  flex-direction: column;
+}
+
+main.main > .content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+.styled-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95em;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.styled-table th,
+.styled-table td {
+  padding: 10px 12px;
+  border: 1px solid #e0e0e0;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.styled-table th {
+  background-color: #f5f5f5;
+  font-weight: normal;
+  color: #333;
+}
+
+.styled-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.status-dot {
+  display: inline-block;
+  height: 10px;
+  width: 10px;
+  border-radius: 50%;
+  margin-right: 4px;
+}
+
+.status-dot.online {
+  background-color: #00c081;
+}
+
+.status-dot.offline {
+  background-color: #f44336;
+}
+
+.table-container {
+  padding: 0 20px;
+}
+
+code {
+  padding: 2px 4px;
+  font-size: 90%;
+  color: #c7254e;
+  background-color: #f9f2f4;
+  border-radius: 4px;
+}
+
+.btn-primary.disabled,
+.btn-primary.disabled:active,
+.btn-primary.disabled:focus,
+.btn-primary[disabled],
+.btn-primary[disabled]:active,
+.btn-primary[disabled]:focus,
+fieldset[disabled],
+fieldset[disabled]:active,
+fieldset[disabled]:focus,
+.btn-primary,
+.btn-primary:active,
+.btn-primary.active,
+.btn-primary:active:focus,
+.btn-primary:focus,
+.btn-primary.focus {
+  background: #00c081;
+  border-color: #089E5F;
+}
+
+.form-control {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.form-control.d-flex {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.form-control.d-flex > code,
+.form-control.d-flex > span {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.form-control.d-flex {
+  height: 38px;
+  line-height: 1.5;
+  padding: 4px 8px;
+}
+
+/* so the rightGroup contents don't wrap */
+.form-control.d-flex > div {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 1;
+  flex-wrap: nowrap;
+}
+
+.btn {
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-left: 4px;
+}
+
+.btn-white {
+  background: white;
+}
+
+.btn-success {
+  background-color: #00c081;
+  color: white;
+  border: none;
+}
+
+.btn-info {
+  background-color: #5bc0de;
+  color: white;
+  border: none;
+}
+
+.text-danger {
+  color: #f44336;
+}

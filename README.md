@@ -1,108 +1,126 @@
-# Hawk API Server
+What is it?
+===========
+This is a new branch of hawk-apiserver aimed at reproducing some of the functionality
+from the original hawk2.
 
-[![GoDoc](https://godoc.org/github.com/ClusterLabs/hawk-apiserver?status.svg)](https://godoc.org/github.com/ClusterLabs/hawk-apiserver)
-[![Go Report Card](https://goreportcard.com/badge/github.com/ClusterLabs/hawk-apiserver)](https://goreportcard.com/report/github.com/ClusterLabs/hawk-apiserver)
+Why is it good?
+===============
+The goal is to migrate all functionality from the original hawk2 RoR project
+to the Go-based hawk-apiserver project, so that we can eventually remove hawk entirely.
+This means we will no longer need to maintain the Hawk ruby packages.
 
-HTTPS API server / minimalist web proxy for Hawk.
-
-# Table of content
-
-- [Rationale](#Rationale)
-- [Devel](#devel)
-- [Usage](#usage)
-- [Features](#features)
-
-# Rationale
-This project currently provides a minimalistic web server which
-handles SSL certificate termination, proxying and static file serving
-for [HAWK](https://github.com/ClusterLabs/hawk)
-
-The **primary goal** for this project is to provide the minimal web server
-needed by Hawk while consuming as few system resources as
-possible. Second, it provides the `/monitor` API endpoint which
-handles long-lived connections from the frontend to enable instant
-updates of the interface on cluster events, leveraged by [go-pacemaker](https://github.com/ClusterLabs/go-pacemaker)
-
-The API server is still under its basic development phase.
-
-# Devel
-
-### Dependencies:
-
-- following pkgs: `libqb-devel libpacemaker-devel`.
-
-* Use `make` to interact with the standards dev lifecycle.
-
-Generating an SSL certificates:
-
-``` bash
-SSLGEN_KEY=hawk.key SSLGEN_CERT=hawk.pem ./tools/generate-ssl-cert
+What is already implemented?
+============================
+As of 17.11.2025, the following entry point exists:
+```
+cib/live/primitives/{resouce-id}/edit
+```
+it is currently in alpha state. You can access it via:
+```
+MONITORING -> Status -> [{Resource-ID} dwopdown menu ▼] -> ✏️ Edit
 ```
 
-# Usage:
+There are also custom JavaScript classes in static/js/classes designed to simplify the development.
 
-The `hawk-api-server` is used currently mainly for hawk usage purposes, and in future as API-server.
+What about hawk2?
+=================
+The idea is to migrate the functionality from Ruby to Go without big changes to the Ruby part.
+However, some changes are unavoidable. For example, when redirecting from one web page to another, Ruby passes the arguments through its internal cookies, which are not accessible from Go. Therefore, Ruby must to provide the arguments explicitely through the URL.
+For now, it's recommented to simply ignore this issue. If you want all tests to pass, you can use
+the patched hawk from https://build.suse.de/package/show/home:aburlakov:branches:SUSE:SLE-15-SP6:Update/hawk2
 
-## Configuration
+How to install?
+===============
+Scenario: you have a fresh Leap15.6 virtual machine.
 
-Pass `-config <config>` as an argument to give the server a
-configuration file. The format is a json dictionary with key / value
-pairs.
+The easy way is to install it from https://build.suse.de/package/show/home:aburlakov:branches:SUSE:SLE-15-SP6:Update/hawk-apiserver
 
-The available configuration values are described below. If a value is
-set both in the configuration file and in a command line argument, the
-command line argument takes precedence.
+```
+zypper ar -p1 https://download.suse.de/ibs/home:/aburlakov:/branches:/SUSE:/SLE-15-SP6:/Update/standard/?ssl_verify=no myrepo
+zypper ref
+zypper in hawk2
+zypper se --details hawk2 # make sure the hawk2 is installed from myrepo
 
-* `key`: Path to SSL key. (argument: -key)
+crm cluster init -s /dev/vdb -y
+systemctl status hawk hawk-backend # make sure both are green
+```
 
-* `cert`: Path to SSL certificate. (argument: -cert)
+This script will also install hawk-apiserver, but that's fine even if you don't need it.
 
-* `port`: TCP port to listen to for connections. (argument: -port)
+How to build?
+=============
+1) install hawk2 either from the official repo, or from the link above.
 
-* `route`: List of json maps that configure the routing table.
+2) Install necessary dependencies:
+```
+zypper in make git go golang-packaging libpacemaker-devel libqb-devel libxml2-devel
+```
 
-The route format is very limited and adapted to serving hawk, but
-enable reconfiguration of the exact paths to certificates, files and
-sockets.
+3) Build:
+```
+git clone https://github.com/aleksei-burlakov/hawk-apiserver.git
+cd hawk-apiserver
+git checkout ver0.1.0
+make
+```
 
-Example:
+4) Start:
+```
+./hawk-apiserver -key /etc/hawk/hawk.key -cert /etc/hawk/hawk.pem -port 7631 -config /etc/hawk/server.json
+```
+The `/etc/hawk/hawk.key`, `/etc/hawk/hawk.pem`, and `/etc/hawk/server.json` are created by `crm cluster init ...`
+Don't use the port `7630`, because it's already bound to the default `hawk.service` .
 
-``` json
+5) Open `https://127.0.0.1:7631`, use the default credentials. User: `hacluster`, Password: `linux`.
+
+How to debug?
+=============
+
+1) Install VS Code:
+```
+rpm --import https://packages.microsoft.com/keys/microsoft.asc
+zypper ar https://packages.microsoft.com/yumrepos/vscode vscode
+zypper refresh
+zypper install -y code
+
+go install github.com/go-delve/delve/cmd/dlv@latest
+
+cd hawk-apiserver
+code . --user-data-dir=".vscode" --no-sandbox
+```
+
+2) Install Go extension.
+
+3) Use the folowing launch.json
+```
 {
-  "key": "/etc/hawk/hawk.key",
-  "cert": "/etc/hawk/hawk.pem",
-  "port": 7630,
-  "route": [
-    {
-      "handler": "monitor",
-      "path": "/monitor"
-    },
-    {
-      "handler": "file",
-      "path": "/",
-      "target": "/usr/share/hawk/public"
-    },
-    {
-      "handler": "proxy",
-      "path": "/",
-      "target": "unix:///var/run/hawk/app.sock"
-    }
-  ]
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}",
+            "dlvToolPath": "/usr/bin/dlv",
+            "args": [
+                "-key", "/etc/hawk/hawk.key",
+                "-cert", "/etc/hawk/hawk.pem",
+                "-port", "7631",
+                "-config", "/etc/hawk/server.json"
+            ]
+        }
+    ]
 }
 ```
-# Features:
-
-- HTTPS server
-- reverse proxy
-- `/monitor`  API endpoint which handles long-lived connections from the frontend to enable instant
-              updates of the interface on cluster events.
 
 
-### Authentication
+Tests
+=====
+The hawk/e2e_tests were copied here. Additionally to existing tests, there were added
 
-* Basic auth: Get user:password from HTTP headers. Map to system
-  user. Verify that system user is a member of the haclient group.
+* test_copy_primitive: cool_primitive --> cool_primitive + hot_primitive
+* test_rename_primitive: hot_primitive --> dummy_primitive
+* test_delete_primitive: Delete the dummy_primitive
 
-* Cookie auth (cookie created by hawk rails app): If a valid cookie is
-  found in the HTTP headers, this is accepted as authentication.
-  Session cookie is stored in attrd.
+All of them test the same entry point cib/live/primitives/{resouce-id}/edit.

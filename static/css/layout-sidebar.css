@@ -1,0 +1,62 @@
+#sidebar {
+  width: 250px;
+  background: #013157;
+  color: white;
+  overflow: auto;
+  /* flex-shrink: 0;
+  overflow-y: auto; */
+}
+
+#sidebar ul.panel-group {
+  margin-top: 30px;
+}
+
+#sidebar li.panel>a {
+  text-transform: uppercase;
+  display: block;
+  color: #00c081;
+  text-decoration: none;
+}
+
+#sidebar li {
+  list-style: none;
+}
+
+#sidebar ul.collapse-menu {
+  line-height: 2.4em;
+}
+
+#sidebar ul.collapse-menu li {
+  text-transform: none;
+  margin-left: -20px;
+}
+
+#sidebar .fas {
+  margin-right: 5px;
+}
+
+#sidebar ul.collapse-menu a {
+  color: #fff;
+  text-decoration: none;
+  display: inline-block;
+  width: 100%;
+}
+
+#sidebar ul.collapse-menu a:hover {
+  color: #ccc;
+}
+
+#sidebar li.panel {
+  background-color: transparent;
+  border: 0;
+  margin-bottom: 20px;
+}
+
+#sidebar li.sub-heading {
+  color: #00c081;
+}
+
+#sidebar ul.collapse-menu li.submenu {
+  padding-left: 15px;
+  font-size: 14px;
+}

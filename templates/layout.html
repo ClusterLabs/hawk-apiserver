@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SUSE Hawk: {{ .Title }}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+  <link rel="stylesheet" href="/static/css/layout.css">
+  <link rel="stylesheet" href="/static/css/layout-header.css">
+  <link rel="stylesheet" href="/static/css/layout-modal.css">
+  <link rel="stylesheet" href="/static/css/layout-sidebar.css">
+  <script src="/static/js/classes/Popup.js"></script>
+  <script src="/static/js/classes/HelpPopup.js"></script>
+  <script src="/static/js/classes/ClusterDetailsPopup.js"></script>
+  <script src="/static/js/classes/layout.js" defer></script>
+</head>
+<body>
+  <div class="layout">
+
+    <header class="header">
+      <div class="navbar-left">
+        <div id="suse-hawk">
+          <img src="/static/img/white.png" alt="SUSE Hawk">
+        </div>
+        <div id="cluster-details">
+          <div id="cluster-status-indicator" class="circle" data-toggle="tooltip" data-placement="bottom" data-html="true" title="OK">
+            <i class="fas fa-check text"></i>
+          </div>
+          <a class="cluster-details-btn" href="javascript:void(0)" title="Cluster Details" onclick="new ClusterDetailsPopup()">
+            View Cluster Details</a>
+        </div>
+      </div>
+      <div class="navbar-right">
+        <ul class="navbar-nav">
+          <li>
+            <a class="simulator" title="Batch Configuration Changes" href="/cib/hacluster?init_cib=true">
+              <span class="hidden-xs">Batch</span>
+              <i class="fas fa-toggle-off"></i>
+            </a>
+          </li>
+          <li>
+            <a class="profile" title="hacluster" href="/cib/live/profile/edit">
+              <span class="hidden-xs">hacluster</span>
+            <i class="fas fa-user"></i></a>
+          </li>
+          <li>
+            <a class="help" title="Help" href="javascript:void(0)" onclick="new HelpPopup()">
+              <span class="hidden-xs">Help</span>
+              <i class="fas fa-question"></i>
+            </a>
+          </li>
+          <li>
+            <a class="logout" title="Logout" href="/logout">
+              <span class="hidden-xs">Logout</span>
+              <i class="fas fa-sign-out"></i>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </header>
+
+    <div class="body">
+      <aside id="sidebar">
+        <ul class="panel-group" id="accordion">
+          <li class="panel">
+            <a data-toggle="collapse" data-parent="#accordion" href="#monitoringMenu">
+              <i class="fas fa-desktop"></i> Monitoring
+            </a>
+            <ul class="collapse-menu collapse in" id="monitoringMenu">
+              <li><a href="/cib/live">Status</a></li>
+              <li><a href="/dashboard">Dashboard</a></li>
+            </ul>
+          </li>
+
+          <li class="panel">
+            <a data-toggle="collapse" data-parent="#accordion" href="#troubleshootMenu">
+              <i class="fas fa-wrench"></i> Troubleshooting
+            </a>
+            <ul class="collapse-menu collapse" id="troubleshootMenu">
+              <li><a href="/reports">History</a></li>
+              <li><a href="/cib/live/commands">Command Log</a></li>
+            </ul>
+          </li>
+
+          <li class="panel">
+            <a data-toggle="collapse" data-parent="#accordion" href="#configurationMenu">
+              <i class="fas fa-cog"></i> Configuration
+            </a>
+            <ul class="collapse-menu collapse" id="configurationMenu">
+              <li><a href="/cib/live/resources/types">Add Resource</a></li>
+              <li><a href="/cib/live/constraints/types">Add Constraint</a></li>
+              <li><a href="/cib/live/wizards">Wizards</a></li>
+              <li><a href="/cib/live/config/edit">Edit Configuration</a></li>
+              <li><a href="/cib/live/crm_config/edit">Cluster Configuration</a></li>
+              <li class="sub-heading">Access Control</li>
+              <li class="submenu"><a href="/cib/live/roles">Roles</a></li>
+              <li class="submenu"><a href="/cib/live/users">Targets</a></li>
+            </ul>
+          </li>
+        </ul>
+      </aside>
+
+      <main class="main">
+        <div class="content">
+          {{ template "content" . }}
+        </div>
+      </main>
+    </div>
+
+  </div>
+</body>
+</html>
