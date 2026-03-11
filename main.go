@@ -42,7 +42,7 @@ func authViaRuby(r *http.Request) (ok bool, user string, err error) {
 	}
 
 	// URL host is dummy; DialContext ignores it and uses the unix socket.
-	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, "http://unix/internal/auth", nil)
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, "http://localhost/internal/auth", nil)
 	if err != nil {
 		return false, "", err
 	}
@@ -51,8 +51,6 @@ func authViaRuby(r *http.Request) (ok bool, user string, err error) {
 	if ck := r.Header.Get("Cookie"); ck != "" {
 		req.Header.Set("Cookie", ck)
 	}
-	// Optional but sometimes useful:
-	req.Header.Set("X-Forwarded-For", r.RemoteAddr)
 
 	resp, err := client.Do(req)
 	if err != nil {
