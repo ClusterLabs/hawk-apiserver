@@ -64,8 +64,9 @@ function clickApplyCreateButton(applyButton) {
   const params = document.getElementById("kvgroup-instance_attributes");
   const metaAttributes = document.getElementById("kvgroup-meta_attributes");
   const operations = document.getElementById("kvgroup-operations");
+  const utilizations = document.getElementById("kvgroup-resource_utilizations");
 
-  for (const group of [params, metaAttributes, operations]) {
+  for (const group of [params, metaAttributes, operations, utilizations]) {
     const result = group.submitSanityCheck();
     if (!result.ok) {
       showFlash("danger", result.message);
@@ -78,6 +79,7 @@ function clickApplyCreateButton(applyButton) {
       params.submit(),
       metaAttributes.submit(),
       operations.submit(),
+      utilizations.submit(),
     ])
       .then(() => {
         // refresh the page after submitting all 3

@@ -36,9 +36,10 @@ func renderTemplate(w http.ResponseWriter, name string, data map[string]any) {
  ***************************/
 
 type CrmStatus struct {
-	XMLName   xml.Name  `xml:"crm_mon"`
-	Nodes     []CrmNode `xml:"nodes>node"`
-	Resources []CrmRsc  `xml:"resources>resource"`
+	XMLName   xml.Name   `xml:"crm_mon"`
+	Nodes     []CrmNode  `xml:"nodes>node"`
+	Resources []CrmRsc   `xml:"resources>resource"`
+	Clones    []CrmClone `xml:"resources>clone"`
 }
 
 type CrmNode struct {
@@ -49,14 +50,31 @@ type CrmNode struct {
 }
 
 type CrmRsc struct {
-	ID            string       `xml:"id,attr"`
-	ResourceAgent string       `xml:"resource_agent,attr"`
-	Role          string       `xml:"role,attr"`
-	TargetRole    string       `xml:"target_role,attr"`
-	Active        bool         `xml:"active,attr"`
-	Maintenance   bool         `xml:"maintenance,attr"`
-	Managed       bool         `xml:"managed,attr"`
-	Nodes         []CrmRscNode `xml:"node"`
+	ID             string       `xml:"id,attr"`
+	ResourceAgent  string       `xml:"resource_agent,attr"`
+	Role           string       `xml:"role,attr"`
+	TargetRole     string       `xml:"target_role,attr"`
+	Active         bool         `xml:"active,attr"`
+	Orphaned       bool         `xml:"orphaned,attr"`
+	Blocked        bool         `xml:"blocked,attr"`
+	Maintenance    bool         `xml:"maintenance,attr"`
+	Managed        bool         `xml:"managed,attr"`
+	Faield         bool         `xml:"failed,attr"`
+	FailureIgnored bool         `xml:"failure_ignored,attr"`
+	NodesRunningOn bool         `xml:"nodes_running_on,attr"`
+	Nodes          []CrmRscNode `xml:"node"`
+}
+
+type CrmClone struct {
+	ID             string   `xml:"id,attr"`
+	MultiState     bool     `xml:"multi_state,attr"`
+	Unique         bool     `xml:"unique,attr"`
+	Maintenance    bool     `xml:"maintenance,attr"`
+	Managed        bool     `xml:"managed,attr"`
+	Disabled       bool     `xml:"disabled,attr"`
+	Failed         bool     `xml:"failed,attr"`
+	FailureIgnored bool     `xml:"failure_ignored,attr"`
+	Resources      []CrmRsc `xml:"resource"`
 }
 
 type CrmRscNode struct {
@@ -129,7 +147,7 @@ type CIB struct {
 
 type Configuration struct {
 	CrmConfig   CrmConfig   `xml:"crm_config"`
-	Node        []Node      `xml:"nodes>node"`
+	Nodes       []Node      `xml:"nodes>node"`
 	Constraints Constraints `xml:"constraints"`
 	Primitives  []Primitive `xml:"resources>primitive"`
 }
@@ -146,14 +164,17 @@ type ClusterPropertySet struct {
 type Constraints struct {
 	Colocations []RscColocation `xml:"rsc_colocation"`
 	Locations   []RscLocation   `xml:"rsc_location"`
+	Orders      []RscOrder      `xml:"rsc_order"`
 }
 
 // To add colocation constraint: crm configure colocation location_constration 5000: dummy1 dummy2
 type RscColocation struct {
-	ID      string `xml:"id,attr"`
-	Score   string `xml:"score,attr"`
-	Rsc     string `xml:"rsc,attr"`
-	WithRsc string `xml:"with-rsc,attr"`
+	ID          string `xml:"id,attr"`
+	Score       string `xml:"score,attr"`
+	Rsc         string `xml:"rsc,attr"`
+	RscRole     string `xml:"rsc-role,attr"`
+	WithRsc     string `xml:"with-rsc,attr"`
+	WithRscRole string `xml:"with-rsc-role,attr"`
 }
 
 type RscLocation struct {
@@ -163,9 +184,20 @@ type RscLocation struct {
 	Node  string `xml:"node,attr"`
 }
 
+type RscOrder struct {
+	ID          string `xml:"id,attr"`
+	Kind        string `xml:"kind,attr"`
+	First       string `xml:"first,attr"`
+	FirstAction string `xml:"first-action,attr"`
+	Then        string `xml:"then,attr"`
+	ThenAction  string `xml:"then-action,attr"`
+}
+
 type Node struct {
-	ID    string `xml:"id,attr"`
-	Uname string `xml:"uname,attr"`
+	ID           string   `xml:"id,attr"`
+	Uname        string   `xml:"uname,attr"`
+	Utilizations []Nvpair `xml:"utilization>nvpair"`
+	Attributes   []Nvpair `xml:"instance_attributes>nvpair"`
 }
 
 type Primitive struct {
@@ -177,6 +209,7 @@ type Primitive struct {
 	MetaAttributes     MetaAttribute     `xml:"meta_attributes" json:"meta_attributes"`
 	InstanceAttributes InstanceAttribute `xml:"instance_attributes" json:"instance_attributes"`
 	Operations         []Operation       `xml:"operations>op" json:"operations"`
+	Utilizations       []Nvpair          `xml:"utilization>nvpair" json:"utilizations"`
 }
 
 type MetaAttribute struct {
@@ -192,14 +225,22 @@ type InstanceAttribute struct {
 /* don't confuse it with Action.
  * Action is "crm_resource --show-metadata ocf:pacemaker:Dummy"
  * Operation is "cibamdin -Ql" */
+/* However, they are so much alike; I think they can be merged (18.06.2026) */
 type Operation struct {
-	XMLName     xml.Name `xml:"op"`
-	Description string   `xml:"description,attr,omitempty"`
-	Depth       string   `xml:"depth,attr,omitempty"`
-	ID          string   `xml:"id,attr"`
-	Interval    string   `xml:"interval,attr,omitempty"`
-	Name        string   `xml:"name,attr"`
-	Timeout     string   `xml:"timeout,attr,omitempty"`
+	XMLName        xml.Name `xml:"op"`
+	Depth          string   `xml:"depth,attr,omitempty" json:"depth"`
+	Description    string   `xml:"description,attr,omitempty" json:"description"`
+	Enabled        string   `xml:"enabled,attr,omitempty" json:"enabled"`
+	ID             string   `xml:"id,attr" json:"id"`
+	Interval       string   `xml:"interval,attr,omitempty" json:"interval"`
+	IntervalOrigin string   `xml:"interval-origin,attr,omitempty" json:"interval-origin"`
+	OnFail         string   `xml:"on-fail,attr,omitempty" json:"on-fail"`
+	Name           string   `xml:"name,attr" json:"name"`
+	RecordPending  string   `xml:"record-pending,attr,omitempty" json:"record-pending"`
+	Requires       string   `xml:"requires,attr,omitempty" json:"requires"`
+	Role           string   `xml:"role,attr,omitempty" json:"role"`
+	StartDelay     string   `xml:"start-delay,attr,omitempty" json:"start-delay"`
+	Timeout        string   `xml:"timeout,attr,omitempty" json:"timeout"`
 }
 
 type Nvpair struct {
@@ -230,10 +271,15 @@ type LRMResource struct {
 }
 
 type LRMOp struct {
-	ID        string `xml:"id,attr"`
-	Operation string `xml:"operation,attr"`
-	OpStatus  string `xml:"op-status,attr"`
-	RCCode    string `xml:"rc-code,attr"`
+	ID           string `xml:"id,attr"`
+	CallID       string `xml:"call-id,attr"`
+	ExecTime     string `xml:"exec-time,attr"`
+	LastRcChange string `xml:"last-rc-change,attr"`
+	OnNode       string `xml:"on_node,attr"`
+	Operation    string `xml:"operation,attr"`
+	OperationKey string `xml:"operation_key,attr"`
+	OpStatus     string `xml:"op-status,attr"`
+	RCCode       string `xml:"rc-code,attr"`
 }
 
 type ResourceRow struct {
@@ -246,12 +292,14 @@ type ResourceRow struct {
 	TargetRole     string
 	Constraints    Constraints
 	MetaAttributes []Nvpair
+	Events         []LRMOp
+	Utilizations   []Nvpair
 }
 
 type NodeRow struct {
-	ID     string
-	Name   string
-	Status string
+	ID           string
+	Name         string
+	Utilizations []Nvpair
 }
 
 func getResourceConstraints(resourceName string, configuration Configuration) Constraints {
@@ -267,10 +315,38 @@ func getResourceConstraints(resourceName string, configuration Configuration) Co
 			Locations = append(Locations, location)
 		}
 	}
-	return Constraints{Colocations, Locations}
+	return Constraints{Colocations, Locations, configuration.Constraints.Orders}
 }
 
-func getCIBResources() ([]ResourceRow, error) {
+// return node name where the resource is running or "" if stopped
+func getResourceRunningNode(resourceName string, nodeStates []NodeState) string {
+	for _, nodeState := range nodeStates {
+		for _, lrmResource := range nodeState.LRM.Resources {
+			if lrmResource.ID == resourceName {
+				for _, lrmRscOp := range lrmResource.Ops {
+					if strings.ToLower(lrmRscOp.Operation) == "start" {
+						return nodeState.Uname
+					}
+				}
+			}
+		}
+	}
+	return ""
+}
+
+func getResourceEvents(resourceName string, nodeStates []NodeState) []LRMOp {
+	var result []LRMOp
+	for _, nodeState := range nodeStates {
+		for _, lrmResource := range nodeState.LRM.Resources {
+			if lrmResource.ID == resourceName {
+				result = append(result, lrmResource.Ops...)
+			}
+		}
+	}
+	return result
+}
+
+func GetCIBResources() ([]ResourceRow, error) {
 	cmd := exec.Command("cibadmin", "-Ql")
 	out, err := cmd.Output()
 	if err != nil {
@@ -307,20 +383,39 @@ func getCIBResources() ([]ResourceRow, error) {
 			}
 		}
 		constraints := getResourceConstraints(resource.ID, cib.Configuration)
+		node := getResourceRunningNode(resource.ID, cib.Status.NodeStates)
+		events := getResourceEvents(resource.ID, cib.Status.NodeStates)
 		rows = append(rows, ResourceRow{
 			ID:             resource.ID,
 			Class:          resource.Class,
 			Provider:       resource.Provider,
 			Type:           resource.Type,
-			Node:           cib.Configuration.Node[0].Uname,
+			Node:           node,
 			Status:         status,
 			TargetRole:     role,
 			Constraints:    constraints,
 			MetaAttributes: resource.MetaAttributes.NVPairs,
+			Events:         events,
+			Utilizations:   resource.Utilizations,
 		})
 	}
 
 	return rows, nil
+}
+
+func GetCIBNodes() ([]Node, error) {
+	cmd := exec.Command("cibadmin", "-Ql")
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, err
+	}
+
+	var cib CIB
+	if err := xml.Unmarshal(out, &cib); err != nil {
+		return nil, err
+	}
+
+	return cib.Configuration.Nodes, nil
 }
 
 /*****************************
@@ -645,10 +740,18 @@ type ContentAttr struct {
  * Maybe there should be two different structures
  * (however I might change my mind, so don't hastle with it (17.05.2025))*/
 type Action struct {
-	Name     string `xml:"name,attr"`
-	Timeout  string `xml:"timeout,attr"`
-	Interval string `xml:"interval,attr"`
-	Depth    string `xml:"depth,attr"`
+	Depth          string `xml:"depth,attr,omitempty"`
+	Description    string `xml:"description,attr,omitempty"`
+	Enabled        string `xml:"enabled,attr,omitempty"`
+	Interval       string `xml:"interval,attr,omitempty"`
+	IntervalOrigin string `xml:"interval-origin,attr,omitempty"`
+	OnFail         string `xml:"on-fail,attr,omitempty"`
+	Name           string `xml:"name,attr"`
+	RecordPending  string `xml:"record-pending,attr,omitempty"`
+	Requires       string `xml:"requires,attr,omitempty"`
+	Role           string `xml:"role,attr,omitempty"`
+	StartDelay     string `xml:"start-delay,attr,omitempty"`
+	Timeout        string `xml:"timeout,attr,omitempty"`
 	// We take CibID later from cib, if they are defined
 	CibID string
 	// Default values
@@ -710,7 +813,7 @@ func getResourceMetadata(resourceAgent string) (CrmResourceMetadata, error) {
 
 func enrichMetadataWithCibValues(metadata *CrmResourceMetadata, resourceID string) error {
 	// 1. Query current XML
-	queryXPath := fmt.Sprintf("/cib/configuration/resources/primitive[@id='%s']", resourceID)
+	queryXPath := fmt.Sprintf("/cib/configuration/resources//primitive[@id='%s']", resourceID)
 	cmd := exec.Command("cibadmin", "-Q", "--xpath", queryXPath)
 	out, err := cmd.Output()
 	if err != nil {
@@ -751,11 +854,30 @@ func enrichMetadataWithCibValues(metadata *CrmResourceMetadata, resourceID strin
 			}
 			metadata.Actions[i].CibID = op.ID
 			for j := range metadata.Actions[i].OpDefaults {
-				if metadata.Actions[i].OpDefaults[j].Name == "interval" {
+				switch metadata.Actions[i].OpDefaults[j].Name {
+				case "depth":
+					metadata.Actions[i].OpDefaults[j].Content.CibValue = op.Depth
+				case "description":
+					metadata.Actions[i].OpDefaults[j].Content.CibValue = op.Description
+				case "enabled":
+					metadata.Actions[i].OpDefaults[j].Content.CibValue = op.Enabled
+				case "interval":
 					metadata.Actions[i].OpDefaults[j].Content.CibValue = op.Interval
-				}
-				if metadata.Actions[i].OpDefaults[j].Name == "timeout" {
+				case "interval-origin":
+					metadata.Actions[i].OpDefaults[j].Content.CibValue = op.IntervalOrigin
+				case "on-fail":
+					metadata.Actions[i].OpDefaults[j].Content.CibValue = op.OnFail
+				case "record-pending":
+					metadata.Actions[i].OpDefaults[j].Content.CibValue = op.RecordPending
+				case "requires":
+					metadata.Actions[i].OpDefaults[j].Content.CibValue = op.Requires
+				case "role":
+					metadata.Actions[i].OpDefaults[j].Content.CibValue = op.Role
+				case "start-delay":
+					metadata.Actions[i].OpDefaults[j].Content.CibValue = op.StartDelay
+				case "timeout":
 					metadata.Actions[i].OpDefaults[j].Content.CibValue = op.Timeout
+
 				}
 			}
 		}
@@ -792,9 +914,9 @@ func ResourceEditHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		crm, err := getCIBResources()
+		crm, err := GetCIBResources()
 		if err != nil {
-			http.Error(w, "Failed to get CRM XML status: "+err.Error(), http.StatusInternalServerError)
+			http.Error(w, "[ResourceEditHandler] Failed to get CRM resource status: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -863,19 +985,115 @@ func ResourceEditHandler(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
 }
 
+func NodesEditHandler(w http.ResponseWriter, r *http.Request) {
+	const prefix = "/cib/live/nodes"
+
+	// Normalize (collapse //, removes trailing /)
+	cleanPath := path.Clean(r.URL.EscapedPath())
+
+	// must be either exactly the prefix or start with prefix + "/"
+	if cleanPath != prefix && !strings.HasPrefix(cleanPath, prefix+"/") {
+		http.NotFound(w, r)
+		return
+	}
+
+	// pre-parsing
+	cleanPath = strings.TrimSuffix(cleanPath, "/")    // drop ending /
+	cleanPath = strings.TrimPrefix(cleanPath, prefix) // drop prefix
+	cleanPath = strings.TrimPrefix(cleanPath, "/")    // drop the leading slash
+
+	// "{id}/edit" --> handle here
+	if strings.HasSuffix(cleanPath, "/edit") {
+		nodeID := strings.TrimSuffix(cleanPath, "/edit")
+
+		// make sure its {id}, not {id1}/{id2}/...
+		if nodeID == "" || strings.Contains(nodeID, "/") {
+			http.NotFound(w, r)
+			return
+		}
+
+		nodes, err := GetCIBNodes()
+		if err != nil {
+			http.Error(w, "[NodesEditHandler] Failed to get nodes in 'cibadmin -Ql': "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		var thisNode Node
+		thisNodeFound := false
+
+		for _, node := range nodes {
+			if node.ID == nodeID {
+				thisNode = node
+				thisNodeFound = true
+			}
+		}
+
+		if thisNodeFound == false {
+			http.Error(w, "[NodesEditHandler] Failed to find nodes with ID "+nodeID, http.StatusInternalServerError)
+			return
+		}
+
+		/* If we do Configuration -> Add Resource -> Primitive -> Create
+		 * It would redirect to the cib/live/primitives/{primitive-id}/edit?flash={created|updated}
+		 */
+		flash := r.URL.Query().Get("flash")
+		var alertType, alertMsg string
+
+		switch flash {
+		case "created":
+			alertType = "success"
+			alertMsg = "Node created successfully"
+		case "updated":
+			alertType = "success"
+			alertMsg = "Node updated successfully"
+		case "renamed":
+			alertType = "success"
+			alertMsg = "Node renamed successfully"
+		case "error":
+			alertType = "danger"
+			alertMsg = r.URL.Query().Get("msg")
+			if alertMsg == "" {
+				alertMsg = "There was an error processing the primitive."
+			}
+		}
+
+		renderTemplate(w, "node_edit", map[string]any{
+			"Title":        "Edit Node",
+			"NodeName":     thisNode.Uname,
+			"NodeID":       nodeID,
+			"AlertType":    alertType,
+			"AlertMessage": alertMsg,
+		})
+		return
+	}
+
+	// else --> Ruby
+	if Routehandler != nil {
+		Routehandler.ServeHTTP(w, r)
+		return
+	}
+	http.NotFound(w, r)
+}
+
 // FIXME (low-prio): it's 90% the same as updateNvpair
-func updateOperation(operation Operation, resourceID string) ([]byte, error) {
+func updateOperation(operation Operation, resourceID string) error {
 	xmlBytes, err := xml.Marshal(operation)
 	if err != nil {
 		log.Printf("[updateCibNvpair] XML marshal error: %v", err)
-		return xmlBytes, err
+		return err
 	}
 	xmlStr := string(xmlBytes)
 	xmlStr = fmt.Sprintf("<primitive id=\"%s\"><operations>%s</operations></primitive>", resourceID, xmlStr)
 
 	queryXPath := fmt.Sprintf("//primitive[@id='%s']", resourceID)
+
+	var stderr bytes.Buffer
 	cmd := exec.Command("cibadmin", "--modify", "--xpath", queryXPath, "--xml-text", xmlStr)
-	return cmd.CombinedOutput()
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("%w: %s", err, stderr.String())
+	}
+	return nil
 }
 
 func deleteOperation(opID string, resourceID string, removeParent bool) ([]byte, error) {
@@ -943,6 +1161,28 @@ func applyAttributes(cibAttributes []Nvpair, frontendAttributes []Nvpair, primit
 	// cibAttributes - what exists
 	// frontendPrimitives - what should be
 
+	// case: Remove, (attribute exists in cib, but not in frontend)
+	attributesExist := len(cibAttributes)
+	for i := range cibAttributes {
+		var nvpairExistsInFrontend bool = false
+		for _, frontendNvpair := range frontendAttributes {
+			if cibAttributes[i].ID == frontendNvpair.ID {
+				nvpairExistsInFrontend = true
+				break
+			}
+		}
+		if !nvpairExistsInFrontend {
+			// if there is only 1 nvpair left --> remove it together with <instance_attributes ...>
+			_, err := deleteNvpair(cibAttributes[i].ID, section, primitiveID, attributesExist <= 1)
+			attributesExist--
+			if err != nil {
+				http.Error(w, "Failed to encode updated XML", http.StatusInternalServerError)
+				log.Printf("[setPrimitive] XML marshal error: %v", err)
+				return
+			}
+		}
+	}
+
 	// case: Add + Update
 	for _, frontendNvpair := range frontendAttributes {
 		var nvpairExistsInCib bool = false
@@ -975,37 +1215,15 @@ func applyAttributes(cibAttributes []Nvpair, frontendAttributes []Nvpair, primit
 			return
 		}
 	}
-
-	// case: Remove, (attribute exists in cib, but not in frontend)
-	attributesExist := len(cibAttributes)
-	for i := range cibAttributes {
-		var nvpairExistsInFrontend bool = false
-		for _, frontendNvpair := range frontendAttributes {
-			if cibAttributes[i].ID == frontendNvpair.ID {
-				nvpairExistsInFrontend = true
-				break
-			}
-		}
-		if !nvpairExistsInFrontend {
-			// if there is only 1 nvpair left --> remove it together with <instance_attributes ...>
-			_, err := deleteNvpair(cibAttributes[i].ID, section, primitiveID, attributesExist <= 1)
-			attributesExist--
-			if err != nil {
-				http.Error(w, "Failed to encode updated XML", http.StatusInternalServerError)
-				log.Printf("[setPrimitive] XML marshal error: %v", err)
-				return
-			}
-		}
-	}
 }
 
-func CreatePrimitiveHandler(w http.ResponseWriter, r *http.Request) {
+func PrimitiveCreateHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO: before creating the primitive try creating it in the shadow-cib
 	var frontendPrimitive Primitive
 
 	if err := json.NewDecoder(r.Body).Decode(&frontendPrimitive); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
-		log.Printf("[CreatePrimitiveHandler] JSON decode error: %v", err)
+		log.Printf("[PrimitiveCreateHandler] JSON decode error: %v", err)
 		return
 	}
 
@@ -1027,17 +1245,38 @@ func CreatePrimitiveHandler(w http.ResponseWriter, r *http.Request) {
 	// Operations
 	for _, op := range frontendPrimitive.Operations {
 		args = append(args, "op", op.Name)
-		if op.Timeout != "" {
-			args = append(args, "timeout="+op.Timeout)
-		}
-		if op.Interval != "" {
-			args = append(args, "interval="+op.Interval)
-		}
 		if op.Depth != "" {
 			args = append(args, "depth="+op.Depth)
 		}
 		if op.Description != "" {
 			args = append(args, "description="+op.Description)
+		}
+		if op.Enabled != "" {
+			args = append(args, "enabled="+op.Enabled)
+		}
+		if op.Interval != "" {
+			args = append(args, "interval="+op.Interval)
+		}
+		if op.IntervalOrigin != "" {
+			args = append(args, "interval-origin-="+op.IntervalOrigin)
+		}
+		if op.OnFail != "" {
+			args = append(args, "on-fail="+op.OnFail)
+		}
+		if op.RecordPending != "" {
+			args = append(args, "record-pending="+op.RecordPending)
+		}
+		if op.Requires != "" {
+			args = append(args, "requires="+op.Requires)
+		}
+		if op.Role != "" {
+			args = append(args, "role="+op.Role)
+		}
+		if op.StartDelay != "" {
+			args = append(args, "start-delay="+op.StartDelay)
+		}
+		if op.Timeout != "" {
+			args = append(args, "timeout="+op.Timeout)
 		}
 	}
 
@@ -1061,7 +1300,7 @@ func CreatePrimitiveHandler(w http.ResponseWriter, r *http.Request) {
 	_, err := cmd.Output()
 	if err != nil {
 		http.Error(w, stderr.String(), http.StatusInternalServerError)
-		log.Printf("[CreatePrimitiveHandler] crm conf primitive %s ... : %v", frontendPrimitive.ID, err)
+		log.Printf("[PrimitiveCreateHandler] crm conf primitive %s ... : %v", frontendPrimitive.ID, err)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -1071,12 +1310,12 @@ func CreatePrimitiveHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func UpdatePrimitiveHandler(w http.ResponseWriter, r *http.Request) {
+func PrimitiveUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	var frontendPrimitive Primitive
 
 	if err := json.NewDecoder(r.Body).Decode(&frontendPrimitive); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
-		log.Printf("[UpdatePrimitiveHandler] JSON decode error: %v", err)
+		log.Printf("[PrimitiveUpdateHandler] JSON decode error: %v", err)
 		return
 	}
 
@@ -1088,7 +1327,7 @@ func UpdatePrimitiveHandler(w http.ResponseWriter, r *http.Request) {
 	out, err := cmd.Output()
 	if err != nil {
 		http.Error(w, "Failed to query primitive XML", http.StatusInternalServerError)
-		log.Printf("[setPrimitive] cibadmin -Q error: %v", err)
+		log.Printf("[PrimitiveUpdateHandler] cibadmin -Q error: %v", err)
 		return
 	}
 
@@ -1096,7 +1335,7 @@ func UpdatePrimitiveHandler(w http.ResponseWriter, r *http.Request) {
 	var cibPrimitive Primitive
 	if err := xml.Unmarshal(out, &cibPrimitive); err != nil {
 		http.Error(w, "Failed to parse primitive XML", http.StatusInternalServerError)
-		log.Printf("[setPrimitive] XML unmarshal error: %v", err)
+		log.Printf("[PrimitiveUpdateHandler] XML unmarshal error: %v", err)
 		return
 	}
 
@@ -1108,7 +1347,7 @@ func UpdatePrimitiveHandler(w http.ResponseWriter, r *http.Request) {
 	applyAttributes(cibPrimitive.MetaAttributes.NVPairs, frontendPrimitive.MetaAttributes.NVPairs,
 		frontendPrimitive.ID, "meta_attributes", w)
 
-	// 5. Apply operations
+	// 5. Apply operations. (TODO: it repeats the SubmitResourceOperations)
 	for _, frontendOp := range frontendPrimitive.Operations {
 		var opExists bool = false
 		var opUpdated bool = true
@@ -1121,12 +1360,44 @@ func UpdatePrimitiveHandler(w http.ResponseWriter, r *http.Request) {
 					cibPrimitive.Operations[i].Depth = frontendOp.Depth
 					opUpdated = true
 				}
-				if cibPrimitive.Operations[i].Timeout != frontendOp.Timeout {
-					cibPrimitive.Operations[i].Timeout = frontendOp.Timeout
+				if cibPrimitive.Operations[i].Description != frontendOp.Description {
+					cibPrimitive.Operations[i].Description = frontendOp.Description
+					opUpdated = true
+				}
+				if cibPrimitive.Operations[i].Enabled != frontendOp.Enabled {
+					cibPrimitive.Operations[i].Enabled = frontendOp.Enabled
 					opUpdated = true
 				}
 				if cibPrimitive.Operations[i].Interval != frontendOp.Interval {
 					cibPrimitive.Operations[i].Interval = frontendOp.Interval
+					opUpdated = true
+				}
+				if cibPrimitive.Operations[i].IntervalOrigin != frontendOp.IntervalOrigin {
+					cibPrimitive.Operations[i].IntervalOrigin = frontendOp.IntervalOrigin
+					opUpdated = true
+				}
+				if cibPrimitive.Operations[i].OnFail != frontendOp.OnFail {
+					cibPrimitive.Operations[i].OnFail = frontendOp.OnFail
+					opUpdated = true
+				}
+				if cibPrimitive.Operations[i].RecordPending != frontendOp.RecordPending {
+					cibPrimitive.Operations[i].RecordPending = frontendOp.RecordPending
+					opUpdated = true
+				}
+				if cibPrimitive.Operations[i].Requires != frontendOp.Requires {
+					cibPrimitive.Operations[i].Requires = frontendOp.Requires
+					opUpdated = true
+				}
+				if cibPrimitive.Operations[i].Role != frontendOp.Role {
+					cibPrimitive.Operations[i].Role = frontendOp.Role
+					opUpdated = true
+				}
+				if cibPrimitive.Operations[i].StartDelay != frontendOp.StartDelay {
+					cibPrimitive.Operations[i].StartDelay = frontendOp.StartDelay
+					opUpdated = true
+				}
+				if cibPrimitive.Operations[i].Timeout != frontendOp.Timeout {
+					cibPrimitive.Operations[i].Timeout = frontendOp.Timeout
 					opUpdated = true
 				}
 
@@ -1139,16 +1410,24 @@ func UpdatePrimitiveHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		if !opExists { // if the op doesn't exist in cib --> create it
 			newOp = Operation{ID: frontendPrimitive.ID + "-" + frontendOp.Name + "-" + frontendOp.Interval,
-				Name:     frontendOp.Name,
-				Interval: frontendOp.Interval,
-				Timeout:  frontendOp.Timeout,
-				Depth:    frontendOp.Depth,
+				Depth:          frontendOp.Depth,
+				Description:    frontendOp.Description,
+				Enabled:        frontendOp.Enabled,
+				Interval:       frontendOp.Interval,
+				IntervalOrigin: frontendOp.IntervalOrigin,
+				OnFail:         frontendOp.OnFail,
+				Name:           frontendOp.Name,
+				RecordPending:  frontendOp.RecordPending,
+				Requires:       frontendOp.Requires,
+				Role:           frontendOp.Role,
+				StartDelay:     frontendOp.StartDelay,
+				Timeout:        frontendOp.Timeout,
 			}
 		}
-		_, err = updateOperation(newOp, frontendPrimitive.ID)
+		err = updateOperation(newOp, frontendPrimitive.ID)
 		if err != nil {
-			http.Error(w, "Failed to encode updated XML", http.StatusInternalServerError)
-			log.Printf("[setPrimitive] XML marshal error: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.Printf("[PrimitiveUpdateHandler] XML marshal error: %v", err)
 			return
 		}
 	}
@@ -1161,7 +1440,7 @@ func UpdatePrimitiveHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func RenamePrimitiveHandler(w http.ResponseWriter, r *http.Request) {
+func PrimitiveRenameHandler(w http.ResponseWriter, r *http.Request) {
 	var renameID struct {
 		OldID string `json:"oldID"`
 		NewID string `json:"newID"`
@@ -1169,7 +1448,7 @@ func RenamePrimitiveHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewDecoder(r.Body).Decode(&renameID); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
-		log.Printf("[renamePrimitive] JSON decode error: %v", err)
+		log.Printf("[PrimitiveRenameHandler] JSON decode error: %v", err)
 		return
 	}
 
@@ -1180,7 +1459,7 @@ func RenamePrimitiveHandler(w http.ResponseWriter, r *http.Request) {
 	_, err := cmd.Output()
 	if err != nil {
 		http.Error(w, stripANSI(stderr.String()), http.StatusInternalServerError)
-		log.Printf("[setPrimitive] cibadmin -Q error: %v", err)
+		log.Printf("[PrimitiveRenameHandler] crm -D plain configure rename error: %v", err)
 		return
 	}
 
@@ -1191,12 +1470,12 @@ func RenamePrimitiveHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func DeletePrimitiveHandler(w http.ResponseWriter, r *http.Request) {
+func PrimitiveDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	var ResourceID string
 
 	if err := json.NewDecoder(r.Body).Decode(&ResourceID); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
-		log.Printf("[renamePrimitive] JSON decode error: %v", err)
+		log.Printf("[PrimitiveDeleteHandler] JSON decode error: %v", err)
 		return
 	}
 
@@ -1207,7 +1486,7 @@ func DeletePrimitiveHandler(w http.ResponseWriter, r *http.Request) {
 	_, err := cmd.Output()
 	if err != nil {
 		http.Error(w, stderr.String(), http.StatusInternalServerError)
-		log.Printf("[deletePrimitive] crm --force configure delete %s error: %v", ResourceID, err)
+		log.Printf("[PrimitiveDeleteHandler] crm --force configure delete %s error: %v", ResourceID, err)
 		return
 	}
 
@@ -1220,11 +1499,8 @@ func DeletePrimitiveHandler(w http.ResponseWriter, r *http.Request) {
 
 func getRaAgents(raClass string, raProvider string) ([]string, error) {
 	var cmd *exec.Cmd
-	if raProvider != "" { // ocf class
-		cmd = exec.Command("/usr/sbin/crm", "ra", "list", raClass, raProvider)
-	} else { // stonith, systemd classes
-		cmd = exec.Command("/usr/sbin/crm", "ra", "list", raClass)
-	}
+	// when stonith or systemd classes --> raProvider is empty
+	cmd = exec.Command("/usr/sbin/crm", "ra", "list", raClass, raProvider)
 
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
