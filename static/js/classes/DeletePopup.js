@@ -10,7 +10,6 @@ class DeletePopup extends Popup {
     const header = document.createElement("div");
     header.className = "modal-header";
 
-    // lol, there is a |x|-close button in the header in hawk, let's also add it here
     const closeBtn = document.createElement("button");
     closeBtn.className = "close";
     closeBtn.type = "button";
@@ -30,7 +29,7 @@ class DeletePopup extends Popup {
     modalBody.className = "modal-body";
 
     const centerBlock = document.createElement("div");
-    centerBlock.className = "center-block";
+    centerBlock.className = "text-center";
     centerBlock.innerHTML = `Are you sure you want to delete: <strong>${this.#resourceID}</strong> ?`;
     modalBody.appendChild(centerBlock);
 
@@ -55,7 +54,7 @@ class DeletePopup extends Popup {
   }
 
   #handleDelete() {
-    fetch('/api/cib/delete-primitive/', {
+    fetch('/api/cib/primitive/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(this.#resourceID)

@@ -72,7 +72,7 @@ class RenamePopup extends Popup {
 
     this.#okBtn.disabled = true;
 
-    fetch('/api/cib/rename-primitive/', {
+    fetch('/api/cib/primitive/rename', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ oldID, newID })

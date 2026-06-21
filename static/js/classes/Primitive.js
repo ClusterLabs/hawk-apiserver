@@ -58,7 +58,7 @@ class Primitive {
       operations: operationsList
     };
 
-    return fetch("/api/cib/create-primitive/", {
+    return fetch("/api/cib/primitive/create", {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(primitive)
