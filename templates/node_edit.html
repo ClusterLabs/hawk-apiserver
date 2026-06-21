@@ -1,0 +1,111 @@
+{{ define "content" }}
+<link rel="stylesheet" href="/static/css/primitive_edit.css">
+<script src="/static/js/XCSS.js"></script>
+<script src="/static/js/classes/RAInfoPopup.js"></script>
+<script src="/static/js/classes/SelectOption.js"></script>
+<script src="/static/js/classes/OperationPopup.js"></script>
+<script src="/static/js/classes/DeletePopup.js"></script>
+<script src="/static/js/classes/RenamePopup.js"></script>
+<script src="/static/js/classes/XAlert.js"></script>
+<script src="/static/js/classes/Select.js"></script>
+<script src="/static/js/classes/XSelect.js"></script>
+<script src="/static/js/classes/Input.js"></script>
+<script src="/static/js/classes/OperationInput.js"></script>
+<script src="/static/js/classes/XKvGroupBase.js"></script>
+<script src="/static/js/classes/XKvGroup.js"></script>
+<script src="/static/js/classes/XInputsKvGroup.js"></script>
+<script src="/static/js/classes/Primitive.js"></script>
+<script src="/static/js/classes/Span.js"></script>
+<script src="/static/js/node_edit.js" defer></script>
+
+<div class="edit-layout">
+  <div class="edit-left">
+
+    {{ if .AlertMessage }}
+      <x-alert
+        type="{{ .AlertType }}"
+        message="{{ .AlertMessage }}"
+        visible="true">
+      </x-alert>
+    {{ end }}
+
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h2><i class="fas fa-server"></i> Edit Node: {{ .NodeName }}</h2>
+    </div>
+
+    <div class="panel panel-default">
+      <div class="panel-body">
+        <div class="form-section">
+          <div class="kvsection-row">
+            <label>Resource ID</label>
+            <input id="input-node-id" type="text" value="{{ .NodeID }}" class="form-control" name="node[id]" readonly style="width:60%;">
+          </div>
+
+          <div class="kvsection-row">
+            <label>Name</label>
+            <input id="input-node-name" type="text" value="{{ .NodeName }}" class="form-control" name="node[name]" readonly style="width:60%;">
+          </div>
+
+        </div>
+
+        <div class="accordion">
+          <details open>
+            <summary><strong>Attributes</strong></summary>
+            <x-inputs-kvgroup
+              id="kvgroup-node_attributes"
+              cib-object="{{ .NodeName }}"
+              options-api="/api/data-interface/fetch-node-attributes"
+              submit-api="/api/data-interface/submit-node-attributes">
+            </x-inputs-kvgroup>
+          </details>
+
+          <details id="node-utilizations" open>
+            <summary><strong>Utilization</strong></summary>
+            <x-inputs-kvgroup
+              id="kvgroup-node_utilizations"
+              cib-object="{{ .NodeName }}"
+              options-api="/api/data-interface/fetch-node-utilizations"
+              submit-api="/api/data-interface/submit-node-utilizations">
+            </x-inputs-kvgroup>
+          </details>
+
+          <div style="margin-top: 20px; text-align: center;">
+            <button id="apply-create-button" name="submit" class="btn btn-success" onclick="clickApplyButton(this)">Apply</button>
+            <!-- I would rather expect `onclick="history.back()"` however old hawk forwards to /cib/live/config/edit -->
+            <a class="btn btn-white" href="/cib/live/config/edit">Back</a>
+          </div>
+          
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="edit-right">
+    <h4>Node</h3>
+    <p>Each node in the cluster will have an entry in the nodes section.</p>
+    <p>The name of a node may be different from the node ID. The name is taken from one of these locations:</p>
+    <ol>
+      <li>The value stored in <code>corosync.conf</code> under <code>ring0_addr</code> in the <code>nodelist</code>, if it does not contain an IP address</li>
+      <li>The value stored in <code>corosync.conf</code> under <code>name</code> in the <code>nodelist</code></li>
+      <li>The value of <code>uname -n</code></li>
+    </ol>
+    
+    <h4>Attributes</h3>
+    <p>Node attributes are a special type of option that applies to a node.</p>
+    <p>Beyond the basic definition of a node, the administrator can describe
+the node’s attributes, such as how much RAM, disk, what OS or kernel
+version it has, perhaps even its physical location. This information
+can then be used by the cluster when deciding where to place
+resources.</p>
+
+    <h4>Utilization</h3>
+    <p>To configure the capacity a node provides and the resource’s
+requirements, use utilization attributes. You can name the utilization
+attributes according to your preferences and define as many name/value
+pairs as your configuration needs. However, the attribute’s values
+must be integers.</p>
+
+    <br>
+    <h4 id="field-shortdesc"></h3><p id="field-longdesc"></p>
+  </div>
+</div>
+{{ end }}

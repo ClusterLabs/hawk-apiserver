@@ -137,13 +137,44 @@ func fetchPrimitiveFromFrontend(w http.ResponseWriter, r *http.Request) (Primiti
 
 	if err := json.NewDecoder(r.Body).Decode(&frontendPrimitive); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
-		log.Printf("[UpdatePrimitiveHandler] JSON decode error: %v", err)
+		log.Printf("[PrimitiveUpdateHandler] JSON decode error: %v", err)
 		return Primitive{}, err
 	}
 
 	log.Printf("Updating resource %s with fields: %+v\n", frontendPrimitive.ID, frontendPrimitive)
 
 	return frontendPrimitive, nil
+}
+
+// That's practically what we want from `crm status`
+// but I don't want to add another parser (even if there is crm status --as-xml)
+// let's just reuse `cibadmin -Ql`
+func FetchCrmStatus(w http.ResponseWriter, r *http.Request) {
+	CrmStatus, err := GetCrmStatus()
+	if err != nil {
+		http.Error(w, "Failed to get crm status: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(CrmStatus); err != nil {
+		log.Printf("[FetchCrmStatus] JSON encode error: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+func FetchCibadminQl(w http.ResponseWriter, r *http.Request) {
+	CibStatus, err := GetCIBResources()
+	if err != nil {
+		http.Error(w, "Failed to get cibadmin status: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(CibStatus); err != nil {
+		log.Printf("[FetchCrmStatus] JSON encode error: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
 }
 
 func FetchClusterDetails(w http.ResponseWriter, r *http.Request) {
@@ -198,7 +229,7 @@ func FetchClusterDetails(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dc := ""
-	for _, node := range cib.Configuration.Node {
+	for _, node := range cib.Configuration.Nodes {
 		if node.ID == cib.DcUuid {
 			dc = node.Uname
 		}
@@ -507,9 +538,17 @@ func FetchResourceOperations(w http.ResponseWriter, r *http.Request) {
 			[]NameValue{
 				// action.Interval is what we parse
 				// from crm_resource --show-metadata
-				{"interval", action.Interval},
-				{"timeout", action.Timeout},
 				{"depth", action.Depth},
+				{"description", action.Description},
+				{"enabled", action.Enabled},
+				{"interval", action.Interval},
+				{"interval-origin", action.IntervalOrigin},
+				{"on-fail", action.OnFail},
+				{"record-pending", action.RecordPending},
+				{"requires", action.Requires},
+				{"role", action.Role},
+				{"start-delay", action.StartDelay},
+				{"timeout", action.Timeout},
 			},
 			action.Shortdesc, //param.Shortdesc,
 			action.Longdesc,  //param.Longdesc,
@@ -542,52 +581,7 @@ func SubmitResourceOperations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 2. Apply operations
-	for _, frontendOp := range frontendPrimitive.Operations {
-		var opExists bool = false
-		var opUpdated bool = true
-		var newOp Operation
-		opUpdated = false
-		for i := range cibPrimitive.Operations {
-			if cibPrimitive.Operations[i].ID == frontendOp.ID {
-				opExists = true
-				if cibPrimitive.Operations[i].Depth != frontendOp.Depth {
-					cibPrimitive.Operations[i].Depth = frontendOp.Depth
-					opUpdated = true
-				}
-				if cibPrimitive.Operations[i].Timeout != frontendOp.Timeout {
-					cibPrimitive.Operations[i].Timeout = frontendOp.Timeout
-					opUpdated = true
-				}
-				if cibPrimitive.Operations[i].Interval != frontendOp.Interval {
-					cibPrimitive.Operations[i].Interval = frontendOp.Interval
-					opUpdated = true
-				}
-
-				newOp = cibPrimitive.Operations[i]
-				break
-			}
-		}
-		if opExists && !opUpdated { // go to the next changed field
-			continue
-		}
-		if !opExists { // if the op doesn't exist in cib --> create it
-			newOp = Operation{ID: frontendPrimitive.ID + "-" + frontendOp.Name + "-" + frontendOp.Interval,
-				Name:     frontendOp.Name,
-				Interval: frontendOp.Interval,
-				Timeout:  frontendOp.Timeout,
-				Depth:    frontendOp.Depth,
-			}
-		}
-		_, err = updateOperation(newOp, frontendPrimitive.ID)
-		if err != nil {
-			http.Error(w, "Failed to encode updated XML", http.StatusInternalServerError)
-			log.Printf("[setPrimitive] XML marshal error: %v", err)
-			return
-		}
-	}
-
-	// 3. Remove operations that exist in CIB but not in frontend (by op ID)
+	// 1. Remove operations that exist in CIB but not in frontend (by op ID)
 	frontendIDs := make(map[string]struct{}, len(frontendPrimitive.Operations))
 	for _, op := range frontendPrimitive.Operations {
 		if op.ID == "" {
@@ -612,8 +606,94 @@ func SubmitResourceOperations(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// 4. Success
-	// FIXME! if there were 0 updates --> is't not a successful update, it's neutral OK.
+	// 2. Update/Create operations
+	for _, frontendOp := range frontendPrimitive.Operations {
+		var opExists bool = false
+		var opUpdated bool = true
+		var newOp Operation
+		opUpdated = false
+		for i := range cibPrimitive.Operations {
+			if cibPrimitive.Operations[i].ID == frontendOp.ID {
+				opExists = true
+				if cibPrimitive.Operations[i].Depth != frontendOp.Depth {
+					cibPrimitive.Operations[i].Depth = frontendOp.Depth
+					opUpdated = true
+				}
+				if cibPrimitive.Operations[i].Description != frontendOp.Description {
+					cibPrimitive.Operations[i].Description = frontendOp.Description
+					opUpdated = true
+				}
+				if cibPrimitive.Operations[i].Enabled != frontendOp.Enabled {
+					cibPrimitive.Operations[i].Enabled = frontendOp.Enabled
+					opUpdated = true
+				}
+				if cibPrimitive.Operations[i].Interval != frontendOp.Interval {
+					cibPrimitive.Operations[i].Interval = frontendOp.Interval
+					opUpdated = true
+				}
+				if cibPrimitive.Operations[i].IntervalOrigin != frontendOp.IntervalOrigin {
+					cibPrimitive.Operations[i].IntervalOrigin = frontendOp.IntervalOrigin
+					opUpdated = true
+				}
+				if cibPrimitive.Operations[i].OnFail != frontendOp.OnFail {
+					cibPrimitive.Operations[i].OnFail = frontendOp.OnFail
+					opUpdated = true
+				}
+				if cibPrimitive.Operations[i].RecordPending != frontendOp.RecordPending {
+					cibPrimitive.Operations[i].RecordPending = frontendOp.RecordPending
+					opUpdated = true
+				}
+				if cibPrimitive.Operations[i].Requires != frontendOp.Requires {
+					cibPrimitive.Operations[i].Requires = frontendOp.Requires
+					opUpdated = true
+				}
+				if cibPrimitive.Operations[i].Role != frontendOp.Role {
+					cibPrimitive.Operations[i].Role = frontendOp.Role
+					opUpdated = true
+				}
+				if cibPrimitive.Operations[i].StartDelay != frontendOp.StartDelay {
+					cibPrimitive.Operations[i].StartDelay = frontendOp.StartDelay
+					opUpdated = true
+				}
+				if cibPrimitive.Operations[i].Timeout != frontendOp.Timeout {
+					cibPrimitive.Operations[i].Timeout = frontendOp.Timeout
+					opUpdated = true
+				}
+
+				newOp = cibPrimitive.Operations[i]
+				break
+			}
+		}
+		if opExists && !opUpdated { // go to the next changed field
+			continue
+		}
+		if !opExists { // if the op doesn't exist in cib --> create it
+			newOp = Operation{ID: frontendPrimitive.ID + "-" + frontendOp.Name + "-" + frontendOp.Interval,
+				Depth:          frontendOp.Depth,
+				Description:    frontendOp.Description,
+				Enabled:        frontendOp.Enabled,
+				Interval:       frontendOp.Interval,
+				IntervalOrigin: frontendOp.IntervalOrigin,
+				OnFail:         frontendOp.OnFail,
+				Name:           frontendOp.Name,
+				RecordPending:  frontendOp.RecordPending,
+				Requires:       frontendOp.Requires,
+				Role:           frontendOp.Role,
+				StartDelay:     frontendOp.StartDelay,
+				Timeout:        frontendOp.Timeout,
+			}
+		}
+
+		err := updateOperation(newOp, frontendPrimitive.ID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.Printf("[SubmitResourceOperations] error: %v", err)
+			return
+		}
+	}
+
+	// 3. Success
+	// TODO (low-prio): if there were 0 updates --> is't not a successful update, it's a neutral OK.
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
 		"status":  "ok",
@@ -621,55 +701,12 @@ func SubmitResourceOperations(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func enrichOpDefaultsWithCibValues(opDefaults []MetaParameter, resourceID string,
-	operation string, operationID string) error {
-
-	// 1. Query current XML
-	queryXPath := fmt.Sprintf("/cib/configuration/resources/primitive[@id='%s']", resourceID)
-	cmd := exec.Command("cibadmin", "-Q", "--xpath", queryXPath)
-	out, err := cmd.Output()
-	if err != nil {
-		log.Printf("[enrichMetadataWithCibValues] cibadmin -Q error: %v", err)
-		return err
-	}
-
-	// 2. Unmarshal to struct
-	var primitive Primitive
-	if err := xml.Unmarshal(out, &primitive); err != nil {
-		log.Printf("[enrichMetadataWithCibValues] XML unmarshal error: %v", err)
-		return err
-	}
-
-	for _, op := range primitive.Operations {
-		if op.ID != operationID {
-			continue
-		}
-		for _, opDef := range opDefaults {
-			/* It looks ugly that we compare the strings this way.
-			 * One would require a more generic approach.
-			 * Thus we should change the Primitive structure,
-			 * i.e. that Interval, Timeout, etc. are an array of values,
-			 * not fields of the strutcure.
-			 * However we can't to this, because this structure is used
-			 * for parsing the xml response. */
-			if opDef.Name == "interval" {
-				opDef.Content.CibValue = op.Interval
-			}
-			if opDef.Name == "timeout" {
-				opDef.Content.CibValue = op.Timeout
-			}
-		}
-	}
-
-	return nil
-}
-
 func FetchResourceOperationAttributes(w http.ResponseWriter, r *http.Request) {
 	var frontendPrimitive struct {
 		ID            string `json:"ResourceID"`
 		ResourceAgent string `json:"ResourceAgent"`
 		Operation     string `json:"Operation"`
-		OperationID   string `json:"OperationID"` // "" if Create, like "dummy1-monitor-11s" if Update
+		OperationID   string `json:"OperationID"` // TODO: is it still used?
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&frontendPrimitive); err != nil {
@@ -678,13 +715,6 @@ func FetchResourceOperationAttributes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	opDefaults := GetOpDefaults()
-	if frontendPrimitive.Operation == "monitor" {
-		// TODO: append(opDefaults, OCF_CHECK_LEVEL)
-	}
-
-	// No need here. Do it in
-	enrichOpDefaultsWithCibValues(opDefaults, frontendPrimitive.ID,
-		frontendPrimitive.Operation, frontendPrimitive.OperationID)
 
 	var content SelectContent
 	for _, opAttr := range opDefaults {
@@ -710,10 +740,312 @@ func FetchResourceOperationAttributes(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func SubmitResourceOperationAttributes(w http.ResponseWriter, r *http.Request) {
-	// OLD comment: TBA. It's just a stab
-	// New comment (JAN 2026): I don't think it's needed.
-	// if you still see this comment --> delete this function.
+func FetchResourceUtilizations(w http.ResponseWriter, r *http.Request) {
+	var frontendNode struct {
+		ResourceID string `json:"CibObject"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&frontendNode); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		log.Printf("[FetchNodeAttributes] JSON decode error: %v", err)
+	}
+
+	resources, err := GetCIBResources()
+	if err != nil {
+		http.Error(w, "Failed to get resources from cibadmin -Ql: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	for _, resource := range resources {
+		if resource.ID == frontendNode.ResourceID {
+			if err := json.NewEncoder(w).Encode(resource.Utilizations); err != nil {
+				log.Printf("Failed to encode data: %v", err)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
+			return
+		}
+	}
+
+	log.Printf("Failed to find node with id=%s: %v", frontendNode.ResourceID, err)
+	http.Error(w, "Failed to find node", http.StatusInternalServerError)
+}
+
+func SubmitResourceUtilizations(w http.ResponseWriter, r *http.Request) {
+	var frontendNode struct {
+		ResourceID string   `json:"CibObject"`
+		Nvpairs    []Nvpair `json:"nvpair"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&frontendNode); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		log.Printf("[SubmitNodeAttibutes] JSON decode error: %v", err)
+	}
+
+	resources, err := GetCIBResources()
+	if err != nil {
+		http.Error(w, "Failed to get nodes in CRM XML status: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var thisResource ResourceRow
+	thisResourceFound := false
+
+	for _, resource := range resources {
+		if resource.ID == frontendNode.ResourceID {
+			thisResource = resource
+			thisResourceFound = true
+		}
+	}
+
+	if thisResourceFound == false {
+		http.Error(w, "Failed to find tresource "+frontendNode.ResourceID, http.StatusInternalServerError)
+		log.Printf("[SubmitResourceUtilizations] failed to find resource %s: %v", frontendNode.ResourceID, err)
+		return
+	}
+
+	// 1. Remove attributes
+	for _, utilizations := range thisResource.Utilizations {
+		utilFound := false
+		for _, frontendNvpair := range frontendNode.Nvpairs {
+			if utilizations.Name == frontendNvpair.Name {
+				utilFound = true
+				break
+			}
+		}
+		if utilFound == false {
+			cmd := exec.Command("crm", "resource", "utilization", thisResource.ID, "delete", utilizations.Name)
+			_, err := cmd.Output()
+			if err != nil {
+				http.Error(w, "Failed to set utilization", http.StatusInternalServerError)
+				log.Printf("[SubmitResourceUtilizations] 'crm node utilization set' error: %v", err)
+				return
+			}
+		}
+	}
+
+	// 2. Add + Update attributes
+	for _, frontendNvpair := range frontendNode.Nvpairs {
+		cmd := exec.Command("crm", "resource", "utilization", thisResource.ID, "set", frontendNvpair.Name, frontendNvpair.Value)
+		_, err := cmd.Output()
+		if err != nil {
+			http.Error(w, "Failed to set utilization", http.StatusInternalServerError)
+			log.Printf("[SubmitResourceUtilizations] 'crm node utilization %s set' error: %v", thisResource.ID, err)
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(""); err != nil {
+		log.Printf("Failed to encode data: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+}
+
+func FetchNodeAttributes(w http.ResponseWriter, r *http.Request) {
+	var frontendNode struct {
+		NodeName string `json:"CibObject"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&frontendNode); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		log.Printf("[FetchNodeAttributes] JSON decode error: %v", err)
+	}
+
+	nodes, err := GetCIBNodes()
+	if err != nil {
+		http.Error(w, "Failed to get nodes in CRM XML status: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	for _, node := range nodes {
+		if node.Uname == frontendNode.NodeName {
+			if err := json.NewEncoder(w).Encode(node.Attributes); err != nil {
+				log.Printf("Failed to encode data: %v", err)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
+			return
+		}
+	}
+
+	log.Printf("Failed to file node with id=%s: %v", frontendNode.NodeName, err)
+	http.Error(w, "Failed to file node", http.StatusInternalServerError)
+}
+
+func SubmitNodeAttributes(w http.ResponseWriter, r *http.Request) {
+	var frontendNode struct {
+		NodeName string   `json:"CibObject"`
+		Nvpairs  []Nvpair `json:"nvpair"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&frontendNode); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		log.Printf("[SubmitNodeAttibutes] JSON decode error: %v", err)
+	}
+
+	nodes, err := GetCIBNodes()
+	if err != nil {
+		http.Error(w, "Failed to get nodes in CRM XML status: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var thisNode Node
+	thisNodeFound := false
+
+	for _, node := range nodes {
+		if node.Uname == frontendNode.NodeName {
+			thisNode = node
+			thisNodeFound = true
+		}
+	}
+
+	if thisNodeFound == false {
+		http.Error(w, "Failed to find the node "+frontendNode.NodeName, http.StatusInternalServerError)
+		log.Printf("[SubmitNodeAttibutes] failed to find node %s: %v", frontendNode.NodeName, err)
+		return
+	}
+
+	// 1. Remove attributes
+	for _, attributes := range thisNode.Attributes {
+		utilFound := false
+		for _, frontendNvpair := range frontendNode.Nvpairs {
+			if attributes.Name == frontendNvpair.Name {
+				utilFound = true
+				break
+			}
+		}
+		if utilFound == false {
+			cmd := exec.Command("crm", "node", "attribute", thisNode.Uname, "delete", attributes.Name)
+			_, err := cmd.Output()
+			if err != nil {
+				http.Error(w, "Failed to set utilization", http.StatusInternalServerError)
+				log.Printf("[SubmitNodeAttibutes] 'crm node utilization set' error: %v", err)
+				return
+			}
+		}
+	}
+
+	// 2. Add + Update attributes
+	for _, frontendNvpair := range frontendNode.Nvpairs {
+		cmd := exec.Command("crm", "node", "attribute", thisNode.Uname, "set", frontendNvpair.Name, frontendNvpair.Value)
+		_, err := cmd.Output()
+		if err != nil {
+			http.Error(w, "Failed to set utilization", http.StatusInternalServerError)
+			log.Printf("[SubmitNodeAttibutes] 'crm node utilization %s set' error: %v", thisNode.Uname, err)
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(""); err != nil {
+		log.Printf("Failed to encode data: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+}
+
+func FetchNodeUtilizations(w http.ResponseWriter, r *http.Request) {
+	var frontendNode struct {
+		NodeName string `json:"CibObject"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&frontendNode); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		log.Printf("[FetchNodeUtilizations] JSON decode error: %v", err)
+	}
+
+	nodes, err := GetCIBNodes()
+	if err != nil {
+		http.Error(w, "Failed to get nodes in CRM XML status: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	for _, node := range nodes {
+		if node.Uname == frontendNode.NodeName {
+			if err := json.NewEncoder(w).Encode(node.Utilizations); err != nil {
+				log.Printf("Failed to encode data: %v", err)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
+			return
+		}
+	}
+
+	log.Printf("Failed to find node %s: %v", frontendNode.NodeName, err)
+	http.Error(w, "Failed to find node", http.StatusInternalServerError)
+}
+
+func SubmitNodeUtilizations(w http.ResponseWriter, r *http.Request) {
+	var frontendNode struct {
+		NodeName string   `json:"CibObject"`
+		Nvpairs  []Nvpair `json:"nvpair"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&frontendNode); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		log.Printf("[SubmitNodeUtilizations] JSON decode error: %v", err)
+	}
+
+	nodes, err := GetCIBNodes()
+	if err != nil {
+		http.Error(w, "Failed to get nodes in CRM XML status: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var thisNode Node
+	thisNodeFound := false
+
+	for _, node := range nodes {
+		if node.Uname == frontendNode.NodeName {
+			thisNode = node
+			thisNodeFound = true
+		}
+	}
+
+	if thisNodeFound == false {
+		http.Error(w, "Failed to find the node "+frontendNode.NodeName, http.StatusInternalServerError)
+		log.Printf("[SubmitNodeUtilizations] failed to find node %s: %v", frontendNode.NodeName, err)
+		return
+	}
+
+	// 1. Remove utilizations
+	for _, utilization := range thisNode.Utilizations {
+		utilFound := false
+		for _, frontendNvpair := range frontendNode.Nvpairs {
+			if utilization.Name == frontendNvpair.Name {
+				utilFound = true
+				break
+			}
+		}
+		if utilFound == false {
+			cmd := exec.Command("crm", "node", "utilization", thisNode.Uname, "delete", utilization.Name)
+			_, err := cmd.Output()
+			if err != nil {
+				http.Error(w, "Failed to set utilization", http.StatusInternalServerError)
+				log.Printf("[SubmitNodeUtilizations] 'crm node utilization set' error: %v", err)
+				return
+			}
+		}
+	}
+
+	// 2. Add + Update utilizations
+	for _, frontendNvpair := range frontendNode.Nvpairs {
+		cmd := exec.Command("crm", "node", "utilization", thisNode.Uname, "set", frontendNvpair.Name, frontendNvpair.Value)
+		_, err := cmd.Output()
+		if err != nil {
+			http.Error(w, "Failed to set utilization", http.StatusInternalServerError)
+			log.Printf("[SubmitNodeUtilizations] 'crm node utilization %s set' error: %v", thisNode.Uname, err)
+			return
+		}
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(""); err != nil {

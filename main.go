@@ -117,11 +117,23 @@ func main() {
 	mux.HandleFunc("/api/data-interface/submit-resource-meta-attributes", authMiddleware(api.SubmitResourceMetaAttributes))
 	mux.HandleFunc("/api/data-interface/fetch-resource-operations", authMiddleware(api.FetchResourceOperations))
 	mux.HandleFunc("/api/data-interface/submit-resource-operations", authMiddleware(api.SubmitResourceOperations))
+	mux.HandleFunc("/api/data-interface/fetch-resource-utilizations", authMiddleware(api.FetchResourceUtilizations))
+	mux.HandleFunc("/api/data-interface/submit-resource-utilizations", authMiddleware(api.SubmitResourceUtilizations))
 	mux.HandleFunc("/api/data-interface/resource-operation/fetch-attributes", authMiddleware(api.FetchResourceOperationAttributes))
 
 	// Register BOTH /cib/live/primitives and /cib/live/primitives/ to avoid a conflicts with Ruby
 	mux.HandleFunc("/cib/live/primitives", authMiddleware(api.ResourceEditHandler))
 	mux.HandleFunc("/cib/live/primitives/", authMiddleware(api.ResourceEditHandler))
+
+	mux.HandleFunc("/cib/live/nodes", authMiddleware(api.NodesEditHandler))
+	mux.HandleFunc("/cib/live/nodes/", authMiddleware(api.NodesEditHandler))
+	mux.HandleFunc("/api/data-interface/fetch-node-attributes", authMiddleware(api.FetchNodeAttributes))
+	mux.HandleFunc("/api/data-interface/submit-node-attributes", authMiddleware(api.SubmitNodeAttributes))
+	mux.HandleFunc("/api/data-interface/fetch-node-utilizations", authMiddleware(api.FetchNodeUtilizations))
+	mux.HandleFunc("/api/data-interface/submit-node-utilizations", authMiddleware(api.SubmitNodeUtilizations))
+
+	mux.HandleFunc("/api/data-interface/fetch-crm-status", authMiddleware(api.FetchCrmStatus))
+	mux.HandleFunc("/api/data-interface/fetch-cibadmin-Ql", authMiddleware(api.FetchCibadminQl))
 
 	mux.Handle("/", routehandler) // routehandler is a fallback
 

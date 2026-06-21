@@ -22,6 +22,8 @@ class XKvGroup extends window.XKvGroupBase {
     this.#inited = true;
 
     this.#name = this.getAttribute("name");
+    this.#resourceID = this.getAttribute("resource-id");
+    this.#resourceAgent = this.getAttribute("resource-agent");
     this.#optionsApi = this.getAttribute("options-api");
     this.#submitApi = this.getAttribute("submit-api");
 
@@ -57,7 +59,6 @@ class XKvGroup extends window.XKvGroupBase {
     // Fetch data
     this.#resourceID = window.resourceData?.ResourceID || "";
     this.#resourceAgent = window.resourceData?.ResourceAgent || "";
-
     this.#init(true)
       .catch(err => console.error("Failed to init x-kvgroup:", err))
       .finally(() => this.#readyResolve());
