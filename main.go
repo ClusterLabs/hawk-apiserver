@@ -118,7 +118,6 @@ func main() {
 	mux.HandleFunc("/api/data-interface/fetch-resource-operations", authMiddleware(api.FetchResourceOperations))
 	mux.HandleFunc("/api/data-interface/submit-resource-operations", authMiddleware(api.SubmitResourceOperations))
 	mux.HandleFunc("/api/data-interface/resource-operation/fetch-attributes", authMiddleware(api.FetchResourceOperationAttributes))
-	mux.HandleFunc("/api/data-interface/resource-operation/submit-attributes", authMiddleware(api.SubmitResourceOperationAttributes))
 
 	// Register BOTH /cib/live/primitives and /cib/live/primitives/ to avoid a conflicts with Ruby
 	mux.HandleFunc("/cib/live/primitives", authMiddleware(api.ResourceEditHandler))
