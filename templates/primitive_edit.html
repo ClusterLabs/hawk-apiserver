@@ -12,7 +12,7 @@
   };
 </script>
 <script src="/static/js/XCSS.js"></script>
-<script src="/static/js/classes/InfoPopup.js"></script>
+<script src="/static/js/classes/RAInfoPopup.js"></script>
 <script src="/static/js/classes/SelectOption.js"></script>
 <script src="/static/js/classes/OperationPopup.js"></script>
 <script src="/static/js/classes/DeletePopup.js"></script>
@@ -86,7 +86,8 @@
         disabled="true">
       </x-select>
 
-      <button class="btn btn-white btn-info" onclick="new InfoPopup()"><i class="fas fa-info"></i></button>
+      <button class="btn btn-white btn-info" onclick='new RAInfoPopup("{{ .ResourceID }}", "{{ .ResourceAgent }}")'>
+        <i class="fas fa-info"></i></button>
 
     </div>
 

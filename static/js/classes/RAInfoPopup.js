@@ -1,14 +1,19 @@
-class InfoPopup extends Popup {
+class RAInfoPopup extends Popup {
   #resourceID;
   #resourceAgent;
   #shortdescEl;
   #longdescEl;
 
-  constructor() {
+  constructor(resourceID, resourceAgent) {
     super();
 
-    this.#resourceID = window.resourceData?.ResourceID || "";
-    this.#resourceAgent = window.resourceData?.ResourceAgent || "";
+    // The popup itself doesn't need the resourceID,
+    // but the entry points do. (Maybe FIXME?)
+    this.#resourceID = resourceID || "";
+    this.#resourceAgent = resourceAgent || "";
+
+    // for some reason `crm status --as-xml` returns ocf::pacemaker:Dummy
+    this.#resourceAgent = this.#resourceAgent.replace("::", ":");
 
     this._appendModalContentChild(this.#buildHeader());
     this._appendModalContentChild(this.#buildBody());
@@ -108,16 +113,16 @@ class InfoPopup extends Popup {
           const tdT = document.createElement("td");
           const tdI = document.createElement("td");
           const tdD = document.createElement("td");
-          // TODO (robustness): check that o.DefaultValues[0] is "interval", ...[1] is "timeout", ...[2] is "depth"
-          tdT.textContent = o.DefaultValues[0].Value; //tdT.textContent = timeout;
-          tdI.textContent = o.DefaultValues[1].Value; //tdI.textContent = interval;
-          tdD.textContent = o.DefaultValues[2].Value; //tdD.textContent = depth;
+
+          tdT.textContent = o.DefaultValues.find(nv => nv.Name === "timeout")?.Value ?? "";
+          tdI.textContent = o.DefaultValues.find(nv => nv.Name === "interval")?.Value ?? "";
+          tdD.textContent = o.DefaultValues.find(nv => nv.Name === "depth")?.Value ?? "";
 
           tr.append(tdName, tdT, tdI, tdD);
           tbody.appendChild(tr);
         });
       })
-      .catch(err => console.error("Failed to init InfoPopup::Actions", err));
+      .catch(err => console.error("Failed to init RAInfoPopup::Actions", err));
 
     return this.#buildCollapsiblePanel(
       "Actions",
@@ -179,7 +184,7 @@ class InfoPopup extends Popup {
           this.#longdescEl.appendChild(p);
         });
       })
-      .catch(err => console.error("Failed to init InfoPopup::Parameters", err));
+      .catch(err => console.error("Failed to init RAInfoPopup::Parameters", err));
 
     // What about asyncronization?
     return table;
@@ -282,5 +287,4 @@ class InfoPopup extends Popup {
   }
 }
 
-window.InfoPopup = InfoPopup;
-window.showInfoPopup = () => new InfoPopup();
+window.RAInfoPopup = RAInfoPopup;
