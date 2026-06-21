@@ -1,5 +1,3 @@
-const POLL_INTERVAL_MS = 5000;
-
 function updateClusterStatusIndicator(data) {
   const summary = data.Summary;
   const status = data.NameValues[0]?.Value || "unknown";

@@ -1,6 +1,4 @@
-/* it's basic input, useful for instance and meta attributes
- * TODO: implement OperationsInput for the operations (or maybe
- * improve this class). */
+/* it's basic input, useful for instance and meta attributes */
 class Input {
     #externalContainer;
     #alignContainer;
@@ -57,6 +55,7 @@ class Input {
     getCibID() { return this.#cibID; }
     getCibValue() { return this.#cibValue; }
     getFrontendValue() { return this.#input.value; }
+    clearFrontendValue() { this.#input.value = ""; }
 }
 
 // Expose globally

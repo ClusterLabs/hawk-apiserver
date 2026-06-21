@@ -75,22 +75,15 @@ class OperationPopup {
         this.#internalXKvGroup.setAttribute("name", this.getName());
         // /api/data-interface/resource-operation/fetch-attributes <=> opDefaults
         this.#internalXKvGroup.setAttribute("options-api", "/api/data-interface/resource-operation/fetch-attributes");
-        // /api/data-interface/resource-operation/submit-attributes <=> NOT NEEDED AT ALL (#TODO: delete later)
-        this.#internalXKvGroup.setAttribute("submit-api", "/api/data-interface/resource-operation/submit-attributes");
 
         const ResourceID = window.resourceData.ResourceID;
         const ResourceAgent = window.resourceData.ResourceAgent;
-
-        var OperationID = "";
-        if (this.#isUpdate) { // FIXME: de-hardcode
-            OperationID = "dummy1-monitor-11s";
-        }
 
         const apiArgs = {
             ResourceID: ResourceID,
             ResourceAgent: ResourceAgent,
             Operation: this.getName(),
-            OperationID: OperationID
+            OperationID: ""
           };
 
         this.#internalXKvGroup.setAttribute("api-arguments", JSON.stringify(apiArgs));
