@@ -13,5 +13,7 @@
 # Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
 .glide/
 
+.vscode
 config.json
 hawk-apiserver
+__debug_bin*
