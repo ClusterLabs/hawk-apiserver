@@ -422,57 +422,125 @@ func enrichPrimitiveMetadataWithCibValues(metadata *CrmResourceMetadata, resourc
 	}
 
 	for _, nv := range primitive.InstanceAttributes.NVPairs {
-		// search the parameter in InstanceAttributes
+		found := false
+		// First, search the parameter in the schema of InstanceAttributes
 		for i := range metadata.Parameters {
 			if nv.Name == metadata.Parameters[i].Name {
+				found = true
 				metadata.Parameters[i].Content.CibID = nv.ID
 				metadata.Parameters[i].Content.CibValue = nv.Value
+				break
 			}
 		}
+		if found == false {
+			// if not found --> extend the schema with the user parameter
+			unknownCustomInstanceAttribute := MetaParameter{
+				Name: nv.Name,
+				Content: ContentAttr{
+					CibID:    nv.ID,
+					CibValue: nv.Value,
+				},
+			}
+			metadata.Parameters = append(metadata.Parameters, unknownCustomInstanceAttribute)
+		}
 	}
+
 	for _, nv := range primitive.MetaAttributes.NVPairs {
-		// search the parameter in MetaAttributes
+		found := false
+		// First, search the parameter in the schema of MetaAttributes
 		for i := range metadata.RscDefaults {
 			if nv.Name == metadata.RscDefaults[i].Name {
+				found = true
 				metadata.RscDefaults[i].Content.CibID = nv.ID
 				metadata.RscDefaults[i].Content.CibValue = nv.Value
+				break
 			}
 		}
-	}
-	for _, op := range primitive.Operations {
-		// search action in Operations
-		for i := range metadata.Actions {
-			if op.Name != metadata.Actions[i].Name {
-				continue
+		if found == false {
+			// if not found --> extend the schema with the user parameter
+			unknownCustomMetaParameter := MetaParameter{
+				Name: nv.Name,
+				Content: ContentAttr{
+					CibID:    nv.ID,
+					CibValue: nv.Value,
+				},
 			}
-			metadata.Actions[i].CibID = op.ID
-			for j := range metadata.Actions[i].OpDefaults {
-				switch metadata.Actions[i].OpDefaults[j].Name {
-				case "depth":
-					metadata.Actions[i].OpDefaults[j].Content.CibValue = op.Depth
-				case "description":
-					metadata.Actions[i].OpDefaults[j].Content.CibValue = op.Description
-				case "enabled":
-					metadata.Actions[i].OpDefaults[j].Content.CibValue = op.Enabled
-				case "interval":
-					metadata.Actions[i].OpDefaults[j].Content.CibValue = op.Interval
-				case "interval-origin":
-					metadata.Actions[i].OpDefaults[j].Content.CibValue = op.IntervalOrigin
-				case "on-fail":
-					metadata.Actions[i].OpDefaults[j].Content.CibValue = op.OnFail
-				case "record-pending":
-					metadata.Actions[i].OpDefaults[j].Content.CibValue = op.RecordPending
-				case "requires":
-					metadata.Actions[i].OpDefaults[j].Content.CibValue = op.Requires
-				case "role":
-					metadata.Actions[i].OpDefaults[j].Content.CibValue = op.Role
-				case "start-delay":
-					metadata.Actions[i].OpDefaults[j].Content.CibValue = op.StartDelay
-				case "timeout":
-					metadata.Actions[i].OpDefaults[j].Content.CibValue = op.Timeout
+			metadata.RscDefaults = append(metadata.RscDefaults, unknownCustomMetaParameter)
+		}
+	}
 
+	for _, op := range primitive.Operations {
+		found := false
+		// First, search the action in the schema of Operations
+		for i := range metadata.Actions {
+			if op.Name == metadata.Actions[i].Name {
+				found = true
+				metadata.Actions[i].CibID = op.ID
+				for j := range metadata.Actions[i].OpDefaults {
+					switch metadata.Actions[i].OpDefaults[j].Name {
+					case "depth":
+						metadata.Actions[i].OpDefaults[j].Content.CibValue = op.Depth
+					case "description":
+						metadata.Actions[i].OpDefaults[j].Content.CibValue = op.Description
+					case "enabled":
+						metadata.Actions[i].OpDefaults[j].Content.CibValue = op.Enabled
+					case "interval":
+						metadata.Actions[i].OpDefaults[j].Content.CibValue = op.Interval
+					case "interval-origin":
+						metadata.Actions[i].OpDefaults[j].Content.CibValue = op.IntervalOrigin
+					case "on-fail":
+						metadata.Actions[i].OpDefaults[j].Content.CibValue = op.OnFail
+					case "record-pending":
+						metadata.Actions[i].OpDefaults[j].Content.CibValue = op.RecordPending
+					case "requires":
+						metadata.Actions[i].OpDefaults[j].Content.CibValue = op.Requires
+					case "role":
+						metadata.Actions[i].OpDefaults[j].Content.CibValue = op.Role
+					case "start-delay":
+						metadata.Actions[i].OpDefaults[j].Content.CibValue = op.StartDelay
+					case "timeout":
+						metadata.Actions[i].OpDefaults[j].Content.CibValue = op.Timeout
+					}
+				}
+				break
+			}
+		}
+		if found == false {
+			/* it's a bad practice to have unsupported custom operation
+			 * but the user knows it better. If it exists we preserve it
+			 * i.e. if not found --> extend the schema with the user action */
+			unknownCustomAction := Action{
+				Name:       op.Name,
+				CibID:      op.ID,
+				OpDefaults: GetOpDefaults(),
+			}
+			for j := range unknownCustomAction.OpDefaults {
+				switch unknownCustomAction.OpDefaults[j].Name {
+				case "depth":
+					unknownCustomAction.OpDefaults[j].Content.CibValue = op.Depth
+				case "description":
+					unknownCustomAction.OpDefaults[j].Content.CibValue = op.Description
+				case "enabled":
+					unknownCustomAction.OpDefaults[j].Content.CibValue = op.Enabled
+				case "interval":
+					unknownCustomAction.OpDefaults[j].Content.CibValue = op.Interval
+				case "interval-origin":
+					unknownCustomAction.OpDefaults[j].Content.CibValue = op.IntervalOrigin
+				case "on-fail":
+					unknownCustomAction.OpDefaults[j].Content.CibValue = op.OnFail
+				case "record-pending":
+					unknownCustomAction.OpDefaults[j].Content.CibValue = op.RecordPending
+				case "requires":
+					unknownCustomAction.OpDefaults[j].Content.CibValue = op.Requires
+				case "role":
+					unknownCustomAction.OpDefaults[j].Content.CibValue = op.Role
+				case "start-delay":
+					unknownCustomAction.OpDefaults[j].Content.CibValue = op.StartDelay
+				case "timeout":
+					unknownCustomAction.OpDefaults[j].Content.CibValue = op.Timeout
 				}
 			}
+			metadata.Actions = append(metadata.Actions, unknownCustomAction)
 		}
 	}
 
