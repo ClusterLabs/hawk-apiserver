@@ -15,12 +15,14 @@ func GetCloneDefaults() []MetaParameter {
 	return result
 }
 
+/*
 func GetOpDefaults() []MetaParameter {
 	// return a copy to prevent modification
 	result := make([]MetaParameter, len(opDefaults))
 	copy(result, opDefaults)
 	return result
 }
+*/
 
 func GetOpDescriptions() []MetaParameter {
 	// return a copy to prevent modification
@@ -318,6 +320,7 @@ var cloneDefaults = []MetaParameter{
 
 // copied from hawk -> tableless.rb --> OP_DEFAULTS
 // TODO: consider using hash-map Name -> Longdesc,Content
+/*
 var opDefaults = []MetaParameter{
 	{
 		Name:     "interval",
@@ -399,6 +402,112 @@ var opDefaults = []MetaParameter{
 	{
 		Name: "description",
 		Content: ContentAttr{
+			Type:    "string",
+			Default: "",
+		},
+	},
+}
+*/
+
+// ActionDefaults provides named access to the defaults of an action.
+type ActionDefaults struct {
+	Depth          FullPrimitive_Action_MetaParameter
+	Interval       FullPrimitive_Action_MetaParameter
+	Timeout        FullPrimitive_Action_MetaParameter
+	Requires       FullPrimitive_Action_MetaParameter
+	Enabled        FullPrimitive_Action_MetaParameter
+	Role           FullPrimitive_Action_MetaParameter
+	OnFail         FullPrimitive_Action_MetaParameter
+	StartDelay     FullPrimitive_Action_MetaParameter
+	IntervalOrigin FullPrimitive_Action_MetaParameter
+	RecordPending  FullPrimitive_Action_MetaParameter
+	Description    FullPrimitive_Action_MetaParameter
+}
+
+var actionDefaults = ActionDefaults{
+	Depth: FullPrimitive_Action_MetaParameter{
+		Name: "depth",
+	},
+	Interval: FullPrimitive_Action_MetaParameter{
+		Name:     "interval",
+		Longdesc: "How frequently(in seconds) to perform the operation.",
+		Content: FullPrimitive_Action_ContentAttr{
+			Type:     "string",
+			Default:  "0",
+			Required: "false",
+		},
+	},
+	Timeout: FullPrimitive_Action_MetaParameter{
+		Name:     "timeout",
+		Longdesc: "How long to wait before declaring the action has failed.",
+		Content: FullPrimitive_Action_ContentAttr{
+			Type:     "string",
+			Default:  "20",
+			Required: "true",
+		},
+	},
+	Requires: FullPrimitive_Action_MetaParameter{
+		Name:     "requires",
+		Longdesc: "What conditions need to be satisfied before this action occurs.",
+		Content: FullPrimitive_Action_ContentAttr{
+			Type:           "enum",
+			Default:        "fencing",
+			PossibleValues: []string{"nothing", "quorum", "fencing"},
+		},
+	},
+	Enabled: FullPrimitive_Action_MetaParameter{
+		Name:     "enabled",
+		Longdesc: "If false, the operation is treated as if it does not exist.",
+		Content: FullPrimitive_Action_ContentAttr{
+			Type:    "boolean",
+			Default: "true",
+		},
+	},
+	Role: FullPrimitive_Action_MetaParameter{
+		Name:     "role",
+		Longdesc: "This option only makes sense for recurring operations. It restricts the operation to a specific role. The truly paranoid can even specify role=Stopped which allows the cluster to detect an admin that manually started cluster services.",
+		Content: FullPrimitive_Action_ContentAttr{
+			Type:           "enum",
+			Default:        "",
+			PossibleValues: []string{"Stopped", "Started", "Unpromoted", "Promoted"},
+		},
+	},
+	OnFail: FullPrimitive_Action_MetaParameter{
+		Name:     "on-fail",
+		Longdesc: "The action to take if this action ever fails.",
+		Content: FullPrimitive_Action_ContentAttr{
+			Type:           "enum",
+			Default:        "stop",
+			PossibleValues: []string{"ignore", "block", "stop", "restart", "standby", "fence"},
+		},
+	},
+	StartDelay: FullPrimitive_Action_MetaParameter{
+		Name:     "start-delay",
+		Longdesc: "The delay time(in seconds) before doing the operation",
+		Content: FullPrimitive_Action_ContentAttr{
+			Type:    "string",
+			Default: "0",
+		},
+	},
+	IntervalOrigin: FullPrimitive_Action_MetaParameter{
+		Name:     "interval-origin",
+		Longdesc: "The start time of action interval. Follow the ISO8601 standard.",
+		Content: FullPrimitive_Action_ContentAttr{
+			Type:    "string",
+			Default: "",
+		},
+	},
+	RecordPending: FullPrimitive_Action_MetaParameter{
+		Name:     "record-pending",
+		Longdesc: "If true, the intention to perform the operation is recorded so that GUIs and CLI tools can indicate that an operation is in progress.",
+		Content: FullPrimitive_Action_ContentAttr{
+			Type:    "boolean",
+			Default: "false",
+		},
+	},
+	Description: FullPrimitive_Action_MetaParameter{
+		Name: "description",
+		Content: FullPrimitive_Action_ContentAttr{
 			Type:    "string",
 			Default: "",
 		},

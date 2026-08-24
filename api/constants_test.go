@@ -62,15 +62,10 @@ func TestRoleValueSchemasUseCurrentTerminology(t *testing.T) {
 		cloneByName[parameter.Name] = parameter
 	}
 
-	opByName := make(map[string]MetaParameter, len(opDefaults))
-	for _, parameter := range GetOpDefaults() {
-		opByName[parameter.Name] = parameter
-	}
-
 	require.Equal(t,
 		[]string{"Started", "Stopped", "Unpromoted", "Promoted"},
 		cloneByName["target-role"].Content.PossibleValues)
 	require.Equal(t,
 		[]string{"Stopped", "Started", "Unpromoted", "Promoted"},
-		opByName["role"].Content.PossibleValues)
+		actionDefaults.Role.Content.PossibleValues)
 }

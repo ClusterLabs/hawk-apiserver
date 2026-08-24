@@ -127,7 +127,7 @@ func TestEnrichCloneMetaAttributesAllowsMissingMetaAttributes(t *testing.T) {
 printf '%s\n' '<clone id="clone-1"><primitive id="primitive-1"/></clone>'
 `)
 
-	metadata := CrmResourceMetadata{RscDefaults: GetCloneDefaults()}
+	metadata := FullPrimitive_CrmResourceMetadata{MetaAttributes: GetCloneDefaults()}
 
 	require.NoError(t, enrichCloneMetaAttributesWithCibValues(&metadata, "clone-1"))
 }
@@ -140,7 +140,7 @@ exit 1
 	metadata, err := fetchFullCloneFromCib("")
 
 	require.NoError(t, err)
-	require.Equal(t, GetCloneDefaults(), metadata.RscDefaults)
+	require.Equal(t, GetCloneDefaults(), metadata.MetaAttributes)
 }
 
 func TestCloneCreateRejectsMissingChildResource(t *testing.T) {

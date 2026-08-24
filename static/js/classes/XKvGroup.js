@@ -6,6 +6,7 @@ class XKvGroup extends window.XKvGroupBase {
   #selectObj;
   #resourceID;
   #resourceAgent;
+  #additionalArguments;
   #optionsApi;
   #submitApi;
   #initialValues = {};
@@ -27,6 +28,7 @@ class XKvGroup extends window.XKvGroupBase {
     this.#resourceID = this.getAttribute("resource-id");
     // if clone => resourceAgent is ignored in the backend, just leave it empty
     this.#resourceAgent = this.getAttribute("resource-agent");
+    this.#additionalArguments = JSON.parse(this.getAttribute("api-arguments") || "{}");
     this.#optionsApi = this.getAttribute("options-api");
     this.#submitApi = this.getAttribute("submit-api");
     this.#initialValues = JSON.parse(this.getAttribute("initial-values") || "{}");
@@ -76,7 +78,11 @@ class XKvGroup extends window.XKvGroupBase {
     return fetch(this.#optionsApi, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ResourceID: this.#resourceID, ResourceAgent: this.#resourceAgent})
+      body: JSON.stringify({
+        ResourceID: this.#resourceID,
+        ResourceAgent: this.#resourceAgent,
+        ...this.#additionalArguments
+      })
     })
       .then(async res => {
         if (!res.ok) throw new Error(await res.text() || "Unknown error");

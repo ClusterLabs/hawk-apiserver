@@ -77,19 +77,17 @@ class OperationPopup {
         this.#internalXKvGroup.setAttribute("options-api",
             "/api/cib/resource/operation/attributes/fetch");
 
-        // TODO: pass the ResourceID and ResourceAgent as parameters
-        // (avoid using window.resourceData global structure)
+        // TODO: avoid using the window.resourceData global structure.
         const ResourceID = window.resourceData.ResourceID;
         const ResourceAgent = window.resourceData.ResourceAgent;
+        this.#internalXKvGroup.setAttribute("resource-id", ResourceID);
+        this.#internalXKvGroup.setAttribute("resource-agent", ResourceAgent);
 
-        const apiArgs = {
-            ResourceID: ResourceID,
-            ResourceAgent: ResourceAgent,
-            Operation: this.getName(),
-            OperationID: ""
-          };
+        const additionalArguments = {
+            Operation: this.getName()
+        };
 
-        this.#internalXKvGroup.setAttribute("api-arguments", JSON.stringify(apiArgs));
+        this.#internalXKvGroup.setAttribute("api-arguments", JSON.stringify(additionalArguments));
 
         modalBody.appendChild(this.#internalXKvGroup);
         modalContent.appendChild(modalBody);

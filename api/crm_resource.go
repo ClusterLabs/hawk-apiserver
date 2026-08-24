@@ -20,10 +20,10 @@ type CrmResourceMetadata struct {
 	Shortdesc  string          `xml:"shortdesc"`
 	Parameters []MetaParameter `xml:"parameters>parameter"` // maps to instance_attributes
 	Actions    []Action        `xml:"actions>action"`
-	/* RscDefaults (#meta_attributes) is not in 'crm_resource --show-metadata'
+	/* `MetaAttributes []MetaParameter`
+	 * is not in 'crm_resource --show-metadata'
 	 * but it's copied from rscDefaults
-	 * and later enriched from 'cibadmin' */
-	RscDefaults []MetaParameter
+	 * and later enriched from `cibadmin` */
 }
 
 type MetaParameter struct {
@@ -44,10 +44,7 @@ type ContentAttr struct {
 	CibValue string
 }
 
-/* TODO: Action struct is messy. It's used for both to parse cib.xml
- * and to store the default values of operations.
- * Maybe there should be two different structures
- * (however I might change my mind, so don't hastle with it (17.05.2025))*/
+// Action is almost like Operation in cib.xml, not sure about merging them
 type Action struct {
 	Depth          string `xml:"depth,attr,omitempty"`
 	Description    string `xml:"description,attr,omitempty"`
@@ -61,13 +58,6 @@ type Action struct {
 	Role           string `xml:"role,attr,omitempty"`
 	StartDelay     string `xml:"start-delay,attr,omitempty"`
 	Timeout        string `xml:"timeout,attr,omitempty"`
-	// We take CibID later from cib, if they are defined
-	CibID string
-	// Default values
-	OpDefaults []MetaParameter
-	// Help info
-	Shortdesc string
-	Longdesc  string
 }
 
 func getResourceMetadata(resourceAgent string) (CrmResourceMetadata, error) {
@@ -79,7 +69,7 @@ func getResourceMetadata(resourceAgent string) (CrmResourceMetadata, error) {
 		return CrmResourceMetadata{}, err
 	}
 
-	var metadata CrmResourceMetadata // Directly unmarshal into this
+	var metadata CrmResourceMetadata
 	if err := xml.Unmarshal(out, &metadata); err != nil {
 		return CrmResourceMetadata{}, err
 	}
@@ -118,48 +108,51 @@ func getResourceMetadata(resourceAgent string) (CrmResourceMetadata, error) {
 		metadata.Parameters = append(metadata.Parameters, stonithMetadata.Parameters...)
 	}
 
-	return metadata, nil
-}
-
-func fetchFullPrimitiveFromCib(ResourceID string, ResourceAgent string) (CrmResourceMetadata, error) {
-	// 1. Get the main content 'crm_resource --show-metadata'
-	metadata, err := getResourceMetadata(ResourceAgent)
-	if err != nil {
-		return CrmResourceMetadata{}, err
-	}
-
-	// 2. Copy the default meta_attributes, default operations and help info
-	metadata.RscDefaults = GetRscDefaults()
-	descriptions := GetOpDescriptions()
+	// if there is no information found, take the defaults from actionDefaults
 	for i := range metadata.Actions {
-		metadata.Actions[i].OpDefaults = GetOpDefaults()
-		// It's a special case. In hawk we also handle this case in the code in oplist.js
-		if metadata.Actions[i].Name == "monitor" {
-			// T.B.A. (#TODO)
+		if metadata.Actions[i].Depth == "" {
+			metadata.Actions[i].Depth = actionDefaults.Depth.Content.Default
 		}
-		for _, desc := range descriptions {
-			// no idea why we need those 'op-' prefixes, but they exist in hawk
-			if metadata.Actions[i].Name == desc.Name || "op-"+metadata.Actions[i].Name == desc.Name {
-				metadata.Actions[i].Shortdesc = desc.Shortdesc
-				metadata.Actions[i].Longdesc = desc.Longdesc
-			}
+		if metadata.Actions[i].Description == "" {
+			metadata.Actions[i].Description = actionDefaults.Description.Content.Default
 		}
-	}
-
-	// 4. Get current values of the attributes from cib.xml
-	err = enrichPrimitiveMetadataWithCibValues(&metadata, ResourceID)
-	if err != nil {
-		return CrmResourceMetadata{}, err
+		if metadata.Actions[i].Enabled == "" {
+			metadata.Actions[i].Enabled = actionDefaults.Enabled.Content.Default
+		}
+		if metadata.Actions[i].Interval == "" {
+			metadata.Actions[i].Interval = actionDefaults.Interval.Content.Default
+		}
+		if metadata.Actions[i].IntervalOrigin == "" {
+			metadata.Actions[i].IntervalOrigin = actionDefaults.IntervalOrigin.Content.Default
+		}
+		if metadata.Actions[i].OnFail == "" {
+			metadata.Actions[i].OnFail = actionDefaults.OnFail.Content.Default
+		}
+		if metadata.Actions[i].RecordPending == "" {
+			metadata.Actions[i].RecordPending = actionDefaults.RecordPending.Content.Default
+		}
+		if metadata.Actions[i].Requires == "" {
+			metadata.Actions[i].Requires = actionDefaults.Requires.Content.Default
+		}
+		if metadata.Actions[i].Role == "" {
+			metadata.Actions[i].Role = actionDefaults.Role.Content.Default
+		}
+		if metadata.Actions[i].StartDelay == "" {
+			metadata.Actions[i].StartDelay = actionDefaults.StartDelay.Content.Default
+		}
+		if metadata.Actions[i].Timeout == "" {
+			metadata.Actions[i].Timeout = actionDefaults.Timeout.Content.Default
+		}
 	}
 
 	return metadata, nil
 }
 
-func fetchFullCloneFromCib(CloneID string) (CrmResourceMetadata, error) {
-	metadata := CrmResourceMetadata{}
+func fetchFullCloneFromCib(CloneID string) (FullPrimitive_CrmResourceMetadata, error) {
+	metadata := FullPrimitive_CrmResourceMetadata{}
 
 	// 1. Copy the default meta_attributes, default operations and help info
-	metadata.RscDefaults = GetCloneDefaults()
+	metadata.MetaAttributes = GetCloneDefaults()
 
 	if CloneID == "" {
 		return metadata, nil
@@ -168,45 +161,10 @@ func fetchFullCloneFromCib(CloneID string) (CrmResourceMetadata, error) {
 	// 2. Get current values of the attributes from cib.xml
 	err := enrichCloneMetaAttributesWithCibValues(&metadata, CloneID)
 	if err != nil {
-		return CrmResourceMetadata{}, err
+		return FullPrimitive_CrmResourceMetadata{}, err
 	}
 
 	return metadata, nil
-}
-
-func FetchResourceMetaAttributes(w http.ResponseWriter, r *http.Request) {
-	id, agent := parseIDandAgent(w, r)
-	metadata, err := fetchFullPrimitiveFromCib(id, agent)
-	if err != nil {
-		log.Printf("Failed to get cib values: %v", err)
-		http.Error(w, "Failed to get cib values: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	var content SelectContent
-	content.Shortdesc = metadata.Shortdesc
-	content.Longdesc = metadata.Longdesc
-	for _, param := range metadata.RscDefaults {
-		content.Options = append(content.Options,
-			SelectOption{
-				param.Name,
-				param.Content.Default,
-				param.Shortdesc,
-				param.Longdesc,
-				param.Content.Type,
-				param.Content.PossibleValues,
-				param.Content.Required,
-				param.Content.CibID,
-				param.Content.CibValue,
-			})
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(content); err != nil {
-		log.Printf("Failed to encode data: %v", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
 }
 
 func FetchCloneMetaAttributes(w http.ResponseWriter, r *http.Request) {
@@ -222,7 +180,7 @@ func FetchCloneMetaAttributes(w http.ResponseWriter, r *http.Request) {
 	var content SelectContent
 	content.Shortdesc = metadata.Shortdesc
 	content.Longdesc = metadata.Longdesc
-	for _, param := range metadata.RscDefaults {
+	for _, param := range metadata.MetaAttributes {
 		content.Options = append(content.Options,
 			SelectOption{
 				param.Name,
@@ -240,62 +198,6 @@ func FetchCloneMetaAttributes(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(content); err != nil {
 		log.Printf("Failed to encode data: %v", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-}
-
-func FetchResourceOperations(w http.ResponseWriter, r *http.Request) {
-	id, agent := parseIDandAgent(w, r)
-	metadata, err := fetchFullPrimitiveFromCib(id, agent)
-	if err != nil {
-		log.Printf("Failed to get cib values: %v", err)
-		http.Error(w, "Failed to get cib values: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	var content OperationContent
-	for _, action := range metadata.Actions {
-		var nameValues []NameValue
-		if action.CibID != "" {
-			for _, opdef := range action.OpDefaults {
-				if opdef.Content.CibValue != "" {
-					nameValues = append(nameValues, NameValue{opdef.Name, opdef.Content.CibValue})
-				}
-			}
-		}
-		newOption := OperationOption{
-			action.Name,
-			[]NameValue{
-				// action.Interval is what we parse
-				// from crm_resource --show-metadata
-				{"depth", action.Depth},
-				{"description", action.Description},
-				{"enabled", action.Enabled},
-				{"interval", action.Interval},
-				{"interval-origin", action.IntervalOrigin},
-				{"on-fail", action.OnFail},
-				{"record-pending", action.RecordPending},
-				{"requires", action.Requires},
-				{"role", action.Role},
-				{"start-delay", action.StartDelay},
-				{"timeout", action.Timeout},
-			},
-			action.Shortdesc, //param.Shortdesc,
-			action.Longdesc,  //param.Longdesc,
-			"",               //param.Content.Type,
-			[]string{""},     //param.Content.PossibleValues,
-			"",               //param.Content.Required,
-			action.CibID,     //param.Content.CibID,
-			nameValues,
-		}
-		content.Options = append(content.Options, newOption)
-	}
-
-	// Convert to JSON.
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(content); err != nil {
-		log.Printf("Failed to fetch select data: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}

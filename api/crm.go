@@ -759,38 +759,3 @@ func FetchChildResources(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
-
-func FetchResourceParams(w http.ResponseWriter, r *http.Request) {
-	id, agent := parseIDandAgent(w, r)
-	metadata, err := fetchFullPrimitiveFromCib(id, agent)
-	if err != nil {
-		log.Printf("Failed to get cib values: %v", err)
-		http.Error(w, "Failed to get cib values: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	var content SelectContent
-	content.Shortdesc = metadata.Shortdesc
-	content.Longdesc = metadata.Longdesc
-	for _, param := range metadata.Parameters {
-		content.Options = append(content.Options,
-			SelectOption{
-				param.Name,
-				param.Content.Default,
-				param.Shortdesc,
-				param.Longdesc,
-				param.Content.Type,
-				param.Content.PossibleValues,
-				param.Content.Required,
-				param.Content.CibID,
-				param.Content.CibValue,
-			})
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(content); err != nil {
-		log.Printf("Failed to encode data: %v", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-}

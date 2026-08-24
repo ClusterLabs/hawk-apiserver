@@ -30,6 +30,21 @@ type SelectOption struct {
 	CibValue       string   `json:"CibValue"`
 }
 
+func NewSelectOption(defaultValue string, defaultAction FullPrimitive_Action_MetaParameter) SelectOption {
+	option := SelectOption{
+		Name:           defaultAction.Name,
+		DefaultValue:   defaultValue,
+		Shortdesc:      defaultAction.Shortdesc,
+		Longdesc:       defaultAction.Longdesc,
+		Type:           defaultAction.Content.Type,
+		PossibleValues: defaultAction.Content.PossibleValues,
+		Required:       defaultAction.Content.Required,
+		CibValue:       defaultAction.Content.CibValue,
+	}
+
+	return option
+}
+
 type OperationOption struct {
 	Name           string      `json:"Name"`
 	DefaultValues  []NameValue `json:"DefaultValues"`
@@ -494,45 +509,6 @@ func SubmitResourceOperations(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func FetchResourceOperationAttributes(w http.ResponseWriter, r *http.Request) {
-	var frontendPrimitive struct {
-		ID            string `json:"ResourceID"`
-		ResourceAgent string `json:"ResourceAgent"`
-		Operation     string `json:"Operation"`
-		OperationID   string `json:"OperationID"` // TODO: is it still used?
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&frontendPrimitive); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
-		log.Printf("[FetchResourceOperationAttributes] JSON decode error: %v", err)
-	}
-
-	opDefaults := GetOpDefaults()
-
-	var content SelectContent
-	for _, opAttr := range opDefaults {
-		content.Options = append(content.Options,
-			SelectOption{
-				opAttr.Name,
-				opAttr.Content.Default,
-				opAttr.Shortdesc,
-				opAttr.Longdesc,
-				opAttr.Content.Type,
-				opAttr.Content.PossibleValues,
-				opAttr.Content.Required,
-				opAttr.Content.CibID,
-				opAttr.Content.CibValue,
-			})
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(content); err != nil {
-		log.Printf("Failed to encode data: %v", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-}
-
 func FetchResourceUtilizations(w http.ResponseWriter, r *http.Request) {
 	var frontendNode struct {
 		ResourceID string `json:"CibObject"`
@@ -842,6 +818,363 @@ func SubmitNodeUtilizations(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(""); err != nil {
+		log.Printf("Failed to encode data: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+}
+
+// same as ContentAttr but w/o CibID
+type FullPrimitive_Action_ContentAttr struct {
+	Type    string
+	Default string
+	// Possible values are hardcoded
+	PossibleValues []string
+	// We take CibID and CibValue later from cib, if they are defined
+	Required string // string, so that ["true", "false", "" for undefined]
+	CibValue string
+}
+
+// TODO?: give it later a better name with no `_`
+type FullPrimitive_Action_MetaParameter struct {
+	Name      string
+	Longdesc  string
+	Shortdesc string
+	Content   FullPrimitive_Action_ContentAttr
+}
+
+type FullPrimitive_Action struct {
+	Depth          FullPrimitive_Action_MetaParameter
+	Description    FullPrimitive_Action_MetaParameter
+	Enabled        FullPrimitive_Action_MetaParameter
+	Interval       FullPrimitive_Action_MetaParameter
+	IntervalOrigin FullPrimitive_Action_MetaParameter
+	OnFail         FullPrimitive_Action_MetaParameter
+	Name           string
+	RecordPending  FullPrimitive_Action_MetaParameter
+	Requires       FullPrimitive_Action_MetaParameter
+	Role           FullPrimitive_Action_MetaParameter
+	StartDelay     FullPrimitive_Action_MetaParameter
+	Timeout        FullPrimitive_Action_MetaParameter
+	// We take CibID later from cib, if they are defined
+	CibID string
+	// Default values
+	//OpDefaults []MetaParameter
+	// Help info
+	Shortdesc string
+	Longdesc  string
+}
+
+func NewFullPrimitiveActionFromAction(parsedAction Action) FullPrimitive_Action {
+	result := FullPrimitive_Action{
+		Depth:          actionDefaults.Depth,
+		Description:    actionDefaults.Description,
+		Enabled:        actionDefaults.Enabled,
+		Interval:       actionDefaults.Interval,
+		IntervalOrigin: actionDefaults.IntervalOrigin,
+		OnFail:         actionDefaults.OnFail,
+		Name:           parsedAction.Name,
+		RecordPending:  actionDefaults.RecordPending,
+		Requires:       actionDefaults.Requires,
+		Role:           actionDefaults.Role,
+		StartDelay:     actionDefaults.StartDelay,
+		Timeout:        actionDefaults.Timeout,
+	}
+
+	result.Depth.Content.Default = parsedAction.Depth
+	result.Description.Content.Default = parsedAction.Description
+	result.Enabled.Content.Default = parsedAction.Enabled
+	result.Interval.Content.Default = parsedAction.Interval
+	result.IntervalOrigin.Content.Default = parsedAction.IntervalOrigin
+	result.OnFail.Content.Default = parsedAction.OnFail
+	result.RecordPending.Content.Default = parsedAction.RecordPending
+	result.Requires.Content.Default = parsedAction.Requires
+	result.Role.Content.Default = parsedAction.Role
+	result.StartDelay.Content.Default = parsedAction.StartDelay
+	result.Timeout.Content.Default = parsedAction.Timeout
+
+	return result
+}
+
+func NewFullPrimitiveActionFromOperation(operation Operation) FullPrimitive_Action {
+	result := FullPrimitive_Action{
+		Depth:          actionDefaults.Depth,
+		Description:    actionDefaults.Description,
+		Enabled:        actionDefaults.Enabled,
+		Interval:       actionDefaults.Interval,
+		IntervalOrigin: actionDefaults.IntervalOrigin,
+		OnFail:         actionDefaults.OnFail,
+		Name:           operation.Name,
+		RecordPending:  actionDefaults.RecordPending,
+		Requires:       actionDefaults.Requires,
+		Role:           actionDefaults.Role,
+		StartDelay:     actionDefaults.StartDelay,
+		Timeout:        actionDefaults.Timeout,
+		CibID:          operation.ID,
+	}
+
+	result.Depth.Content.CibValue = operation.Depth
+	result.Description.Content.CibValue = operation.Description
+	result.Enabled.Content.CibValue = operation.Enabled
+	result.Interval.Content.CibValue = operation.Interval
+	result.IntervalOrigin.Content.CibValue = operation.IntervalOrigin
+	result.OnFail.Content.CibValue = operation.OnFail
+	result.RecordPending.Content.CibValue = operation.RecordPending
+	result.Requires.Content.CibValue = operation.Requires
+	result.Role.Content.CibValue = operation.Role
+	result.StartDelay.Content.CibValue = operation.StartDelay
+	result.Timeout.Content.CibValue = operation.Timeout
+
+	return result
+}
+
+type FullPrimitive_CrmResourceMetadata struct {
+	Name       string
+	Version    string
+	Longdesc   string
+	Shortdesc  string
+	Parameters []MetaParameter
+	Actions    []FullPrimitive_Action
+	/* RscDefaults (#meta_attributes) is not in 'crm_resource --show-metadata'
+	 * but it's copied from rscDefaults
+	 * and later enriched from 'cibadmin' */
+	MetaAttributes []MetaParameter
+}
+
+func fetchFullPrimitiveFromCib(ResourceID string, ResourceAgent string) (FullPrimitive_CrmResourceMetadata, error) {
+	// 1. Get the main content 'crm_resource --show-metadata'
+	parsedMetadata, err := getResourceMetadata(ResourceAgent)
+	if err != nil {
+		return FullPrimitive_CrmResourceMetadata{}, err
+	}
+
+	// map parsed metadata to internal schema
+	var result FullPrimitive_CrmResourceMetadata
+	result.Name = parsedMetadata.Name
+	result.Version = parsedMetadata.Version
+	result.Longdesc = parsedMetadata.Longdesc
+	result.Shortdesc = parsedMetadata.Shortdesc
+	result.Parameters = parsedMetadata.Parameters
+	result.MetaAttributes = GetRscDefaults()
+
+	// 2. Copy the default meta_attributes, default operations and help info
+	for _, parsedAction := range parsedMetadata.Actions {
+
+		// first, give the action hardcoded defaults from actionDefaults
+		action := NewFullPrimitiveActionFromAction(parsedAction)
+
+		if action.Name == "monitor" {
+			// It's a special case. In hawk we also handle this case in the code in oplist.js
+			// T.B.A. (#TODO)
+		}
+
+		for _, desc := range GetOpDescriptions() {
+			// no idea why we need those 'op-' prefixes, but they exist in hawk
+			if desc.Name == action.Name || desc.Name == "op-"+action.Name {
+				action.Shortdesc = desc.Shortdesc
+				action.Longdesc = desc.Longdesc
+			}
+		}
+
+		result.Actions = append(result.Actions, action)
+	}
+
+	// 4. Get current values of the attributes from cib.xml
+	err = enrichPrimitiveMetadataWithCibValues(&result, ResourceID)
+	if err != nil {
+		return FullPrimitive_CrmResourceMetadata{}, err
+	}
+
+	return result, nil
+}
+
+func FetchResourceMetaAttributes(w http.ResponseWriter, r *http.Request) {
+	id, agent := parseIDandAgent(w, r)
+	fullPrimitive, err := fetchFullPrimitiveFromCib(id, agent)
+	if err != nil {
+		log.Printf("Failed to get cib values: %v", err)
+		http.Error(w, "Failed to get cib values: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var content SelectContent
+	content.Shortdesc = fullPrimitive.Shortdesc
+	content.Longdesc = fullPrimitive.Longdesc
+	for _, param := range fullPrimitive.MetaAttributes {
+		content.Options = append(content.Options,
+			SelectOption{
+				param.Name,
+				param.Content.Default,
+				param.Shortdesc,
+				param.Longdesc,
+				param.Content.Type,
+				param.Content.PossibleValues,
+				param.Content.Required,
+				param.Content.CibID,
+				param.Content.CibValue,
+			})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(content); err != nil {
+		log.Printf("Failed to encode data: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+}
+
+func operationCibNameValues(action FullPrimitive_Action) []NameValue {
+	if action.CibID == "" {
+		return nil
+	}
+
+	attributes := []FullPrimitive_Action_MetaParameter{
+		action.Depth,
+		action.Description,
+		action.Enabled,
+		action.Interval,
+		action.IntervalOrigin,
+		action.OnFail,
+		action.RecordPending,
+		action.Requires,
+		action.Role,
+		action.StartDelay,
+		action.Timeout,
+	}
+
+	var result []NameValue
+	for _, attribute := range attributes {
+		if attribute.Content.CibValue != "" {
+			result = append(result, NameValue{attribute.Name, attribute.Content.CibValue})
+		}
+	}
+	return result
+}
+
+func FetchResourceOperations(w http.ResponseWriter, r *http.Request) {
+	id, agent := parseIDandAgent(w, r)
+	fullPrimitive, err := fetchFullPrimitiveFromCib(id, agent)
+	if err != nil {
+		log.Printf("Failed to get cib values: %v", err)
+		http.Error(w, "Failed to get cib values: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var content OperationContent
+	for _, action := range fullPrimitive.Actions {
+		newOption := OperationOption{
+			Name: action.Name,
+			DefaultValues: []NameValue{
+				// action.Interval is what we parse from crm_resource --show-metadata
+				{action.Depth.Name /* "depth" */, action.Depth.Content.Default},
+				{action.Description.Name /* "description" */, action.Description.Content.Default},
+				{action.Enabled.Name /* "enabled" */, action.Enabled.Content.Default},
+				{action.Interval.Name /* "interval" */, action.Interval.Content.Default},
+				{action.IntervalOrigin.Name /* "interval-origin" */, action.IntervalOrigin.Content.Default},
+				{action.OnFail.Name /* "on-fail" */, action.OnFail.Content.Default},
+				{action.RecordPending.Name /* "record-pending" */, action.RecordPending.Content.Default},
+				{action.Requires.Name /* "requires" */, action.Requires.Content.Default},
+				{action.Role.Name /* "role" */, action.Role.Content.Default},
+				{action.StartDelay.Name /* "start-delay" */, action.StartDelay.Content.Default},
+				{action.Timeout.Name /* "timeout" */, action.Timeout.Content.Default},
+			},
+			Shortdesc:      action.Shortdesc, //param.Shortdesc,
+			Longdesc:       action.Longdesc,  //param.Longdesc,
+			Type:           "",               //param.Content.Type,
+			PossibleValues: []string{""},     //param.Content.PossibleValues,
+			Required:       "",               //param.Content.Required,
+			CibID:          action.CibID,     //param.Content.CibID,
+			CibNameValues:  operationCibNameValues(action),
+		}
+		content.Options = append(content.Options, newOption)
+	}
+
+	// Convert to JSON.
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(content); err != nil {
+		log.Printf("Failed to fetch select data: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+}
+
+func FetchResourceOperationAttributes(w http.ResponseWriter, r *http.Request) {
+	var frontendPrimitive struct {
+		ID            string `json:"ResourceID"`
+		ResourceAgent string `json:"ResourceAgent"`
+		Operation     string `json:"Operation"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&frontendPrimitive); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		log.Printf("[FetchResourceOperationAttributes] JSON decode error: %v", err)
+		return
+	}
+
+	parsedMetadata, err := getResourceMetadata(frontendPrimitive.ResourceAgent)
+	if err != nil {
+		http.Error(w, "Invalid resource agent", http.StatusBadRequest)
+		log.Printf("[FetchResourceOperationAttributes] failed to get resource agent metadata: %v", err)
+		return
+	}
+
+	var content SelectContent
+	for _, parsedAction := range parsedMetadata.Actions {
+		if frontendPrimitive.Operation == parsedAction.Name {
+			depthOption := NewSelectOption(parsedAction.Depth, actionDefaults.Depth)
+			descriptionOption := NewSelectOption(parsedAction.Description, actionDefaults.Description)
+			enabledOption := NewSelectOption(parsedAction.Enabled, actionDefaults.Enabled)
+			intervalOption := NewSelectOption(parsedAction.Interval, actionDefaults.Interval)
+			intervalOriginOption := NewSelectOption(parsedAction.IntervalOrigin, actionDefaults.IntervalOrigin)
+			onFailOption := NewSelectOption(parsedAction.OnFail, actionDefaults.OnFail)
+			recordPendingOption := NewSelectOption(parsedAction.RecordPending, actionDefaults.RecordPending)
+			requiresOption := NewSelectOption(parsedAction.Requires, actionDefaults.Requires)
+			roleOption := NewSelectOption(parsedAction.Role, actionDefaults.Role)
+			startDelayOption := NewSelectOption(parsedAction.StartDelay, actionDefaults.StartDelay)
+			timeoutOption := NewSelectOption(parsedAction.Timeout, actionDefaults.Timeout)
+			content.Options = []SelectOption{depthOption, descriptionOption, enabledOption,
+				intervalOption, intervalOriginOption, onFailOption, recordPendingOption,
+				requiresOption, roleOption, startDelayOption, timeoutOption}
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(content); err != nil {
+		log.Printf("Failed to encode data: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+}
+
+func FetchResourceParams(w http.ResponseWriter, r *http.Request) {
+	id, agent := parseIDandAgent(w, r)
+	fullPrimitive, err := fetchFullPrimitiveFromCib(id, agent)
+	if err != nil {
+		log.Printf("Failed to get cib values: %v", err)
+		http.Error(w, "Failed to get cib values: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var content SelectContent
+	content.Shortdesc = fullPrimitive.Shortdesc
+	content.Longdesc = fullPrimitive.Longdesc
+	for _, param := range fullPrimitive.Parameters {
+		content.Options = append(content.Options,
+			SelectOption{
+				param.Name,
+				param.Content.Default,
+				param.Shortdesc,
+				param.Longdesc,
+				param.Content.Type,
+				param.Content.PossibleValues,
+				param.Content.Required,
+				param.Content.CibID,
+				param.Content.CibValue,
+			})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(content); err != nil {
 		log.Printf("Failed to encode data: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
