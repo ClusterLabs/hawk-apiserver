@@ -157,6 +157,3 @@ class NodeRecentEventsPopup extends RecentEventsPopup {
     super(name, events, headerFieldResource);
   }
 }
-
-window.ResourceRecentEventsPopup = ResourceRecentEventsPopup;
-window.NodeRecentEventsPopup = NodeRecentEventsPopup;

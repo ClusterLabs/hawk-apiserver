@@ -38,6 +38,23 @@ func renderTemplate(w http.ResponseWriter, name string, data map[string]any) {
 	}
 }
 
+type ClusterDetails struct {
+	Summary        string        `json:"summary"`
+	Status         ClusterStatus `json:"status"`
+	Epoch          string        `json:"epoch"`
+	Host           string        `json:"host"`
+	DC             string        `json:"dc"`
+	Schema         string        `json:"schema"`
+	LastWritten    string        `json:"lastWritten"`
+	UpdateOrigin   string        `json:"updateOrigin"`
+	UpdateUser     string        `json:"updateUser"`
+	HaveQuorum     string        `json:"haveQuorum"`
+	Version        string        `json:"version"`
+	Stack          string        `json:"stack"`
+	FencingEnabled string        `json:"fencingEnabled"`
+	ClusterName    string        `json:"clusterName"`
+}
+
 /***************************
  * cibadmin -Ql
  ***************************/
@@ -77,6 +94,81 @@ func GetCIB() (CIB, int, error) {
 	}
 
 	return cib, 0, nil
+}
+
+func GetClusterDetails() (ClusterDetails, int, error) {
+	cib, pacemakerRC, err := GetCIB()
+	if err != nil || pacemakerRC != 0 {
+		return ClusterDetails{}, pacemakerRC, err
+	}
+
+	version := ""
+	stack := ""
+	fencingEnabled := ""
+	clusterName := ""
+	for _, nvpair := range cib.Configuration.CrmConfig.ClusterPropertySet.NVPairs {
+		switch nvpair.Name {
+		case "dc-version":
+			version = nvpair.Value
+		case "cluster-infrastructure":
+			stack = nvpair.Value
+		case "stonith-enabled":
+			fencingEnabled = nvpair.Value
+		case "fencing-enabled":
+			fencingEnabled = nvpair.Value
+		case "cluster-name":
+			clusterName = nvpair.Value
+		}
+	}
+
+	dc := ""
+	for _, node := range cib.Configuration.Nodes {
+		if node.ID == cib.DcUuid {
+			dc = node.Uname
+		}
+	}
+
+	status := ClusterStatusOnline
+	summary := "Online"
+	if cib.HaveQuorum == "0" {
+		status = ClusterStatusNoQuorum
+		summary = "Partition without quorum! Fencing and resource management is disabled."
+	}
+
+	if fencingEnabled == "false" {
+		status = ClusterStatusNoFencing
+		summary = "FENCING is disabled. For normal cluster operation, FENCING is required."
+	}
+
+	// TODO?: there might be a combination of different statuses
+	// e.g. it can be both no-quorum and no-fencing,
+	// but implementing this is overengineering.
+	for _, node := range cib.Configuration.Nodes {
+		if isNodeClean(node.Uname, cib.Status.NodeStates) == false {
+			status = ClusterStatusUnclean
+			summary = "A node is UNCLEAN and needs to be fenced."
+			break
+		}
+	}
+
+	result := ClusterDetails{
+		Summary:        summary,
+		Status:         status,
+		Epoch:          cib.AdminEpoch + ":" + cib.Epoch + ":" + cib.NumUpdates,
+		Host:           "",
+		DC:             dc,
+		Schema:         cib.ValidateWith,
+		LastWritten:    cib.CibLastWritten,
+		UpdateOrigin:   cib.UpdateOrigin,
+		UpdateUser:     cib.UpdateUser,
+		HaveQuorum:     cib.HaveQuorum,
+		Version:        version,
+		Stack:          stack,
+		FencingEnabled: fencingEnabled,
+		ClusterName:    clusterName,
+	}
+
+	return result, 0, nil
 }
 
 type Configuration struct {
@@ -796,6 +888,12 @@ func NodesEditHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.NotFound(w, r)
+}
+
+func DashboardHandler(w http.ResponseWriter, r *http.Request) {
+	renderTemplate(w, "dashboard", map[string]any{
+		"Title": "Dashboard",
+	})
 }
 
 // FIXME (low-prio): it's 90% the same as updateNvpair
