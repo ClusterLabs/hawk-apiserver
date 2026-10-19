@@ -12,11 +12,17 @@ import (
 	"os/exec"
 	"path"
 	"strings"
+
+	"github.com/ClusterLabs/hawk-apiserver/internal"
 )
 
 var Routehandler http.Handler // set from main
 
 func renderTemplate(w http.ResponseWriter, name string, data map[string]any) {
+	if data == nil {
+		data = make(map[string]any)
+	}
+	data["AppConfig"] = internal.AppConfig
 	tmpl, err := template.ParseFiles(
 		"templates/layout.html",
 		fmt.Sprintf("templates/%s.html", name),
