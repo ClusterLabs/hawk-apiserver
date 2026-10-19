@@ -25,47 +25,55 @@ class HelpPopup extends Popup {
     const modalBody = document.createElement("div");
     modalBody.className = "modal-body help";
 
+    const os = window.hawkConfig?.os || {};
+    const majorVersion = (os.version || "").split(".")[0];
+    const isSLES = os.id === "sles" && ["15", "16"].includes(majorVersion);
+    const docs = [
+      {
+        icon: "bug", style: "danger", title: "File a Bug Report",
+        desc: "Report a bug or request a feature!",
+        url: isSLES
+          ? "https://bugzilla.suse.com/enter_bug.cgi?classification=SUSE%20Linux%20Enterprise%20High%20Availability%20Extension"
+          : "https://github.com/ClusterLabs/hawk/issues/new"
+      },
+      {
+        icon: "newspaper", style: "success",
+        title: isSLES ? "Release Notes" : "News",
+        desc: isSLES
+          ? "Read the release notes for the SUSE High Availability Extension."
+          : "Visit the Hawk website for information about the latest release.",
+        url: isSLES
+          ? `https://www.suse.com/releasenotes/x86_64/SLE-HA/${majorVersion}/`
+          : "http://hawk-ui.github.io/"
+      },
+      {
+        icon: "book", style: "success", title: "Online Documentation",
+        desc: isSLES
+          ? "Read the most up-to-date documentation at the suse.com website."
+          : "Getting Started using Hawk",
+        url: isSLES
+          ? `https://documentation.suse.com/sle-ha/${majorVersion}/`
+          : "http://hawk-guide.readthedocs.io/en/latest/"
+      }
+    ];
+
     modalBody.innerHTML = `
       <ul class="media-list">
-        <li class="media">
-          <div class="media-body">
-            <h4 class="media-heading">
-              <div class="btn-group pull-right">
-                <a target="_blank" class="btn btn-danger btn-lg" title="File a Bug Report" href="https://github.com/ClusterLabs/hawk/issues/new">
-                  <i class="fas fa-bug fa-fw fa-lg"></i>
-                </a>
-              </div>
-              File a Bug Report
-            </h4>
-            Report a bug or request a feature!
-          </div>
-        </li>
-        <li class="media">
-          <div class="media-body">
-            <h4 class="media-heading">
-              <div class="btn-group pull-right">
-                <a target="_blank" class="btn btn-success btn-lg" title="News" href="http://hawk-ui.github.io/">
-                  <i class="fas fa-newspaper fa-fw fa-lg"></i>
-                </a>
-              </div>
-              News
-            </h4>
-            Visit the Hawk website for information about the latest release.
-          </div>
-        </li>
-        <li class="media">
-          <div class="media-body">
-            <h4 class="media-heading">
-              <div class="btn-group pull-right">
-                <a target="_blank" class="btn btn-success btn-lg" title="Online Documentation" href="http://hawk-guide.readthedocs.io/en/latest/">
-                  <i class="fas fa-book fa-fw fa-lg"></i>
-                </a>
-              </div>
-              Online Documentation
-            </h4>
-            Getting Started using Hawk
-          </div>
-        </li>
+        ${docs.map(doc => `
+          <li class="media">
+            <div class="media-body">
+              <h4 class="media-heading">
+                <div class="btn-group pull-right">
+                  <a target="_blank" rel="noopener noreferrer" class="btn btn-${doc.style} btn-lg" title="${doc.title}" href="${doc.url}">
+                    <i class="fas fa-${doc.icon} fa-fw fa-lg"></i>
+                  </a>
+                </div>
+                ${doc.title}
+              </h4>
+              ${doc.desc}
+            </div>
+          </li>
+        `).join("")}
       </ul>
     `;
 
