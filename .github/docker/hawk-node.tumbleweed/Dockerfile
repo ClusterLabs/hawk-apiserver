@@ -25,4 +25,6 @@ RUN systemctl enable sshd
 
 ENV GEM_HOME=/usr/libexec/hawk/vendor/
 
+USER nobody
+
 CMD ["/usr/lib/systemd/systemd", "--system"]
