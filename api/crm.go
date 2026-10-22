@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os/exec"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -66,6 +67,7 @@ type CrmClone struct {
 	Disabled       bool     `xml:"disabled,attr"`
 	Failed         bool     `xml:"failed,attr"`
 	FailureIgnored bool     `xml:"failure_ignored,attr"`
+	TargetRole     string   `xml:"target_role,attr"`
 	Resources      []CrmRsc `xml:"resource"`
 }
 
@@ -756,6 +758,164 @@ func FetchChildResources(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(content); err != nil {
 		log.Printf("[FetchChildResources] Failed to encode child resources: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+func FetchDashboardHandler(w http.ResponseWriter, r *http.Request) {
+	crmStatus, pacemakerRC, err := GetCrmStatus()
+	if err != nil {
+		if pacemakerRC == 102 {
+			http.Error(w, "Pacemaker cluster is offline: "+err.Error(), http.StatusServiceUnavailable)
+			return
+		}
+		http.Error(w, "Failed to get crm status: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	type DashboardNode struct {
+		ID          string `json:"id"`
+		Name        string `json:"name"`
+		IsDC        bool   `json:"isDC"`
+		Online      bool   `json:"online"`
+		Maintenance bool   `json:"maintenance"`
+		Standby     bool   `json:"standby"`
+		EventsFound string `json:"eventsFound"`
+	}
+
+	type DashboardResource struct {
+		Maintenance bool           `json:"maintenance"`
+		Active      bool           `json:"active"`
+		Name        string         `json:"name"`
+		Roles       []ResourceRole `json:"roles"`
+	}
+
+	var result struct {
+		ClusterDetails ClusterDetails      `json:"clusterDetails"`
+		Nodes          []DashboardNode     `json:"nodes"`
+		Resources      []DashboardResource `json:"resources"`
+	}
+
+	// 1. NODES
+	result.ClusterDetails, pacemakerRC, err = GetClusterDetails()
+	if err != nil {
+		if pacemakerRC == 102 { // cluster offline
+			log.Printf("[FetchDashboardHandler] cibadmin error, pacemaker is offline: %v", err)
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable) // pacemakerRC 102 --> http 503
+			if err := json.NewEncoder(w).Encode(result); err != nil {
+				log.Printf("[FetchDashboardHandler] JSON encode error: %v", err)
+			}
+			return
+		}
+
+		log.Printf("[FetchDashboardHandler] cibadmin error: %v", err)
+		http.Error(w, "Failed to get cluster details", http.StatusInternalServerError)
+		return
+	}
+
+	result.Nodes = make([]DashboardNode, len(crmStatus.Nodes))
+	for i, node := range crmStatus.Nodes {
+		result.Nodes[i].ID = node.ID
+		result.Nodes[i].Name = node.Name
+		result.Nodes[i].Online = node.Online
+		result.Nodes[i].Maintenance = node.Maintenance
+		result.Nodes[i].Standby = node.Standby
+		result.Nodes[i].IsDC = (result.ClusterDetails.DC == node.Name)
+		result.Nodes[i].EventsFound, _, _ = GetFenceHistory(node.Name)
+	}
+
+	sort.Slice(result.Nodes, func(i, j int) bool {
+		return result.Nodes[i].Name < result.Nodes[j].Name
+	})
+
+	// a hash map to get the right index of a node
+	nodeIndexes := make(map[string]int, len(result.Nodes))
+	for i, node := range result.Nodes {
+		nodeIndexes[node.Name] = i
+	}
+
+	// 2. RESOURCES
+	result.Resources = make([]DashboardResource, len(crmStatus.Resources)+len(crmStatus.Clones))
+
+	resourceIndex := 0
+	for _, primitive := range crmStatus.Resources {
+		result.Resources[resourceIndex].Maintenance = primitive.Maintenance
+		result.Resources[resourceIndex].Active = primitive.Active
+		result.Resources[resourceIndex].Name = primitive.ID
+		// one status for each node
+		result.Resources[resourceIndex].Roles = make([]ResourceRole, len(crmStatus.Nodes))
+
+		if primitive.Maintenance {
+			// pass
+		} else if primitive.NodesRunningOn == 0 {
+			for j := range result.Resources[resourceIndex].Roles {
+				result.Resources[resourceIndex].Roles[j] = ResourceStatusStopped
+			}
+		} else {
+			// set the green circles for all primitive.Nodes (where the resource is running)
+			for _, resourceNode := range primitive.Nodes {
+				if nodeIndex, ok := nodeIndexes[resourceNode.Name]; ok {
+					result.Resources[resourceIndex].Roles[nodeIndex] = ResourceStatusStarted
+				}
+			}
+
+			// set the grey circle for all roles if the node is offline
+			for _, node := range result.Nodes {
+				if node.Online == false {
+					if nodeIndex, ok := nodeIndexes[node.Name]; ok {
+						result.Resources[resourceIndex].Roles[nodeIndex] = ResourceStatusOffline
+					}
+				}
+			}
+		}
+
+		resourceIndex++
+	}
+
+	for _, clone := range crmStatus.Clones {
+		result.Resources[resourceIndex].Maintenance = clone.Maintenance
+
+		/* FIXME: there is no aggregated Active status of the Clone,
+		 * each resource has it's own active status */
+		result.Resources[resourceIndex].Active = !strings.EqualFold(clone.TargetRole, string(ResourceStatusStopped))
+
+		result.Resources[resourceIndex].Name = clone.ID
+		result.Resources[resourceIndex].Roles = make([]ResourceRole, len(crmStatus.Nodes))
+
+		// if clone.target_role==stopped --> all resources are just stopped
+		if strings.EqualFold(clone.TargetRole, string(ResourceStatusStopped)) {
+			for i := range result.Resources[resourceIndex].Roles {
+				result.Resources[resourceIndex].Roles[i] = ResourceStatusStopped
+			}
+		} else {
+			for _, cloneResource := range clone.Resources {
+				for _, cloneResourceNode := range cloneResource.Nodes {
+					if nodeIndex, ok := nodeIndexes[cloneResourceNode.Name]; ok {
+						// translate cib roles (Master --> promoted, Slave --> unpromoted)
+						if strings.EqualFold(cloneResource.Role, string(ResourceStatusMaster)) {
+							result.Resources[resourceIndex].Roles[nodeIndex] = ResourceStatusPromoted
+						} else if strings.EqualFold(cloneResource.Role, string(ResourceStatusSlave)) {
+							result.Resources[resourceIndex].Roles[nodeIndex] = ResourceStatusUnpromoted
+						} else {
+							result.Resources[resourceIndex].Roles[nodeIndex] = ResourceStatusDefault
+						}
+					}
+				}
+			}
+		}
+
+		resourceIndex++
+	}
+
+	sort.Slice(result.Resources, func(i, j int) bool {
+		return result.Resources[i].Name < result.Resources[j].Name
+	})
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(result); err != nil {
+		log.Printf("[FetchDashboardHandler] JSON encode error: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }

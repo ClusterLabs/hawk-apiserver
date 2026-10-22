@@ -124,6 +124,10 @@ func main() {
 	mux.HandleFunc("/cib/live/clones/new/", authMiddleware(api.CloneNewHandler))
 	mux.HandleFunc("/cib/live/nodes", authMiddleware(api.NodesEditHandler))
 	mux.HandleFunc("/cib/live/nodes/", authMiddleware(api.NodesEditHandler))
+	dashboardStore := internal.NewDashboardConfigStore("")
+	mux.HandleFunc("/api/dashboard/clusters", authMiddleware(api.NewDashboardClustersHandler(dashboardStore)))
+	mux.HandleFunc("/dashboard", authMiddleware(api.DashboardHandler))
+	mux.HandleFunc("/dashboard/", authMiddleware(api.DashboardHandler))
 
 	// resource = primitive or clone
 	mux.HandleFunc("/api/cib/primitive/create", authMiddleware(api.PrimitiveCreateHandler))
@@ -141,6 +145,7 @@ func main() {
 	mux.HandleFunc("/api/cib/resource/cleanup", authMiddleware(api.ResourceCleanupHandler))
 	mux.HandleFunc("/api/cib/resource/clear", authMiddleware(api.ResourceClearHandler))
 	mux.HandleFunc("/api/cib/cluster/details/fetch", authMiddleware(api.FetchClusterDetails))
+	mux.HandleFunc("/api/cib/cluster/dashboard/fetch", api.DashboardStatusCORS(authMiddleware(api.FetchDashboardHandler)))
 	mux.HandleFunc("/api/cib/primitive/classes/fetch", authMiddleware(api.FetchPrimitiveClasses))
 	mux.HandleFunc("/api/cib/primitive/providers/fetch", authMiddleware(api.FetchPrimitiveProviders))
 	mux.HandleFunc("/api/cib/primitive/types/fetch", authMiddleware(api.FetchPrimitiveTypes))

@@ -62,7 +62,7 @@ class ClusterDetailsPopup extends Popup {
       this.#addRow("Version", version);
       this.#addRow("Stack", stack);
       this.#addRow("FencingEnabled", fencingEnabled);
-      this.#updateCircleSummary(summary);
+      setClusterStatusIndicator(summary, status);
     } catch (err) {
       console.error("Failed to fetch cluster details:", err);
       const tr = document.createElement("tr");
@@ -91,12 +91,4 @@ class ClusterDetailsPopup extends Popup {
     tr.append(th, td);
     this.#tbody.appendChild(tr);
   }
-
-  #updateCircleSummary(summary) {
-    const circle = document.getElementById("cluster-status-indicator");
-    if (!circle) return;
-    circle.title = summary;
-  }
 }
-
-window.ClusterDetailsPopup = ClusterDetailsPopup;

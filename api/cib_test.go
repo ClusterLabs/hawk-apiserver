@@ -44,6 +44,15 @@ func installFakeCibadmin(t *testing.T, script string) {
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 }
 
+func installFakeStonithAdmin(t *testing.T, script string) {
+	t.Helper()
+
+	binDir := t.TempDir()
+	stonithAdminPath := filepath.Join(binDir, "stonith_admin")
+	require.NoError(t, os.WriteFile(stonithAdminPath, []byte(script), 0o755))
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+}
+
 func TestGetCrmStatus(t *testing.T) {
 	t.Run("parses XML on success", func(t *testing.T) {
 		installFakeCrm(t, `#!/bin/sh
@@ -120,6 +129,52 @@ exit 102
 
 	require.Error(t, err)
 	assert.Equal(t, 102, pacemakerRC)
+}
+
+func TestFetchDashboardIncludesNodeStateAndOfflineResourceRoles(t *testing.T) {
+	installFakeCrm(t, `#!/bin/sh
+printf '%s\n' '<crm_mon><nodes><node name="z-online" id="2" online="true" maintenance="false" standby="false"/><node name="a-offline" id="1" online="false" maintenance="true" standby="true"/></nodes><resources><resource id="running" active="true" maintenance="false" nodes_running_on="1"><node name="z-online" id="2"/></resource><resource id="stopped" active="false" maintenance="false" nodes_running_on="0"/></resources></crm_mon>'
+`)
+	installFakeCibadmin(t, `#!/bin/sh
+printf '%s\n' '<cib have-quorum="1" dc-uuid="2"><configuration><nodes><node id="1" uname="a-offline"/><node id="2" uname="z-online"/></nodes></configuration><status><node_state uname="a-offline"/><node_state uname="z-online"/></status></cib>'
+`)
+	installFakeStonithAdmin(t, `#!/bin/sh
+exit 0
+`)
+
+	request := httptest.NewRequest(http.MethodPost, "/api/cib/cluster/dashboard/fetch", nil)
+	response := httptest.NewRecorder()
+
+	FetchDashboardHandler(response, request)
+
+	require.Equal(t, http.StatusOK, response.Code)
+	var result struct {
+		Nodes []struct {
+			Name        string `json:"name"`
+			Online      bool   `json:"online"`
+			Maintenance bool   `json:"maintenance"`
+			Standby     bool   `json:"standby"`
+		} `json:"nodes"`
+		Resources []struct {
+			Name  string         `json:"name"`
+			Roles []ResourceRole `json:"roles"`
+		} `json:"resources"`
+	}
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&result))
+
+	require.Len(t, result.Nodes, 2)
+	assert.Equal(t, "a-offline", result.Nodes[0].Name)
+	assert.False(t, result.Nodes[0].Online)
+	assert.True(t, result.Nodes[0].Maintenance)
+	assert.True(t, result.Nodes[0].Standby)
+	assert.Equal(t, "z-online", result.Nodes[1].Name)
+	assert.True(t, result.Nodes[1].Online)
+
+	require.Len(t, result.Resources, 2)
+	assert.Equal(t, "running", result.Resources[0].Name)
+	assert.Equal(t, []ResourceRole{ResourceStatusOffline, ResourceStatusStarted}, result.Resources[0].Roles)
+	assert.Equal(t, "stopped", result.Resources[1].Name)
+	assert.Equal(t, []ResourceRole{ResourceStatusStopped, ResourceStatusStopped}, result.Resources[1].Roles)
 }
 
 func TestEnrichCloneMetaAttributesAllowsMissingMetaAttributes(t *testing.T) {

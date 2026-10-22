@@ -1,0 +1,140 @@
+{{ define "content" }}
+<link rel="stylesheet" href="/static/css/dashboard.css">
+<link rel="stylesheet" href="/static/css/common.css">
+<script src="/static/js/XCSS.js"></script>
+<script src="/static/js/classes/XAlert.js"></script>
+<script src="/static/js/classes/AddClusterPopup.js"></script>
+<script src="/static/js/classes/RemoveClusterPopup.js"></script>
+<script src="/static/js/classes/DashboardClusterClient.js" defer></script>
+<script src="/static/js/classes/DashboardClusterView.js" defer></script>
+<script src="/static/js/dashboard.js" defer></script>
+
+<div class="edit-root">
+  <x-alert id="status-alert" visible="false"></x-alert>
+
+  <h1>
+    <i class="fa fa-dashboard page"></i> Dashboard
+    <div class="pull-right">
+      <div class="btn-group" role="group">
+        <button class="btn btn-default" onclick="openAddClusterPopup()">
+          <i class="fa fa-plus"></i>
+          Add Cluster
+        </button>
+      </div>
+    </div>
+  </h1>
+
+  <div class="panel panel-default with-nav-tabs status-panel">
+    <div class="panel-heading">
+      <ul class="nav nav-tabs" role="tablist" id="dashboard-tabs-placeholder">
+
+        <!-- TABS PLACEHOLDER -->
+
+        <li class="dashboard-legend pull-right">
+            <div class="btn-group">
+              <button class="btn btn-default btn-xs dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                Legend
+                <span class="caret"></span>
+              </button>
+              <ul class="dropdown-menu">
+                <li>
+                  <ul class="legend-status">
+                    <li><div class="node-circle status-success"></div>Working resource/node</li>
+                    <li><i class="fa fa-podcast" aria-hidden="true" title="Remote / Guest node"></i>Remote / Guest node</li>
+                    <li><div class="node-circle status-danger"></div>Failing resource/node</li>
+                    <li><i class="fa fa-wrench" aria-hidden="true"></i>Maintenance mode</li>
+                    <li><div class="node-circle status-offline"></div>Offline/standby mode</li>
+                    <li><i class="fa fa-asterisk" aria-hidden="true"></i>Promotable clone</li>
+                    <li><div class="node-circle status-default"></div>Not working resource/node</li>
+                    <li><i class="fa fa-home" aria-hidden="true"></i>Designated coordinator</li>
+                  </ul>
+                </li>
+              </ul>
+            </div>
+          </li>
+      </ul>
+    </div>
+
+    <div class="panel-body">
+      <div class="tab-content" id="dashboard-panels"></div>
+    </div>
+  </div>
+</div>
+<template id="dashboard-cluster-template">
+        <!-- Reused for the local cluster and each saved remote cluster. -->
+        <div class="tab-pane" role="tabpanel">
+          <div class="status-table">
+
+                <div class="panel panel-warning" data-epoch="">
+                    <div class="panel-heading cluster-heading">
+                        <div class="pull-left search">
+                            <input type="text" class="form-control" placeholder="Search..." aria-label="Search resources" oninput="applyResourceFilter(this)">
+                        </div>
+                        <ul class="cluster-right-menu pull-right">
+                            <li class="cluster-filter">
+                                <div class="dropdown">
+                                    <button class="btn btn-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                      <i class="fa fa-filter" aria-hidden="true"></i>
+                                    </button>
+                                    <div class="filter-dropdown dropdown-menu" onchange="applyNodeFilter(this)">
+                                        <div class="filter-header">Show</div>
+                                        <div class="radio">
+                                          <label class="">
+                                            <input value="show_all" type="radio" name="dashboard-node-filter" checked>Show all nodes
+                                          </label>
+                                        </div>
+                                        <div class="radio">
+                                          <label class="">
+                                            <input value="online" type="radio" name="dashboard-node-filter">Only Online nodes
+                                          </label>
+                                        </div>
+                                        <div class="radio">
+                                          <label class="line-through-filter">
+                                            <input value="offline" type="radio" name="dashboard-node-filter" disabled="">Only Offline nodes
+                                          </label>
+                                        </div>
+                                        <div class="radio">
+                                          <label class="line-through-filter">
+                                            <input value="maintenance" type="radio" name="dashboard-node-filter" disabled="">Only maintenance nodes
+                                          </label>
+                                        </div>
+                                        <div class="radio">
+                                          <label class="line-through-filter">
+                                            <input value="standby" type="radio" name="dashboard-node-filter" disabled="">Only standby nodes
+                                          </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                            <li>
+                                <a class="cluster-link cluster-url" href="" target="_blank">
+                                    <i class="fa fa-link" aria-hidden="true"></i>
+                                </a>
+                            </li>
+                            <li class="cluster-remove" hidden>
+                                <button type="button" class="close" aria-label="Remove cluster" title="Remove cluster" onclick="removeDashboardCluster(this)">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="panel-body">
+                        <div class="cluster-status-alarm hidden">
+                          <span data-status-message></span>
+                        </div>
+                        <div class="cluster-errors" role="alert"></div>
+                        <div class="status-inner-table">
+                            <table class="table table-hover">
+                                <tbody>
+                                  <!--PLACEHOLDER-->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+             </div>
+
+        </div>
+
+</template>
+{{ end }}

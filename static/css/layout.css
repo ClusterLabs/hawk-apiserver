@@ -207,16 +207,16 @@ h1 {
   line-height: 2.0em;
 }
 
-#cluster-status-alarm {
+.cluster-status-alarm {
   max-width: 872px;
   margin-bottom: 20px;
 }
 
-#cluster-status-alarm.alert {
+.cluster-status-alarm.alert {
   padding: 8px 15px;
 }
 
-#cluster-status-alarm a {
+.cluster-status-alarm a {
   text-decoration: none;
 }
 

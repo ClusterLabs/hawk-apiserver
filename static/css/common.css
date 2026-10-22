@@ -1,0 +1,26 @@
+.kvsection-row {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  margin-bottom: 8px;
+}
+
+.kvsection-row label {
+  flex: 0 0 80px;
+  margin-left: auto;
+  text-align: right;
+}
+
+.kvsection-row-thin label {
+  font-weight: normal;
+}
+
+.kvsection-row button {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}

@@ -1,5 +1,29 @@
 package api
 
+type ClusterStatus string
+type ResourceRole string
+
+const (
+	// ref: static/js/constants.js
+	ClusterStatusUnclean   ClusterStatus = "unclean"
+	ClusterStatusOnline    ClusterStatus = "online"
+	ClusterStatusNoQuorum  ClusterStatus = "noquorum"
+	ClusterStatusNoFencing ClusterStatus = "nofencing"
+	ClusterStatusOffline   ClusterStatus = "offline"
+)
+
+const (
+	// ref: static/js/constants.js
+	ResourceStatusStarted    ResourceRole = "started"
+	ResourceStatusStopped    ResourceRole = "stopped"
+	ResourceStatusMaster     ResourceRole = "master"
+	ResourceStatusSlave      ResourceRole = "slave"
+	ResourceStatusPromoted   ResourceRole = "promoted"
+	ResourceStatusUnpromoted ResourceRole = "unpromoted"
+	ResourceStatusOffline    ResourceRole = "offline"
+	ResourceStatusDefault    ResourceRole = ""
+)
+
 func GetRscDefaults() []MetaParameter {
 	// return a copy to prevent modification
 	result := make([]MetaParameter, len(rscDefaults))
@@ -14,15 +38,6 @@ func GetCloneDefaults() []MetaParameter {
 	copy(result, cloneDefaults)
 	return result
 }
-
-/*
-func GetOpDefaults() []MetaParameter {
-	// return a copy to prevent modification
-	result := make([]MetaParameter, len(opDefaults))
-	copy(result, opDefaults)
-	return result
-}
-*/
 
 func GetOpDescriptions() []MetaParameter {
 	// return a copy to prevent modification
@@ -218,7 +233,7 @@ var cloneDefaults = []MetaParameter{
 		Longdesc: "Is the cluster allowed to start and stop the resource?",
 		Content: ContentAttr{
 			Type:    "boolean",
-			Default: "false",
+			Default: "true",
 		},
 	},
 	{
@@ -317,97 +332,6 @@ var cloneDefaults = []MetaParameter{
 		},
 	},
 }
-
-// copied from hawk -> tableless.rb --> OP_DEFAULTS
-// TODO: consider using hash-map Name -> Longdesc,Content
-/*
-var opDefaults = []MetaParameter{
-	{
-		Name:     "interval",
-		Longdesc: "How frequently(in seconds) to perform the operation.",
-		Content: ContentAttr{
-			Type:     "string",
-			Default:  "0",
-			Required: "false",
-		},
-	},
-	{
-		Name:     "timeout",
-		Longdesc: "How long to wait before declaring the action has failed.",
-		Content: ContentAttr{
-			Type:     "string",
-			Default:  "20",
-			Required: "true",
-		},
-	},
-	{
-		Name:     "requires",
-		Longdesc: "What conditions need to be satisfied before this action occurs.",
-		Content: ContentAttr{
-			Type:           "enum",
-			Default:        "fencing",
-			PossibleValues: []string{"nothing", "quorum", "fencing"},
-		},
-	},
-	{
-		Name:     "enabled",
-		Longdesc: "If false, the operation is treated as if it does not exist.",
-		Content: ContentAttr{
-			Type:    "boolean",
-			Default: "true",
-		},
-	},
-	{
-		Name:     "role",
-		Longdesc: "This option only makes sense for recurring operations. It restricts the operation to a specific role. The truly paranoid can even specify role=Stopped which allows the cluster to detect an admin that manually started cluster services.",
-		Content: ContentAttr{
-			Type:           "enum",
-			Default:        "",
-			PossibleValues: []string{"Stopped", "Started", "Unpromoted", "Promoted"},
-		},
-	},
-	{
-		Name:     "on-fail",
-		Longdesc: "The action to take if this action ever fails.",
-		Content: ContentAttr{
-			Type:           "enum",
-			Default:        "stop",
-			PossibleValues: []string{"ignore", "block", "stop", "restart", "standby", "fence"},
-		},
-	},
-	{
-		Name:     "start-delay",
-		Longdesc: "The delay time(in seconds) before doing the operation",
-		Content: ContentAttr{
-			Type:    "string",
-			Default: "0",
-		},
-	},
-	{
-		Name:     "interval-origin",
-		Longdesc: "The start time of action interval. Follow the ISO8601 standard.",
-		Content: ContentAttr{
-			Type:    "string",
-			Default: "",
-		},
-	},
-	{
-		Name:     "record-pending",
-		Longdesc: "If true, the intention to perform the operation is recorded so that GUIs and CLI tools can indicate that an operation is in progress.",
-		Content: ContentAttr{
-			Type:    "boolean",
-			Default: "false",
-		},
-	},
-	{
-		Name: "description",
-		Content: ContentAttr{
-			Type:    "string",
-			Default: "",
-		},
-	},
-}
-*/
 
 // ActionDefaults provides named access to the defaults of an action.
 type ActionDefaults struct {

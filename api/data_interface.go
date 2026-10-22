@@ -173,31 +173,6 @@ func FetchClusterDetails(w http.ResponseWriter, r *http.Request) {
 	var frontendAgruments struct {
 		Host string `json:"host"`
 	}
-	type ClusterStatus string
-	const (
-		// ref: static/js/constants.js
-		ClusterStatusUnclean   ClusterStatus = "unclean"
-		ClusterStatusOnline    ClusterStatus = "online"
-		ClusterStatusNoQuorum  ClusterStatus = "noquorum"
-		ClusterStatusNoFencing ClusterStatus = "nofencing"
-		ClusterStatusOffline   ClusterStatus = "offline"
-	)
-	type ClusterDetails struct {
-		Summary        string        `json:"summary"`
-		Status         ClusterStatus `json:"status"`
-		Epoch          string        `json:"epoch"`
-		Host           string        `json:"host"`
-		DC             string        `json:"dc"`
-		Schema         string        `json:"schema"`
-		LastWritten    string        `json:"lastWritten"`
-		UpdateOrigin   string        `json:"updateOrigin"`
-		UpdateUser     string        `json:"updateUser"`
-		HaveQuorum     string        `json:"haveQuorum"`
-		Version        string        `json:"version"`
-		Stack          string        `json:"stack"`
-		FencingEnabled string        `json:"fencingEnabled"`
-		ClusterName    string        `json:"clusterName"`
-	}
 
 	if err := json.NewDecoder(r.Body).Decode(&frontendAgruments); err != nil {
 		log.Printf("[FetchClusterDetails] decode error: %v", err)
@@ -205,7 +180,7 @@ func FetchClusterDetails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cib, pacemakerRC, err := GetCIB()
+	result, pacemakerRC, err := GetClusterDetails()
 	if err != nil {
 		if pacemakerRC == 102 { // cluster offline
 			log.Printf("[FetchClusterDetails] cibadmin error, pacemaker is offline: %v", err)
@@ -230,76 +205,10 @@ func FetchClusterDetails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	version := ""
-	stack := ""
-	fencingEnabled := ""
-	clusterName := ""
-	for _, nvpair := range cib.Configuration.CrmConfig.ClusterPropertySet.NVPairs {
-		switch nvpair.Name {
-		case "dc-version":
-			version = nvpair.Value
-		case "cluster-infrastructure":
-			stack = nvpair.Value
-		case "stonith-enabled":
-			fencingEnabled = nvpair.Value
-		case "fencing-enabled":
-			fencingEnabled = nvpair.Value
-		case "cluster-name":
-			clusterName = nvpair.Value
-		}
-	}
-
-	dc := ""
-	for _, node := range cib.Configuration.Nodes {
-		if node.ID == cib.DcUuid {
-			dc = node.Uname
-		}
-	}
-
-	status := ClusterStatusOnline
-	summary := "Online"
-	if cib.HaveQuorum == "0" {
-		status = ClusterStatusNoQuorum
-		summary = "Partition without quorum! Fencing and resource management is disabled."
-	}
-
-	if fencingEnabled == "false" {
-		status = ClusterStatusNoFencing
-		summary = "FENCING is disabled. For normal cluster operation, FENCING is required."
-	}
-
-	// TODO?: there might be a combination of different statuses
-	// e.g. it can be both no-quorum and no-fencing,
-	// but implementing this is overengineering.
-	for _, node := range cib.Configuration.Nodes {
-		if isNodeClean(node.Uname, cib.Status.NodeStates) == false {
-			status = ClusterStatusUnclean
-			summary = "A node is UNCLEAN and needs to be fenced."
-			break
-		}
-	}
-
-	hostname := frontendAgruments.Host
+	result.Host = frontendAgruments.Host
 	names, err := net.LookupAddr(frontendAgruments.Host)
 	if err == nil && len(names) > 0 {
-		hostname = names[0]
-	}
-
-	result := ClusterDetails{
-		Summary:        summary,
-		Status:         status,
-		Epoch:          cib.AdminEpoch + ":" + cib.Epoch + ":" + cib.NumUpdates,
-		Host:           hostname,
-		DC:             dc,
-		Schema:         cib.ValidateWith,
-		LastWritten:    cib.CibLastWritten,
-		UpdateOrigin:   cib.UpdateOrigin,
-		UpdateUser:     cib.UpdateUser,
-		HaveQuorum:     cib.HaveQuorum,
-		Version:        version,
-		Stack:          stack,
-		FencingEnabled: fencingEnabled,
-		ClusterName:    clusterName,
+		result.Host = names[0]
 	}
 
 	w.Header().Set("Content-Type", "application/json")

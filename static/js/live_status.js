@@ -715,31 +715,13 @@ async function updateClusterStatus() {
     const clusterName = document.getElementById("cluster-name");
     clusterName.innerText = clusterDetails.clusterName || "Unknown";
 
-    const statusLabel = document.getElementById("cluster-status-alarm");
-    if (!statusLabel) return;
-    const link = statusLabel.querySelector("a");
-    link.innerHTML = clusterDetails.summary;
-    statusLabel.className = "hidden";
-    link.className = "";
-
-    switch(clusterDetails.status) {
-        case CLUSTER_STATUS_ONLINE:
-            break;
-        case CLUSTER_STATUS_UNCLEAN:
-        case CLUSTER_STATUS_NOFENCING:
-            statusLabel.className = "alert alert-warning";
-            break;
-        case CLUSTER_STATUS_NOQUORUM:
-            statusLabel.className = "alert alert-danger";
-            break;
-        case CLUSTER_STATUS_OFFLINE:
-            statusLabel.className = "alert alert-danger";
-            return; // offline --> exit // TODO?: need to clean the tables? (ruby doesn't clean them)
-        default:
-            // pass
-    }
+    setClusterStatusBar("cib-live-cluster-status-alarm", clusterDetails.summary, clusterDetails.status);
+    if(clusterDetails.status == CLUSTER_STATUS_OFFLINE) return; // offline --> exit
 
     // 2. 'crm status --as-xml'
+    // TODO?: /api/crm/status/fetch returns the plain 'crm status --as-xml' (in a structure)
+    // and we process the WHOLE xml here in JS, I think it's better to
+    // prepare data in the backend.
     const res2 = await fetch("/api/crm/status/fetch", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }

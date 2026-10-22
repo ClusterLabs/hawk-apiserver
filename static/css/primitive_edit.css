@@ -6,33 +6,6 @@
   cursor: pointer;
 }
 
-.kvsection-row {
-  display: flex;
-  align-items: center;
-  gap: 26px;
-  margin-bottom: 8px;
-}
-
-.kvsection-row label {
-  margin-left: auto;
-  flex: 0 0 80px;
-  text-align: right;
-}
-
-.kvsection-row-thin label {
-  font-weight: normal;
-}
-
-.kvsection-row button {
-  flex: 0 0 auto;
-  height: 100%;
-  padding-top: 6px;
-  padding-bottom: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .accordion details {
   border-top: 1px solid #ddd;
   padding-top: 10px;
