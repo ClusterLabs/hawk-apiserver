@@ -1,0 +1,18 @@
+{{ define "content" }}
+<script src="/static/js/commands.js" defer></script>
+<div class="container-fluid">
+  <h1><i class="fa fa-calendar-days page" aria-hidden="true"></i> Command Log</h1>
+  <div class="panel panel-default">
+    <div class="panel-body">
+      <p class="text-muted">Lists crm commands recently executed by hawk, most recent first.</p>
+<<<<<<< Updated upstream
+      <button id="commands-refresh" class="btn btn-default" type="button">Refresh</button>
+      <p id="commands-status" role="status" aria-live="polite">Loading commands…</p>
+=======
+>>>>>>> Stashed changes
+      <div id="commands-error" class="alert alert-danger" role="alert" hidden></div>
+      <div id="commands" class="commands" aria-busy="true"></div>
+    </div>
+  </div>
+</div>
+{{ end }}
