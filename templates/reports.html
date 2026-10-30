@@ -1,0 +1,112 @@
+{{ define "content" }}
+<link rel="stylesheet" href="/static/css/reports.css">
+<script src="/static/js/XCSS.js"></script>
+<script src="/static/js/classes/XAlert.js"></script>
+<script src="/static/js/reports_calendar.js" defer></script>
+<script src="/static/js/reports.js" defer></script>
+<div class="edit-root" id="report-index">
+  <h1><i class="far fa-clock page" aria-hidden="true"></i> History Explorer</h1>
+  <x-alert id="reports-alert" visible="false"></x-alert>
+  <div class="panel panel-info hidden" id="report-running">
+    <div class="panel-heading"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Data collection in progress…</div>
+    <div class="panel-body"><p id="running-range"></p></div>
+    <div class="panel-footer"><button id="cancel-report" class="btn btn-danger" type="button" onclick="clickCancelReportButton()">Cancel</button></div>
+  </div>
+  <div class="panel panel-default with-nav-tabs" id="report-controls">
+    <div class="panel-heading">
+      <ul class="nav nav-tabs">
+        <li class="active"><a data-toggle="tab" href="#generate">Generate</a></li>
+        <li><a data-toggle="tab" href="#upload">Upload</a></li>
+      </ul>
+    </div>
+    <div class="panel-body tab-content">
+      <div class="tab-pane active" id="generate">
+        <form id="generate-report-form">
+          <div class="report-generate-row">
+            <div>
+              <details id="report-range-picker">
+                <summary class="form-control"><i class="far fa-calendar-days" aria-hidden="true"></i> <span id="report-range-label"></span> <span class="caret"></span></summary>
+                <div class="report-range-fields">
+                  <div class="report-range-menu">
+                    <input id="report-range" type="hidden" value="hour">
+                    <input id="report-from" type="hidden">
+                    <input id="report-to" type="hidden">
+                    <div class="report-range-presets" aria-label="Time range">
+                      <button type="button" data-range="hour" onclick="selectReportPreset('hour')">Last Hour</button>
+                      <button type="button" data-range="six" onclick="selectReportPreset('six')">Last 6 Hours</button>
+                      <button type="button" data-range="today" onclick="selectReportPreset('today')">Today</button>
+                      <button type="button" data-range="yesterday" onclick="selectReportPreset('yesterday')">Yesterday</button>
+                      <button type="button" data-range="week" onclick="selectReportPreset('week')">Last 7 Days</button>
+                      <button type="button" data-range="month" onclick="selectReportPreset('month')">This Month</button>
+                      <button type="button" data-range="custom" onclick="selectReportPreset('custom')">Custom</button>
+                    </div>
+                    <div class="report-range-dates">
+                      <label for="report-draft-from">From<input id="report-draft-from" type="text" onfocus="expandReportCalendars()" onchange="editReportDate('from')"></label>
+                      <label for="report-draft-to">Until<input id="report-draft-to" type="text" onfocus="expandReportCalendars()" onchange="editReportDate('to')"></label>
+                    </div>
+                    <div class="report-range-actions">
+                      <button class="btn btn-primary btn-sm" type="button" onclick="applyReportRange()">Apply</button>
+                      <button class="btn btn-default btn-sm" type="button" onclick="cancelReportRange()">Cancel</button>
+                    </div>
+                    <p id="report-range-error" role="alert" hidden></p>
+                  </div>
+                  <div id="report-calendars" hidden>
+                    <div id="report-calendar-from" class="report-calendar" aria-label="From calendar"></div>
+                    <div id="report-calendar-to" class="report-calendar" aria-label="Until calendar"></div>
+                  </div>
+                </div>
+              </details>
+            </div>
+            <div>
+              <button id="generate-report" class="btn btn-primary" type="submit"><i class="fas fa-search" aria-hidden="true"></i> Generate</button>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="tab-pane" id="upload">
+        <form id="upload-report-form" enctype="multipart/form-data">
+          <div id="report-upload-progress" class="progress" hidden>
+            <div id="report-upload-progress-bar" class="progress-bar progress-bar-success progress-bar-striped active" role="progressbar" aria-label="Archive upload" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="width: 0%">0%</div>
+          </div>
+          <div class="report-upload-row" aria-busy="false">
+            <div class="form-control report-upload-name" tabindex="0" aria-label="Selected report archive" role="status" aria-live="polite"><i id="report-upload-icon" class="fas fa-file" aria-hidden="true" hidden></i> <span id="report-upload-name"></span></div>
+            <button id="remove-report-upload" class="btn btn-default" type="button" onclick="removeReportUpload()" hidden><i id="remove-report-upload-icon" class="fas fa-trash" aria-hidden="true"></i> <span id="remove-report-upload-label">Remove</span></button>
+            <button id="upload-report" class="btn btn-default" type="submit" hidden><i class="fas fa-upload" aria-hidden="true"></i> Upload</button>
+            <div class="report-upload-browse">
+              <input id="report-upload" type="file" name="report[upload]" accept=".tgz,.gz,.bz2,.xz" required aria-label="Browse for a report archive (.tgz, .tar.gz, .tar.bz2, .tar.xz)" onchange="updateReportUpload()">
+              <span class="btn btn-primary"><i class="fas fa-folder-open" aria-hidden="true"></i> Browse …</span>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="panel panel-default">
+    <div class="panel-heading">Reports</div>
+    <div class="panel-body">
+      <div class="reports-toolbar">
+        <label class="sr-only" for="reports-search">Search reports</label><input id="reports-search" class="form-control" type="search" placeholder="Search" oninput="reportsPage = 1; renderReports()">
+        <button class="btn btn-default" type="button" onclick="clickRefreshReportsButton()" aria-label="Refresh reports" title="Refresh"><i class="fas fa-sync" aria-hidden="true"></i></button>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-striped table-bordered reports">
+          <thead><tr>
+            <th aria-sort="none"><button class="reports-sort" type="button" onclick="sortReports('name')">Name<span class="reports-sort-indicator" aria-hidden="true"></span></button></th>
+            <th aria-sort="none"><button class="reports-sort" type="button" onclick="sortReports('from_time')">From<span class="reports-sort-indicator" aria-hidden="true"></span></button></th>
+            <th aria-sort="none"><button class="reports-sort" type="button" onclick="sortReports('to_time')">Until<span class="reports-sort-indicator" aria-hidden="true"></span></button></th><th>Operations</th>
+          </tr></thead>
+          <tbody id="reports-body"></tbody>
+        </table>
+      </div>
+      <div class="reports-footer">
+        <div class="reports-page-info">
+          <span id="reports-status" role="status" aria-live="polite">Loading reports…</span>
+          <label class="sr-only" for="reports-page-size">Records per page</label>
+          <select id="reports-page-size" onchange="reportsPage = 1; renderReports()"><option>10</option><option>25</option><option selected>50</option><option>100</option><option>200</option></select> records per page
+        </div>
+        <nav aria-label="Report pages"><ul id="reports-pagination" class="pagination"></ul></nav>
+      </div>
+    </div>
+  </div>
+</div>
+{{ end }}

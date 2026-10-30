@@ -104,6 +104,19 @@ func main() {
 
 	mux := http.NewServeMux()
 
+	reportsAPI := api.NewReportsAPI("")
+	mux.HandleFunc("/reports", authMiddleware(api.ReportsHandler))
+	mux.HandleFunc("/reports/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/reports/" {
+			authMiddleware(api.ReportsHandler)(w, r)
+			return
+		}
+		// The transition explorer remains in Rails during the landing page port.
+		routehandler.ServeHTTP(w, r)
+	})
+	mux.HandleFunc("/api/reports", authMiddleware(reportsAPI.ServeHTTP))
+	mux.HandleFunc("/api/reports/", authMiddleware(reportsAPI.ServeHTTP))
+
 	liveHandler := authMiddleware(api.LiveStatusHandler)
 	mux.HandleFunc("/cib/live", liveHandler)
 	mux.HandleFunc("/cib/live/", func(w http.ResponseWriter, r *http.Request) {
