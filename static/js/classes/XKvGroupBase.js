@@ -1,4 +1,5 @@
 class XKvGroupBase extends HTMLElement {
+  #lightRoot;
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
@@ -13,6 +14,42 @@ class XKvGroupBase extends HTMLElement {
 
     // shadow DOM doesn't export the + and - icons from outside, so we do it here
     this.shadowRoot.appendChild(this.#getFontAwesomeLink());
+  }
+
+  // Legacy document XPath cannot cross a shadow root. Opt in only where needed.
+  get contentRoot() {
+    if (!this.hasAttribute("light-dom")) return this.shadowRoot;
+    if (!this.#lightRoot) {
+      this.shadowRoot.appendChild(document.createElement("slot"));
+      const style = document.createElement("style");
+      const scope = ":is(x-kvgroup[light-dom], x-operations-kvgroup[light-dom])";
+      // Light-DOM compatibility must not import Bootstrap's control styling.
+      // Reset only the component controls, then apply the same rules as shadow DOM.
+      style.textContent = `
+        ${scope} :where(.form-control, .btn, .badge, label, code) {
+          all: revert;
+        }
+      ` + Array.from(window.XCSS?.debugSheet?.cssRules || []).map(rule => {
+        const selectors = rule.selectorText.split(",").map(selector =>
+          `${scope} ${selector.trim()}`);
+        return `${selectors.join(",")} { ${rule.style.cssText} }`;
+      }).join("\n");
+      // Legacy XPath requires an anchor for Edit; visually it remains a button.
+      const buttonRule = Array.from(window.XCSS?.debugSheet?.cssRules || [])
+        .find(rule => rule.selectorText === "button.btn");
+      if (buttonRule) style.textContent += `
+        ${scope} a.btn {
+          ${buttonRule.style.cssText}
+          color: ButtonText;
+          font: 400 13.3333px sans-serif;
+          box-sizing: border-box;
+          text-decoration: none;
+        }
+      `;
+      this.appendChild(style);
+      this.#lightRoot = this;
+    }
+    return this.#lightRoot;
   }
 
   #getFontAwesomeLink() {

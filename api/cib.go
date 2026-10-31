@@ -503,6 +503,10 @@ func enrichCloneMetaAttributesWithCibValues(metadata *FullPrimitive_CrmResourceM
 }
 
 func enrichPrimitiveMetadataWithCibValues(metadata *FullPrimitive_CrmResourceMetadata, resourceID string) error {
+	// New primitives use agent defaults without querying a nonexistent CIB object.
+	if resourceID == "" {
+		return nil
+	}
 	// 1. Query current XML
 	queryXPath := fmt.Sprintf("/cib/configuration/resources//primitive[@id='%s']", resourceID)
 	cmd := exec.Command("cibadmin", "-Q", "--xpath", queryXPath)
@@ -602,6 +606,19 @@ func enrichPrimitiveMetadataWithCibValues(metadata *FullPrimitive_CrmResourceMet
 }
 
 // This function does the magic routing between Go and Ruby
+func PrimitiveNewHandler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/cib/live/primitives/new" && r.URL.Path != "/cib/live/primitives/new/" {
+		http.NotFound(w, r)
+		return
+	}
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		w.Header().Set("Allow", "GET, HEAD")
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	renderTemplate(w, "primitive_edit", map[string]any{"Title": "Create Primitive", "CreateMode": true, "ResourceID": "", "ResourceAgent": "", "Class": "ocf", "Provider": "", "Type": ""})
+}
+
 func ResourceEditHandler(w http.ResponseWriter, r *http.Request) {
 	const prefix = "/cib/live/primitives"
 

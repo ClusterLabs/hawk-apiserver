@@ -11,7 +11,10 @@ class XSelect extends HTMLElement {
   connectedCallback() {
     // read attributes locally (no persistent fields)
     const label = this.getAttribute("label") || "";
-    const name = this.getAttribute("name") || "";
+    const name = this.getAttribute("select-name") || this.getAttribute("name") || "";
+    const lightDOM = this.hasAttribute("light-dom");
+    const renderRoot = lightDOM ? this : this.shadowRoot;
+    if (lightDOM) this.shadowRoot.appendChild(document.createElement("slot"));
     const description = this.getAttribute("description") || "";
     const valueAttr = this.getAttribute("value") || "";
     const hideWhenEmpty = this.getAttribute("hide-when-empty") === "true";
@@ -46,12 +49,17 @@ class XSelect extends HTMLElement {
       .kvsection-row > label { margin-left:auto; flex:0 0 80px; text-align:right; }
       .form-control:focus { border-color: #66afe9; outline: 0; box-shadow: 0 0 8px rgba(102, 175, 233, 0.6); }
     `;
-    this.shadowRoot.appendChild(style);
+    if (lightDOM) {
+      style.textContent = `
+        x-select[light-dom] :where(.form-control, label) { all: revert; }
+      ` + style.textContent.replace(/(^|\n)\s*(\.[^{]+)\{/g, "$1x-select[light-dom] $2{");
+    }
+    renderRoot.appendChild(style);
 
     // layout (simple row container)
     this.#divContainer = document.createElement("div");
     this.#divContainer.className = "kvsection-row";
-    this.shadowRoot.appendChild(this.#divContainer);
+    renderRoot.appendChild(this.#divContainer);
 
     // SELECT engine renders: label -> readonly input -> select
     this.#select = new Select(this.#divContainer, null, label, valueAttr, this.#apiEntryGetOptions, "", !disabled, true, "");
@@ -60,7 +68,10 @@ class XSelect extends HTMLElement {
     // bubble change events to <x-select> (across shadow boundary)
     // Without composed: true, <x-select> would fire the change event inside its shadow root,
     // but the outer page (<body>, window, etc.) would never know anything happened.
-    const emitChange = () => this.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
+    const emitChange = event => {
+      event?.stopPropagation();
+      this.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
+    };
     this.#select.setOnChangeEvent(emitChange);
 
     this.#divContainer.addEventListener("mouseenter", () => {
@@ -75,7 +86,9 @@ class XSelect extends HTMLElement {
     /* We set the value already in the constructor (it's easier),
        so now there is no need in extra this.#select.setValue(valueAttr);
     */
-    this.#select.init(apiArgs, false)
+    if (this.getAttribute("defer-init") === "true") return;
+
+    this.loaded = this.#select.init(apiArgs, this.getAttribute("append-blank") === "true")
       .then(() => {
         if (valueAttr && this.#select.getOption(valueAttr)) {
           this.#select.setValue(valueAttr);
@@ -85,8 +98,9 @@ class XSelect extends HTMLElement {
         // i.e. set providers after loading the classes
         // and i.e. set agent types after loading the provider
         emitChange();
+        return true;
       })
-      .catch(err => console.error("x-select init error:", err));
+      .catch(err => { console.error("x-select init error:", err); return false; });
 
   }
 

@@ -33,7 +33,7 @@ class XKvGroup extends window.XKvGroupBase {
     this.#submitApi = this.getAttribute("submit-api");
     this.#initialValues = JSON.parse(this.getAttribute("initial-values") || "{}");
 
-    this.#container = this.shadowRoot;
+    this.#container = this.contentRoot;
 
     this.#selectRow = document.createElement("div");
     this.#selectRow.className = "kvsection-row";
@@ -46,10 +46,12 @@ class XKvGroup extends window.XKvGroupBase {
     // #FIXME?: class Select already has it's own Init method with it's own api-entry,
     // but override it here. Obviously it's code repeating.
     this.#selectObj = new Select(this.#selectRow, controlWrap, "", "", "", "", true, true, "");
+    if (this.getAttribute("field-prefix") === "op") this.#selectObj.getHTML().name = "temp_op";
     this.#selectObj.setOnChangeEvent(() => this.#onCreateOption());
 
     // Button
     const addBtn = document.createElement("button");
+    addBtn.type = "button";
     addBtn.className = "btn btn-default";
     addBtn.onclick = () => this.#onCreateOption();
 
@@ -63,10 +65,11 @@ class XKvGroup extends window.XKvGroupBase {
     this.#container.appendChild(this.#selectRow);
 
     // Fetch data
-    this.#init(true)
-      .catch(err => console.error("Failed to init x-kvgroup:", err))
+    this.loaded = this.#init(true)
+      .then(() => true)
+      .catch(err => { console.error("Failed to init x-kvgroup:", err); return false; })
       .finally(() => this.#readyResolve())
-      .then(() => this.applyKvMap(this.#initialValues))
+      .then(async ready => { await this.applyKvMap(this.#initialValues); return ready; })
       .catch(err => console.error("Failed to apply initial x-kvgroup values:", err));
   }
 
@@ -94,7 +97,8 @@ class XKvGroup extends window.XKvGroupBase {
           const optionObj = new SelectOption(o.Name, o.Type, o.DefaultValue,
               o.Shortdesc, o.Longdesc, o.PossibleValues);
           this.#selectObj.appendOption(optionObj);
-          if (o.CibID) {
+          if (o.CibID || (this.hasAttribute("create-mode") &&
+              (o.Required === "true" || (this.#name === "meta_attributes" && o.Name === "target-role")))) {
             const frontendValue = "";
             this.#createInput(o.Name, o.DefaultValue, o.Shortdesc, o.Longdesc, o.Type,
               o.PossibleValues, o.Required, o.CibID, o.CibValue, frontendValue);
@@ -108,6 +112,12 @@ class XKvGroup extends window.XKvGroupBase {
   }
 
   #updateSelectVisibility() {
+    if (this.getAttribute("field-prefix") === "op") {
+      // Match the legacy attribute picker: selected attributes are not options.
+      for (const option of Array.from(this.#selectObj.getHTML().options)) {
+        if (option.hidden) option.remove();
+      }
+    }
     const show = !this.#selectObj.empty();
     this.#selectRow.style.display = show ? "" : "none";
   }
@@ -191,7 +201,9 @@ class XKvGroup extends window.XKvGroupBase {
         required, cibID, cibValue, frontendValue, false);
     }
 
-    if (selectOrInput instanceof Select) this.#setSeleniumSelectName(selectOrInput, name);
+    const fieldPrefix = this.getAttribute("field-prefix");
+    if (fieldPrefix) selectOrInput.getHTML().name = `${fieldPrefix}[${name}]`;
+    else if (selectOrInput instanceof Select) this.#setSeleniumSelectName(selectOrInput, name);
 
     const initial = frontendValue || cibValue || defaultValue || "";
     if (selectOrInput instanceof Select) {
@@ -199,6 +211,7 @@ class XKvGroup extends window.XKvGroupBase {
     }
 
     const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
     removeBtn.innerHTML = '<i class="fas fa-minus"></i>';
     removeBtn.className = "btn btn-default";
     removeBtn.onclick = () => {
@@ -233,7 +246,8 @@ class XKvGroup extends window.XKvGroupBase {
   #setSeleniumSelectName(selectObj, name) {
     if (!this.hasAttribute("resource-id")) return;
 
-    const resourceType = this.hasAttribute("resource-agent") ? "temp_primitive" : "clone";
+    const resourceType = this.hasAttribute("resource-agent")
+      ? (this.hasAttribute("create-mode") ? "primitive" : "temp_primitive") : "clone";
     const attributeType = this.#name === "meta_attributes"
       ? "meta"
       : this.#name.replace(/s$/, "");
@@ -244,6 +258,11 @@ class XKvGroup extends window.XKvGroupBase {
   restoreOption(inputObj) {
     this.#inputs = this.#inputs.filter(i => i !== inputObj);
     this.#selectObj.showOption(inputObj.getName());
+    if (this.getAttribute("field-prefix") === "op") {
+      const select = this.#selectObj.getHTML();
+      select.appendChild(this.#selectObj.getOption(inputObj.getName()).getHTML());
+      Array.from(select.options).sort((a, b) => a.text.localeCompare(b.text)).forEach(option => select.appendChild(option));
+    }
     this.#selectObj.setValue("");
     this.#updateSelectVisibility();
   }

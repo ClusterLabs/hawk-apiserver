@@ -36,7 +36,15 @@ class OperationInput {
         // Blank label (required for css alignment)
         const blankLabel = document.createElement("label");
         blankLabel.textContent = "";
-        this.#divContainer.appendChild(blankLabel);
+        const legacyDOM = operationsKvSection.hasAttribute("light-dom");
+        if (legacyDOM) {
+            const labelWrap = document.createElement("div");
+            labelWrap.style.display = "contents";
+            labelWrap.appendChild(blankLabel);
+            this.#divContainer.appendChild(labelWrap);
+        } else {
+            this.#divContainer.appendChild(blankLabel);
+        }
 
         /* it's the div that looks like an input.
          * and exactly here we store the operation attributes */
@@ -78,13 +86,18 @@ class OperationInput {
         this.update(kvMap);
 
         // Edit button
-        const editBtn = document.createElement("button");
+        const editBtn = document.createElement(legacyDOM ? "a" : "button");
+        if (legacyDOM) {
+            editBtn.href = "#";
+            editBtn.setAttribute("role", "button");
+        }
         editBtn.title = "Edit operation";
         const icon = document.createElement("i");
         icon.className = "fa fa-pencil-alt";
         editBtn.appendChild(icon);
         editBtn.className = "btn btn-info btn-sm";
-        editBtn.onclick = () => {
+        editBtn.onclick = event => {
+            event.preventDefault();
             // don't use the old kvMap, it might be outdated
             const currentKvMap = this.getFrontendKValues();
             new OperationPopup(this.#operationsKvSection, this.#name, this.#defaultValue
@@ -121,7 +134,14 @@ class OperationInput {
 
         inputGroup.appendChild(this.#spansPlaceholder);
 
-        this.#divContainer.appendChild(inputGroup);
+        if (legacyDOM) {
+            const controlWrap = document.createElement("div");
+            controlWrap.style.display = "contents";
+            controlWrap.appendChild(inputGroup);
+            this.#divContainer.appendChild(controlWrap);
+        } else {
+            this.#divContainer.appendChild(inputGroup);
+        }
     }
 
     update(kvMap) {
@@ -153,7 +173,8 @@ class OperationInput {
                 } else {
                     const newSpan = new Span(key, value);
                     this.#spans.push(newSpan);
-                    this.#spansPlaceholder?.appendChild(newSpan.getHTML());
+                    this.#spansPlaceholder?.insertBefore(newSpan.getHTML(),
+                        this.#spansPlaceholder.querySelector(".btn"));
                 }
                 handledKeys.add(key);
             });
