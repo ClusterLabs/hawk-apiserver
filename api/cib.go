@@ -1071,6 +1071,15 @@ func PrimitiveUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Verify the requested resource actually exists in the CIB before mutating it.
+	// Without this check, an empty/mismatched query result would still fall through
+	// to the update logic below and let the caller create or modify arbitrary elements.
+	if cibPrimitive.ID == "" || cibPrimitive.ID != frontendPrimitive.ID {
+		http.Error(w, "Primitive not found", http.StatusNotFound)
+		log.Printf("[PrimitiveUpdateHandler] requested primitive %q not found in CIB", frontendPrimitive.ID)
+		return
+	}
+
 	// 3. Apply instance_attributes
 	applyAttributes(cibPrimitive.InstanceAttributes.NVPairs, frontendPrimitive.InstanceAttributes.NVPairs,
 		frontendPrimitive.ID, "instance_attributes", "primitive", w)
