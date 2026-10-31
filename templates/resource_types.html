@@ -1,0 +1,38 @@
+{{ define "content" }}
+<link rel="stylesheet" href="/static/css/primitive_edit.css">
+<link rel="stylesheet" href="/static/css/resource_types.css">
+<script src="/static/js/classes/XAlert.js"></script>
+<script src="/static/js/resource_types.js" defer></script>
+<div class="edit-layout resource-types">
+  <div class="edit-left">
+    {{ if .AlertMessage }}
+    <x-alert type="{{ .AlertType }}" message="{{ .AlertMessage }}" visible="true"></x-alert>
+    {{ end }}
+    <h1><i class="fas fa-code page" aria-hidden="true"></i> Add Resource
+      <a href="/cib/live/resources" class="btn btn-default pull-right"><i class="fas fa-list" aria-hidden="true"></i> List</a>
+    </h1>
+    <ul class="nav nav-pills nav-stacked resource-type-list">
+      {{ range .ResourceTypes }}
+      <li>
+        <a class="resource-type-link" href="/cib/live/{{ .Path }}/new" data-resource-type="{{ .Path }}"{{ if eq .Path "clones" }} data-help-filter=".clone"{{ else if eq .Path "groups" }} data-help-filter=".group"{{ end }} aria-describedby="help-{{ .Path }}">
+          <span class="resource-type-icon" aria-hidden="true">{{ if eq .Path "masters" }}<span>x<sup>2</sup></span>{{ else }}<i class="{{ if or (eq .Path "primitives") (eq .Path "clones") }}far{{ else }}fas{{ end }} fa-{{ .Icon }}"></i>{{ end }}</span>
+          <span class="resource-type-name">{{ .Name }}</span>
+          <i class="fas fa-circle-plus resource-type-add" aria-hidden="true"></i>
+        </a>
+      </li>
+      {{ end }}
+    </ul>
+  </div>
+  <aside class="edit-right" aria-label="Resource help">
+    <h2>Resources</h2>
+    <p>Configure a cluster resource for each service or application that you want to make highly available, such as a Web server, database, file system or virtual machine.</p>
+    <p>Set up the service or application first, and ensure its requirements are met on every cluster node before configuring and starting the resource.</p>
+    {{ range .ResourceTypes }}
+    <section id="help-{{ .Path }}" class="resource-type-help">
+      <h3>{{ .Name }}</h3>
+      <p>{{ .Help }}</p>
+    </section>
+    {{ end }}
+  </aside>
+</div>
+{{ end }}
