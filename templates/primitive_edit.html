@@ -10,7 +10,8 @@
    */
   window.resourceData = {
     ResourceID: "{{ .ResourceID }}",
-    ResourceAgent: "{{ .ResourceAgent }}"
+    ResourceAgent: "{{ .ResourceAgent }}",
+    CreateMode: {{ if .CreateMode }}true{{ else }}false{{ end }}
   };
 </script>
 <script src="/static/js/XCSS.js"></script>
@@ -45,14 +46,15 @@
 
 
     <div style="display: flex; justify-content: space-between; align-items: center;">
-      <h2><i class="fas fa-pencil-alt"></i> Edit Primitive: {{ .ResourceID }}</h2>
-      <div id="copy-rename-delete-container">
+      <h2>{{ if .CreateMode }}<i class="fas fa-file"></i> Create Primitive{{ else }}<i class="fas fa-pencil-alt"></i> Edit Primitive: {{ .ResourceID }}{{ end }}</h2>
+      {{ if not .CreateMode }}<div id="copy-rename-delete-container">
         <button class="btn btn-white" name="copy" onclick="toggleUpdateCreateMode(true)"><i class="fas fa-copy"></i> Copy</button>
         <button class="btn btn-white" name="rename" onclick="new RenamePopup(window.resourceData.ResourceID)"><i class="fas fa-font"></i> Rename</button>
         <button class="btn btn-white text-danger" name="delete" onclick="new DeletePopup(window.resourceData.ResourceID)"><i class="fas fa-trash"></i> Delete</button>
-      </div>
+      </div>{{ end }}
     </div>
 
+    {{ if .CreateMode }}<div class="primitive-create-panel">{{ end }}
     <div class="form-section">
       <div class="kvsection-row">
         <label>Resource ID</label>
@@ -62,47 +64,80 @@
           value="{{ .ResourceID }}"
           class="form-control"
           name="primitive[id]"
-          readonly
+          {{ if not .CreateMode }}readonly{{ end }}
           style="width:60%;"
         >
       </div>
 
       <x-select
         id="class-xselect"
+        select-name="primitive[clazz]"
+        {{ if .CreateMode }}light-dom{{ end }}
         label="Class"
         description="Standard which the resource agent conforms to."
         value="{{ .Class }}"
         options-api="/api/cib/primitive/classes/fetch"
-        onchange="changeClass()"
-        disabled="true">
+        {{ if .CreateMode }}append-blank="true"{{ end }}
+        disabled="{{ if .CreateMode }}false{{ else }}true{{ end }}">
       </x-select>
 
       <x-select
         id="provider-xselect"
+        select-name="primitive[provider]"
+        {{ if .CreateMode }}light-dom{{ end }}
         label="Provider"
         description="Vendor or project which provided the resource agent."
         value="{{ .Provider }}"
         options-api="/api/cib/primitive/providers/fetch"
-        onchange="changeProvider()"
-        disabled="true"
+        defer-init="true"
+        disabled="{{ if .CreateMode }}false{{ else }}true{{ end }}"
         hide-when-empty="true">
       </x-select>
 
       <x-select
         id="type-xselect"
+        select-name="primitive[type]"
+        {{ if .CreateMode }}light-dom{{ end }}
         label="Type"
         description="Resource agent name."
         value="{{ .Type }}"
         options-api="/api/cib/primitive/types/fetch"
-        disabled="true">
+        defer-init="true"
+        disabled="{{ if .CreateMode }}false{{ else }}true{{ end }}">
       </x-select>
 
-      <button class="btn btn-white btn-info" onclick='new RAInfoPopup("{{ .ResourceID }}", "{{ .ResourceAgent }}")'>
+      <button class="btn btn-white btn-info" id="agent-info-button" onclick="showAgentInfo()" {{ if .CreateMode }}disabled{{ end }}>
         <i class="fas fa-info"></i>
       </button>
     </div>
 
     <div class="accordion">
+      <div id="primitive-fields">{{ if not .CreateMode }}{{ template "primitive_fields" . }}{{ end }}</div>
+      <template id="primitive-fields-template">{{ template "primitive_fields" . }}</template>
+
+      <div style="margin-top: 20px; text-align: center;">
+        <button id="apply-create-button" name="submit" class="btn btn-success" onclick="clickApplyCreateButton(this)" {{ if .CreateMode }}disabled{{ end }}>{{ if .CreateMode }}Create{{ else }}Apply{{ end }}</button>
+        <!-- I would rather expect `onclick="history.back()"` however old hawk forwards to /cib/live/config/edit -->
+        <a class="btn btn-white" href="{{ if .CreateMode }}/cib/live/resources/types{{ else }}/cib/live/config/edit{{ end }}">Back</a>
+      </div>
+
+    </div>
+    {{ if .CreateMode }}</div>{{ end }}
+  </div>
+  <div class="edit-right">
+    <h4>Primitive</h4>
+    <p>Primitive resources are the most basic type of resource.</p>
+    <p>To create a primitive, define an ID and specify some parameters like class, provider, and type.</p>
+    <p>An example of a primitive resource is <code>ocf:heartbeat:IPaddr</code>, which can be used to configure a floating IP address for your cluster.</p>
+    <br>
+    <h4 id="agent-shortdesc"></h4><div id="agent-longdesc"></div>
+    <br>
+    <h4 id="field-shortdesc"></h4><p id="field-longdesc"></p>
+  </div>
+</div>
+{{ end }}
+
+{{ define "primitive_fields" }}
       <details id="details-instance_attributes" open>
         <summary><strong>Parameters</strong></summary>
         <x-kvgroup
@@ -119,6 +154,7 @@
         <summary><strong>Operations</strong></summary>
         <x-operations-kvgroup
           id="kvgroup-operations"
+          {{ if .CreateMode }}create-mode light-dom{{ end }}
           resource-id="{{ .ResourceID }}"
           resource-agent="{{ .ResourceAgent }}"
           options-api="/api/cib/resource/operations/fetch"
@@ -130,6 +166,7 @@
         <summary><strong>Meta Attributes</strong></summary>
         <x-kvgroup
           id="kvgroup-meta_attributes"
+          {{ if .CreateMode }}light-dom{{ end }}
           name="meta_attributes"
           resource-id="{{ .ResourceID }}"
           resource-agent="{{ .ResourceAgent }}"
@@ -148,23 +185,4 @@
         </x-inputs-kvgroup>
       </details>
 
-      <div style="margin-top: 20px; text-align: center;">
-        <button id="apply-create-button" name="submit" class="btn btn-success" onclick="clickApplyCreateButton(this)">Apply</button>
-        <!-- I would rather expect `onclick="history.back()"` however old hawk forwards to /cib/live/config/edit -->
-        <a class="btn btn-white" href="/cib/live/config/edit">Back</a>
-      </div>
-
-    </div>
-  </div>
-  <div class="edit-right">
-    <h4>Primitive</h3>
-    <p>Primitive resources are the most basic type of resource.</p>
-    <p>To create a primitive, define an ID and specify some parameters like class, provider, and type.</p>
-    <p>An example of a primitive resource is <code>ocf:heartbeat:IPaddr</code>, which can be used to configure a floating IP address for your cluster.</p>
-    <br>
-    <h4 id="agent-shortdesc"></h3><div id="agent-longdesc"></div>
-    <br>
-    <h4 id="field-shortdesc"></h3><p id="field-longdesc"></p>
-  </div>
-</div>
 {{ end }}

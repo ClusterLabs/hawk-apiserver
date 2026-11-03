@@ -54,12 +54,14 @@ class XInputsKvGroup extends XKvGroupBase {
     this.#container.appendChild(this.#inputRow);
 
     // Fetch data
-    this.#init()
-      .catch(err => console.error("Failed to init x-kvgroup:", err))
+    this.loaded = this.#init()
+      .then(() => true)
+      .catch(err => { console.error("Failed to init x-kvgroup:", err); return false; })
       .finally(() => this.#readyResolve());
   }
 
   #init(appendBlank) {
+    if (!this.#cibObject) return Promise.resolve();
     return fetch(this.#optionsApi, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

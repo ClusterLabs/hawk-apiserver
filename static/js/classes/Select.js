@@ -13,6 +13,7 @@ class Select {
           // not sure it's the right place for it,
           // because thus we are loosing abstraction from cib. (#FIXME later)
   #onChangeEvent = null;
+  #loadVersion = 0;
 
   constructor(externalContainer, alignContainer, name, value, apiEntryGetOptions, apiEntrySetOptions, enabled, shadowed, cibID) {
     this.#externalContainer = externalContainer;
@@ -103,6 +104,7 @@ class Select {
 
   // FIXME: Use the init here instead of the KVSection
   init(apiArguments, appendBlank) {
+    const version = ++this.#loadVersion;
     if (appendBlank) {
       this.appendBlankOption();
     }
@@ -120,6 +122,7 @@ class Select {
         return res.json();
       })
         .then(content => {
+          if (version !== this.#loadVersion) return;
           const contentOptions = content.Options || [];
           contentOptions.forEach(o => {
             const optionObj = new SelectOption(o.Name, o.Type, o.DefaultValue, o.Shortdesc, o.Longdesc, o.PossibleValues);

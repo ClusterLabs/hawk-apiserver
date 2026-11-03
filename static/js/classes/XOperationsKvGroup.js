@@ -18,7 +18,20 @@ class XOperationsKvGroup extends window.XKvGroupBase {
     this.#resourceID = this.getAttribute("resource-id");
     const resourceAgent = this.getAttribute("resource-agent");
 
-    this.#container = this.shadowRoot;
+    this.#container = this.contentRoot;
+    if (this.hasAttribute("light-dom")) {
+      const list = document.createElement("div");
+      list.id = "oplist";
+      const fieldset = document.createElement("fieldset");
+      fieldset.className = "operation-compat-container";
+      const content = document.createElement("div");
+      const rows = document.createElement("div");
+      content.appendChild(rows);
+      fieldset.appendChild(content);
+      list.appendChild(fieldset);
+      this.#container.appendChild(list);
+      this.#container = rows;
+    }
 
     this.#selectRow = document.createElement("div");
     this.#selectRow.className = "kvsection-row";
@@ -56,7 +69,7 @@ class XOperationsKvGroup extends window.XKvGroupBase {
     controlWrap.appendChild(addBtn);
     this.#container.appendChild(this.#selectRow);
 
-    this.#init({ ResourceID: this.#resourceID, ResourceAgent: resourceAgent }, true);
+    this.loaded = this.#init({ ResourceID: this.#resourceID, ResourceAgent: resourceAgent }, true);
   }
 
   #createOption(name, type, defaultValue, shortdesc, longdesc, possibleValues) {
@@ -67,24 +80,35 @@ class XOperationsKvGroup extends window.XKvGroupBase {
   #init(apiArguments, appendBlank) {
     if (appendBlank) this.#selectObj.appendBlankOption();
 
-    fetch(this.#optionsApi, {
+    return fetch(this.#optionsApi, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(apiArguments)
     })
-      .then(res => res.json())
-      .then(content => this.#populateOptions(content.Options || []))
-      .catch(err => console.error("Failed to initialize x-operations-kvgroup:", err));
+      .then(async res => { if (!res.ok) throw new Error(await res.text()); return res.json(); })
+      .then(content => { this.#populateOptions(content.Options || []); return true; })
+      .catch(err => { console.error("Failed to initialize x-operations-kvgroup:", err); return false; });
   }
 
   #populateOptions(options) {
+    if (this.hasAttribute("create-mode")) {
+      const order = ["start", "stop", "monitor"];
+      const rank = name => order.includes(name) ? order.indexOf(name) : order.length;
+      options = [...options].sort((a, b) => rank(a.Name) - rank(b.Name));
+    }
     options.forEach(o => {
       this.#createOption(o.Name, o.Type, o.DefaultValue, o.Shortdesc, o.Longdesc, o.PossibleValues);
-      if (o.CibID) {
+      const createDefault = this.hasAttribute("create-mode") && ["start", "stop", "monitor"].includes(o.Name);
+      if (o.CibID || createDefault) {
         // o.CibNameValues array --> kvMap object
         const kvMap = Object.fromEntries(
-          (o.CibNameValues || []).map(nv => [nv.Name, nv.Value])
+          (o.CibID ? o.CibNameValues || [] : o.DefaultValues || [])
+            // Optional policy defaults belong in the attribute picker until added.
+            .filter(nv => o.CibID || ["interval", "timeout", "depth", "role"].includes(nv.Name))
+            .filter(nv => nv.Value !== "" && nv.Value != null)
+            .map(nv => [nv.Name, nv.Value])
         );
+        if (createDefault && o.Name === "monitor" && !kvMap.interval) kvMap.interval = "20s";
         this.createInput(o.Name, o.DefaultValue, o.Shortdesc, o.Longdesc, o.Type,
           o.PossibleValues, o.Required, o.CibID, kvMap);
       }

@@ -6,8 +6,9 @@ class Primitive {
     #paramsKVGroup;
     #metaKVGroup;
     #operationsKVGroup;
+    #utilizationsKVGroup;
     constructor(resourceIDInput, classSelect, providerSelect, typeSelect,
-        paramsKVGroup, metaKVGroup, operationsKVGroup) {
+        paramsKVGroup, metaKVGroup, operationsKVGroup, utilizationsKVGroup) {
         this.#resourceIDInput = resourceIDInput;
         this.#classSelect = classSelect;
         this.#providerSelect = providerSelect;
@@ -16,10 +17,11 @@ class Primitive {
         this.#paramsKVGroup = paramsKVGroup;
         this.#metaKVGroup = metaKVGroup;
         this.#operationsKVGroup = operationsKVGroup;
+        this.#utilizationsKVGroup = utilizationsKVGroup;
     }
 
     async create() {
-        const newID = this.#resourceIDInput.value;
+        const newID = this.#resourceIDInput.value.trim();
 
         const className = this.#classSelect.value || "";
         const providerName = this.#providerSelect.value || "";
@@ -54,6 +56,7 @@ class Primitive {
                 id: `${newID}-meta_attributes`,
                 nvpair: metaAttrsList
             },
+            utilizations: Object.entries(this.#utilizationsKVGroup?.getFrontendKValues() || {}).map(([name, value]) => ({ id: `${newID}-utilization-${name}`, name, value })),
             operations: operationsList
         };
 
@@ -71,11 +74,8 @@ class Primitive {
             })
             .then(status => {
                 console.log("Create status:", status);
-                window.location.href = `/cib/live/primitives/${newID}/edit?flash=created`;
-            })
-            .catch(err => {
-                console.error("Create error:", err);
-                window.location.href = `/cib/live/primitives/${newID}/edit?flash=error&msg=` + encodeURIComponent(err.message);
+                if (status.error || status.status !== "ok") throw new Error(status.error || "Unable to create primitive.");
+                window.location.href = `/cib/live/primitives/${encodeURIComponent(newID)}/edit?flash=created`;
             });
     }
 }

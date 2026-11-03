@@ -120,8 +120,7 @@ func main() {
 	liveHandler := authMiddleware(api.LiveStatusHandler)
 	mux.HandleFunc("/cib/live", liveHandler)
 	mux.HandleFunc("/cib/live/", func(w http.ResponseWriter, r *http.Request) {
-		/*  "/cib/live/" is a special case. It also matches for example /cib/live/resources/types
-		 *  but  /cib/live/resources/types should be handled in Ruby instead */
+		// Unported pages beneath /cib/live/ still use the Ruby fallback.
 		if r.URL.Path == "/cib/live/" {
 			liveHandler(w, r)
 			return
@@ -133,6 +132,8 @@ func main() {
 	mux.HandleFunc("/cib/live/commands/", authMiddleware(api.CommandsHandler))
 	mux.HandleFunc("/cib/live/resources/types", authMiddleware(api.ResourceTypesHandler))
 	mux.HandleFunc("/cib/live/resources/types/", authMiddleware(api.ResourceTypesHandler))
+	mux.HandleFunc("/cib/live/primitives/new", authMiddleware(api.PrimitiveNewHandler))
+	mux.HandleFunc("/cib/live/primitives/new/", authMiddleware(api.PrimitiveNewHandler))
 	mux.HandleFunc("/cib/live/primitives", authMiddleware(api.ResourceEditHandler))
 	mux.HandleFunc("/cib/live/primitives/", authMiddleware(api.ResourceEditHandler))
 	mux.HandleFunc("/cib/live/clones", authMiddleware(api.CloneEditHandler))

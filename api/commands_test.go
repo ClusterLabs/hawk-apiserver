@@ -25,6 +25,11 @@ func TestCommandsHandler(t *testing.T) {
 		if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `/static/js/commands.js`) {
 			t.Fatalf("page %s: status %d, body %s", path, response.Code, response.Body.String())
 		}
+		for _, marker := range []string{"<<<<<<<", "=======", ">>>>>>>"} {
+			if strings.Contains(response.Body.String(), marker) {
+				t.Fatalf("page %s contains an unresolved merge conflict: %s", path, marker)
+			}
+		}
 	}
 
 	response := httptest.NewRecorder()
