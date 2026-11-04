@@ -1,0 +1,57 @@
+{{ define "content" }}
+<link rel="stylesheet" href="/static/css/primitive_edit.css">
+<link rel="stylesheet" href="/static/css/common.css">
+<link rel="stylesheet" href="/static/css/group_new.css">
+<script src="/static/js/XCSS.js"></script>
+<script src="/static/js/classes/XAlert.js"></script>
+<script src="/static/js/classes/SelectOption.js"></script>
+<script src="/static/js/classes/Select.js"></script>
+<script src="/static/js/classes/Input.js"></script>
+<script src="/static/js/classes/XKvGroupBase.js"></script>
+<script src="/static/js/classes/XKvGroup.js"></script>
+<script src="/static/js/classes/Group.js"></script>
+<script src="/static/js/group_new.js" defer></script>
+
+<div class="edit-layout">
+  <div class="edit-left">
+    <x-alert id="group-alert" visible="false"></x-alert>
+    <h2><i class="fas fa-users" aria-hidden="true"></i> Create Group</h2>
+    <form id="group-create-form" class="primitive-create-panel">
+      <div class="form-section">
+        <div class="kvsection-row kvsection-row-thin">
+          <label for="input-group-id">Group ID</label>
+          <input id="input-group-id" class="form-control group-control" name="group[id]" type="text" required>
+        </div>
+        <div class="kvsection-row kvsection-row-thin group-children-row">
+          <label id="group-children-label">Children</label>
+          <ul id="group-children" class="list-group sortable group-control" aria-labelledby="group-children-label" aria-busy="true">
+            <li class="list-group-item">Loading…</li>
+          </ul>
+        </div>
+      </div>
+      <div class="accordion">
+        <details id="details-meta_attributes" open>
+          <summary><strong>Meta Attributes</strong></summary>
+          <x-kvgroup id="kvgroup-meta_attributes" name="meta_attributes" resource-id=""
+            field-prefix="group[meta]" light-dom
+            options-api="/api/cib/group/meta-attributes/fetch"
+            initial-values='{"target-role":"Stopped"}'>
+          </x-kvgroup>
+        </details>
+        <div class="group-actions">
+          <button id="create-group-button" name="submit" class="btn btn-success" type="submit" disabled>Create</button>
+          <a class="btn btn-white" href="/cib/live/resources/types">Back</a>
+        </div>
+      </div>
+    </form>
+  </div>
+  <aside class="edit-right" aria-label="Group help">
+    <h4>Group</h4>
+    <p>Resource groups contain a set of resources that need to be located together, be started sequentially and stopped in the reverse order.</p>
+    <p>To create a group, define an ID and select the resources that will be members of the group.</p>
+    <p>An example for use of a group is a Web server that requires an IP address and a file system. Configure IP address and file system as separate resources and combine them into a cluster resource group. In case of a software or hardware malfunction, the group will fail over to another cluster node, similar to an individual cluster resource.</p>
+    <br>
+    <h4 id="field-shortdesc"></h4><p id="field-longdesc"></p>
+  </aside>
+</div>
+{{ end }}
