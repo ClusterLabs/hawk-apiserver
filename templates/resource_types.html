@@ -14,7 +14,7 @@
     <ul class="nav nav-pills nav-stacked resource-type-list">
       {{ range .ResourceTypes }}
       <li>
-        <a class="resource-type-link" href="/cib/live/{{ .Path }}/new" data-resource-type="{{ .Path }}"{{ if eq .Path "clones" }} data-help-filter=".clone"{{ else if eq .Path "groups" }} data-help-filter=".group"{{ end }} aria-describedby="help-{{ .Path }}">
+        <a class="resource-type-link" href="/cib/live/{{ .Path }}/new" data-resource-type="{{ .Path }}"{{ if eq .Path "clones" }} data-help-filter=".clone"{{ else if eq .Path "tags" }} data-help-filter=".tag"{{ else if eq .Path "groups" }} data-help-filter=".group"{{ end }} aria-describedby="help-{{ .Path }}">
           <span class="resource-type-icon" aria-hidden="true">{{ if eq .Path "masters" }}<span>x<sup>2</sup></span>{{ else }}<i class="{{ if or (eq .Path "primitives") (eq .Path "clones") }}far{{ else }}fas{{ end }} fa-{{ .Icon }}"></i>{{ end }}</span>
           <span class="resource-type-name">{{ .Name }}</span>
           <i class="fas fa-circle-plus resource-type-add" aria-hidden="true"></i>

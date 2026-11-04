@@ -1,0 +1,6 @@
+.tag-control { width: 60%; }
+.tag-objects-row { align-items: flex-start; }
+.tag-objects-row > label { padding-top: 10px; }
+#tag-objects { padding-left: 0; margin-bottom: 0; }
+#tag-objects input[type="checkbox"] { margin-right: 5px; }
+.tag-actions { margin-top: 20px; text-align: center; }
