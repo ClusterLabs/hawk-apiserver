@@ -134,6 +134,9 @@ func main() {
 	mux.HandleFunc("/cib/live/resources/types/", authMiddleware(api.ResourceTypesHandler))
 	mux.HandleFunc("/cib/live/primitives/new", authMiddleware(api.PrimitiveNewHandler))
 	mux.HandleFunc("/cib/live/primitives/new/", authMiddleware(api.PrimitiveNewHandler))
+	mux.HandleFunc("/cib/live/groups/new", authMiddleware(api.GroupNewHandler))
+	mux.HandleFunc("/cib/live/groups/new/", authMiddleware(api.GroupNewHandler))
+	mux.HandleFunc("/cib/live/groups/", authMiddleware(api.GroupRubyHandler))
 	mux.HandleFunc("/cib/live/primitives", authMiddleware(api.ResourceEditHandler))
 	mux.HandleFunc("/cib/live/primitives/", authMiddleware(api.ResourceEditHandler))
 	mux.HandleFunc("/cib/live/clones", authMiddleware(api.CloneEditHandler))
@@ -149,6 +152,9 @@ func main() {
 
 	// resource = primitive or clone
 	mux.HandleFunc("/api/cib/primitive/create", authMiddleware(api.PrimitiveCreateHandler))
+	mux.HandleFunc("/api/cib/group/create", authMiddleware(api.GroupCreateHandler))
+	mux.HandleFunc("/api/cib/group/children/fetch", authMiddleware(api.FetchGroupChildren))
+	mux.HandleFunc("/api/cib/group/meta-attributes/fetch", authMiddleware(api.FetchGroupMetaAttributes))
 	mux.HandleFunc("/api/cib/clone/create", authMiddleware(api.CloneCreateHandler))
 	mux.HandleFunc("/api/cib/primitive/update", authMiddleware(api.PrimitiveUpdateHandler)) // Can't find where it was used (let's not remove it though)
 	mux.HandleFunc("/api/cib/resource/rename", authMiddleware(api.ResourceRenameHandler))

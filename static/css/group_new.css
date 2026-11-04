@@ -1,0 +1,35 @@
+.group-control {
+  width: 60%;
+}
+
+.group-children-row {
+  align-items: flex-start;
+}
+
+.group-children-row > label {
+  padding-top: 10px;
+}
+
+#group-children {
+  padding-left: 0;
+  margin-bottom: 0;
+}
+
+#group-children input[type="checkbox"] {
+  margin-right: 5px;
+}
+
+#group-children .group-child-handle {
+  float: right;
+  cursor: move;
+  padding: 3px;
+}
+
+#group-children .dragging {
+  opacity: .5;
+}
+
+.group-actions {
+  margin-top: 20px;
+  text-align: center;
+}
