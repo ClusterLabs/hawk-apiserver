@@ -1,0 +1,58 @@
+{{ define "content" }}
+<link rel="stylesheet" href="/static/css/primitive_edit.css">
+<link rel="stylesheet" href="/static/css/common.css">
+<link rel="stylesheet" href="/static/css/alert_new.css">
+<script src="/static/js/XCSS.js"></script>
+<script src="/static/js/classes/SelectOption.js"></script>
+<script src="/static/js/classes/Select.js"></script>
+<script src="/static/js/classes/Input.js"></script>
+<script src="/static/js/classes/XKvGroupBase.js"></script>
+<script src="/static/js/classes/XKvGroup.js"></script>
+<script src="/static/js/classes/Popup.js"></script>
+<script src="/static/js/classes/AlertAttributes.js"></script>
+<script src="/static/js/classes/AlertRecipientPopup.js"></script>
+<script src="/static/js/classes/Alert.js"></script>
+<script src="/static/js/alert_new.js" defer></script>
+<div class="edit-layout">
+  <div class="edit-left">
+    <h2><i class="far fa-copy" aria-hidden="true"></i> Create Alert</h2>
+    <form id="alert-create-form" class="primitive-create-panel">
+      <div id="alert-error" class="alert alert-danger" role="alert" hidden></div>
+      <div class="form-section">
+        <div class="kvsection-row kvsection-row-thin"><label for="input-alert-id">Alert ID</label>
+          <input id="input-alert-id" name="alert[id]" class="form-control alert-control" required></div>
+        <div class="kvsection-row kvsection-row-thin"><label for="input-alert-path">Path</label>
+          <input id="input-alert-path" name="alert[path]" class="form-control alert-control" required></div>
+      </div>
+      <div class="accordion">
+        <details open><summary><strong>Recipients</strong></summary>
+          <div id="alert-recipients"></div>
+          <div class="kvsection-row"><div class="alert-control"><button id="add-recipient-button" class="btn btn-default" type="button" title="Add Recipient"><i class="fa fa-plus" aria-hidden="true"></i></button></div></div>
+        </details>
+        <details open><summary><strong>Instance Attributes</strong></summary><div id="alert-params"></div></details>
+        <details open><summary><strong>Meta Attributes</strong></summary>
+          <x-kvgroup id="kvgroup-meta_attributes" name="meta_attributes" resource-id=""
+            field-prefix="alert[meta]" options-api="/api/cib/alert/meta-attributes/fetch"></x-kvgroup>
+        </details>
+        <div class="alert-actions"><button id="create-alert-button" name="submit" class="btn btn-success" type="submit" disabled>Create</button>
+          <a class="btn btn-white" href="/cib/live/resources/types">Back</a></div>
+      </div>
+    </form>
+  </div>
+  <aside class="edit-right" aria-label="Alert help">
+<h4>Alert</h4>
+<p>Alerts may be configured to take some external action when a cluster event occurs (node failure, resource starting or stopping, etc.).</p>
+<p>As with resource agents, the cluster calls an external program (an alert agent) to handle alerts. The cluster passes information about the event to the agent via environment variables. Agents can do anything desired with this information (send an e-mail, log to a file, update a monitoring system, etc.).</p>
+<p>Multiple alert agents may be configured; the cluster will call all of them for each event.</p>
+<p>Alert agents will be called only on cluster nodes. They will be called for events involving Pacemaker Remote nodes, but they will never be called on those nodes.</p>
+<h4>Recipients</h4>
+<p>Usually alerts are directed towards a recipient. Thus each alert may be additionally configured with one or more recipients. The cluster will call the agent separately for each recipient.</p>
+<p>The recipient may be anything the alert agent can recognize — an IP address, an e-mail address, a file name, whatever the particular agent supports.</p>
+<h4>Instance Attributes</h4>
+<p>Agent-specific configuration values may be configured as instance attributes. These will be passed to the agent as additional environment variables. The number, names and allowed values of these instance attributes are completely up to the particular agent.</p>
+<h4>Meta Attributes</h4>
+<p>Meta-attributes can be configured for alert agents to affect how Pacemaker calls them.</p>
+    <h4 id="field-shortdesc"></h4><p id="field-longdesc"></p>
+  </aside>
+</div>
+{{ end }}
