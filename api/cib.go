@@ -60,6 +60,7 @@ type ClusterDetails struct {
  ***************************/
 
 type CIB struct {
+	TagObjects     []string      `xml:"-"`
 	XMLName        xml.Name      `xml:"cib"`
 	ValidateWith   string        `xml:"validate-with,attr"`
 	Epoch          string        `xml:"epoch,attr"`
@@ -90,6 +91,11 @@ func GetCIB() (CIB, int, error) {
 
 	var cib CIB
 	if err := xml.Unmarshal(output, &cib); err != nil {
+		return CIB{}, 0, err
+	}
+
+	cib.TagObjects, err = tagObjectsFromXML(output)
+	if err != nil {
 		return CIB{}, 0, err
 	}
 

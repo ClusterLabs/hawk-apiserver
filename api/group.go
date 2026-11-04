@@ -75,6 +75,11 @@ func groupChildren(cib CIB) []string {
 	for _, primitive := range cib.Configuration.Primitives {
 		children = append(children, primitive.ID)
 	}
+	sortResourceIDs(children)
+	return children
+}
+
+func sortResourceIDs(children []string) {
 	sort.SliceStable(children, func(i, j int) bool {
 		a := groupNumber.FindAllString(strings.ToLower(children[i]), -1)
 		b := groupNumber.FindAllString(strings.ToLower(children[j]), -1)
@@ -92,7 +97,6 @@ func groupChildren(cib CIB) []string {
 		}
 		return len(a) < len(b)
 	})
-	return children
 }
 
 func FetchGroupChildren(w http.ResponseWriter, r *http.Request) {

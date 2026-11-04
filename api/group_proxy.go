@@ -26,6 +26,14 @@ func (r *groupPageResponse) Write(data []byte) (int, error) {
 // Editing remains in Ruby. Bridge the Go creation flash into its existing flash
 // container without changing the installed Rails application.
 func GroupRubyHandler(w http.ResponseWriter, r *http.Request) {
+	resourceRubyHandler(w, r, "Group")
+}
+
+func TagRubyHandler(w http.ResponseWriter, r *http.Request) {
+	resourceRubyHandler(w, r, "Tag")
+}
+
+func resourceRubyHandler(w http.ResponseWriter, r *http.Request, resource string) {
 	if Routehandler == nil {
 		http.NotFound(w, r)
 		return
@@ -42,9 +50,9 @@ func GroupRubyHandler(w http.ResponseWriter, r *http.Request) {
 	body := response.body.Bytes()
 	if response.status == http.StatusOK && strings.Contains(response.header.Get("Content-Type"), "text/html") && response.header.Get("Content-Encoding") == "" {
 		const container = `<div class="row" id="flashes">`
-		const flash = `<div class="alert-success alert alert-dismissible" role="alert">` +
+		flash := `<div class="alert-success alert alert-dismissible" role="alert">` +
 			`<button class="close" data-dismiss="alert" type="button"><span aria-hidden="true">&times;</span>` +
-			`<span class="sr-only">Close</span></button><p>Group created successfully</p></div>` +
+			`<span class="sr-only">Close</span></button><p>` + resource + ` created successfully</p></div>` +
 			`<script>const groupFlashURL = new URL(window.location.href); groupFlashURL.searchParams.delete("flash"); history.replaceState({}, "", groupFlashURL);</script>`
 		body = bytes.Replace(body, []byte(container), []byte(container+flash), 1)
 		response.header.Del("Content-Length")

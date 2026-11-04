@@ -1,0 +1,43 @@
+{{ define "content" }}
+<link rel="stylesheet" href="/static/css/primitive_edit.css">
+<link rel="stylesheet" href="/static/css/common.css">
+<link rel="stylesheet" href="/static/css/tag_new.css">
+<script src="/static/js/XCSS.js"></script>
+<script src="/static/js/classes/Tag.js"></script>
+<script src="/static/js/tag_new.js" defer></script>
+
+<div class="edit-layout">
+  <div class="edit-left">
+    <h2><i class="far fa-copy" aria-hidden="true"></i> Create Tag</h2>
+    <form id="tag-create-form" class="primitive-create-panel">
+      <div id="tag-alert" class="alert alert-danger" role="alert" hidden></div>
+      <div class="form-section">
+        <div class="kvsection-row kvsection-row-thin">
+          <label for="input-tag-id">Tag ID</label>
+          <input id="input-tag-id" class="form-control tag-control" name="tag[id]" type="text" required>
+        </div>
+        <div class="kvsection-row kvsection-row-thin tag-objects-row">
+          <label id="tag-objects-label">Objects</label>
+          <ul id="tag-objects" class="list-group tag-control" aria-labelledby="tag-objects-label" aria-busy="true">
+            <li class="list-group-item">Loading…</li>
+          </ul>
+        </div>
+      </div>
+      <div class="accordion">
+        <div class="tag-actions">
+          <button id="create-tag-button" name="submit" class="btn btn-success" type="submit" disabled>Create</button>
+          <a class="btn btn-white" href="/cib/live/resources/types">Back</a>
+        </div>
+      </div>
+    </form>
+  </div>
+  <aside class="edit-right" aria-label="Tag help">
+    <h4>Tag</h4>
+    <p>Tags are a way to refer to multiple resources at once, without creating any colocation or ordering relationship between them. You can use tags for grouping conceptually related resources. All resources belonging to a tag can then be started or stopped with a single command.</p>
+    <p>To create a tag, define an ID and select the objects that you want to refer to with the tag.</p>
+    <p>For example, if you have several resources related to a database, you can add all related resources to a tag named <code>database</code>.</p>
+    <br>
+    <h4 id="field-shortdesc"></h4><p id="field-longdesc"></p>
+  </aside>
+</div>
+{{ end }}
