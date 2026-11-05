@@ -21,4 +21,5 @@ if (resourceTypeLinks.length) showResourceHelp(resourceTypeLinks[0].dataset.reso
 
 document.getElementById("monitoringMenu").classList.remove("in");
 document.getElementById("configurationMenu").classList.add("in");
-document.querySelector('a[href="/cib/live/resources/types"]').setAttribute("aria-current", "page");
+const typesMenuPath = window.location.pathname.replace(/\/$/, "");
+document.querySelector(`a[href="${typesMenuPath}"]`)?.setAttribute("aria-current", "page");
