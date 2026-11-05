@@ -1,11 +1,6 @@
 package api
 
-import (
-	"context"
-	"net/http"
-	"os/exec"
-	"time"
-)
+import "net/http"
 
 type resourceType struct {
 	Name string
@@ -14,8 +9,8 @@ type resourceType struct {
 	Help string
 }
 
-func resourceTypes(ctx context.Context, crm string) []resourceType {
-	types := []resourceType{
+func resourceTypes() []resourceType {
+	return []resourceType{
 		{
 			Name: "Primitive",
 			Path: "primitives",
@@ -58,30 +53,16 @@ func resourceTypes(ctx context.Context, crm string) []resourceType {
 				"relationships. Define an ID and select the objects to reference. A tag can be " +
 				"used to start or stop related resources with a single command.",
 		},
+		{
+			Name: "Alert",
+			Path: "alerts",
+			Icon: "bullhorn",
+			Help: "Alerts run external agents when cluster events occur, such as node failures or " +
+				"resources starting and stopping. Configure the agent and its recipients, " +
+				"parameters and meta attributes. Recipients can be addresses, file names or " +
+				"other values understood by the agent.",
+		},
 	}
-	// Match Rails' Util.has_feature?(:rsc_template), with a bounded probe.
-	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	defer cancel()
-	if exec.CommandContext(ctx, crm, "configure", "help", "rsc_template").Run() == nil {
-		types = append(types, resourceType{
-			Name: "Template",
-			Path: "templates",
-			Icon: "file-lines",
-			Help: "Resource templates provide reusable configuration for similar resources. " +
-				"Primitives referencing a template inherit its operations, parameters, meta " +
-				"attributes and utilization attributes. Values defined on the primitive " +
-				"override inherited values.",
-		})
-	}
-	return append(types, resourceType{
-		Name: "Alert",
-		Path: "alerts",
-		Icon: "bullhorn",
-		Help: "Alerts run external agents when cluster events occur, such as node failures or " +
-			"resources starting and stopping. Configure the agent and its recipients, " +
-			"parameters and meta attributes. Recipients can be addresses, file names or " +
-			"other values understood by the agent.",
-	})
 }
 
 func ResourceTypesHandler(w http.ResponseWriter, r *http.Request) {
@@ -96,7 +77,7 @@ func ResourceTypesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	data := map[string]any{
 		"Title":         "Add Resource",
-		"ResourceTypes": resourceTypes(r.Context(), "/usr/sbin/crm"),
+		"ResourceTypes": resourceTypes(),
 	}
 	// This flash is only for backward compatibility with Ruby redirects.
 	if r.URL.Query().Get("flash") == "deleted" {

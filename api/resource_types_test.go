@@ -2,19 +2,16 @@ package api
 
 import (
 	"bytes"
-	"context"
 	"html/template"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
-func TestResourceTypesWithoutCrm(t *testing.T) {
-	types := resourceTypes(context.Background(), filepath.Join(t.TempDir(), "missing-crm"))
+func TestResourceTypes(t *testing.T) {
+	types := resourceTypes()
 	require.Len(t, types, 5)
 	for _, item := range types {
 		require.NotEqual(t, "templates", item.Path)
@@ -23,11 +20,9 @@ func TestResourceTypesWithoutCrm(t *testing.T) {
 	require.Equal(t, "alerts", types[len(types)-1].Path)
 }
 
-func TestResourceTypesWithTemplates(t *testing.T) {
-	crm := filepath.Join(t.TempDir(), "crm")
-	require.NoError(t, os.WriteFile(crm, []byte("#!/bin/sh\n[ \"$1\" = configure ] && [ \"$2\" = help ] && [ \"$3\" = rsc_template ]\n"), 0755))
-	types := resourceTypes(context.Background(), crm)
-	require.Len(t, types, 6)
+func TestResourceTypesTemplate(t *testing.T) {
+	types := resourceTypes()
+
 	tmpl, err := template.ParseFiles("../templates/layout.html", "../templates/resource_types.html")
 	require.NoError(t, err)
 	var body bytes.Buffer
@@ -37,6 +32,7 @@ func TestResourceTypesWithTemplates(t *testing.T) {
 		require.Contains(t, body.String(), `href="/cib/live/`+item.Path+`/new"`)
 		require.Contains(t, body.String(), `id="help-`+item.Path+`"`)
 	}
+	require.NotContains(t, body.String(), `/cib/live/templates/new`)
 	require.Contains(t, body.String(), `href="/cib/live/resources"`)
 }
 
