@@ -1,0 +1,68 @@
+{{ define "content" }}
+<link rel="stylesheet" href="/static/css/primitive_edit.css">
+<link rel="stylesheet" href="/static/css/resource_types.css">
+<script src="/static/js/resource_types.js" defer></script>
+<div class="edit-layout resource-types">
+  <div class="edit-left">
+    <h1><i class="fas fa-eye page" aria-hidden="true"></i> Add Constraint
+      <a href="/cib/live/constraints" class="btn btn-default pull-right"><i class="fas fa-list" aria-hidden="true"></i> List</a>
+    </h1>
+    <ul class="nav nav-pills nav-stacked resource-type-list">
+      {{ range .ConstraintTypes }}
+      <li>
+        <a class="resource-type-link" href="/cib/live/{{ .Path }}/new" data-resource-type="{{ .Path }}" data-help-filter=".{{ .HelpFilter }}" aria-describedby="help-{{ .Path }}">
+          <span class="resource-type-icon" aria-hidden="true"><i class="fas fa-{{ .Icon }}"></i></span>
+          <span class="resource-type-name">{{ .Name }}</span>
+          <i class="fas fa-circle-plus resource-type-add" aria-hidden="true"></i>
+        </a>
+      </li>
+      {{ end }}
+    </ul>
+  </div>
+  <aside class="edit-right" aria-label="Constraint help">
+    <h2>Constraints</h2>
+    <p>Resource constraints specify:</p>
+    <ul>
+      <li>on which cluster nodes resources can run</li>
+      <li>in which order resources will be loaded</li>
+      <li>what other resources a specific resource depends on</li>
+    </ul>
+    <section id="help-locations" class="resource-type-help">
+    <h3>Location</h3>
+    <p>A location constraint defines on which node a resource may be run, is preferred to be run, or may not be run.</p>
+    <p>To create a location constraint, specify an ID, select the resource for which to define the constraint, a score and node. The score indicates the value you are assigning to this resource constraint. Constraints with higher scores are applied before those with lower scores.</p>
+    <p>An example of a location constraint is to place all resources related to a certain database on the same node.</p>
+    </section>
+    <section id="help-colocations" class="resource-type-help">
+    <h3>Colocation</h3>
+    <p>A colocational constraint tells the cluster which resources may or may not run together on a node.</p>
+    <p>To create a location constraint, specify an ID, select the resources between which to define the constraint, and add a score. The score determines the location relationship between the resources.</p>
+    <ul>
+      <li>Positive values: The resources should run on the same node.</li>
+      <li>Negative values: The resources should not run on the same node.</li>
+      <li>Score of INFINITY: The resources have to run on the same node.</li>
+      <li>Score of -INFINITY: The resources must not run on the same node.</li>
+    </ul>
+    <p>An example for use of a colocation constraint is a Web service that depends on an IP address. Configure individual resources for the IP address and the Web service, then add a colocation constraint with a score of INFINITY. It defines that the Web service must run on the same node as the IP address. This also means that if the IP address is not running on any node, the Web service will not be permitted to run.</p>
+    </section>
+    <section id="help-orders" class="resource-type-help">
+    <h3>Order</h3>
+    <p>Ordering constraints define the order in which resources are started and stopped.</p>
+    <p>To create an order constraint, specify an ID, select the resources between which to define the constraint, and add a score. The score determines the location relationship between the resources: The constraint is mandatory if the score is greater than zero, otherwise it is only a suggestion. The default value is INFINITY. Keeping the option <code>Symmetrical</code> set to <code>Yes</code> (default) defines that the resources are stopped in reverse order.</p>
+    <p>An example for use of an order constraint is a Web service (e.g. Apache) that depends on a certain IP address. Configure resources for the IP address and the Web service, then add an order constraint that defines that the IP address is started before Apache is started.</p>
+    </section>
+    <section id="help-tickets" class="resource-type-help">
+    <h3>Ticket</h3>
+    <p>Tickets are a special type of constraint used for Geo clustering. A ticket grants the right to run certain resources on a specific cluster site.</p>
+    <p>To create a ticket constraint, specify a constraint ID, enter a ticket&#x27;s ID and add the resources that you want to depend on this ticket. Additionally, you can set a loss-policy to define what should happen to the resources if the ticket is revoked. The attribute <code>loss-policy</code> can have the following values:</p>
+    <ul>
+      <li><code>fence</code>: Fence the nodes that are running the relevant resources.</li>
+      <li><code>stop</code>: Stop the relevant resources.</li>
+      <li><code>freeze</code>: Do nothing to the relevant resources.</li>
+      <li><code>demote</code>: Demote relevant promoted resources.</li>
+    </ul>
+    <p>An example for a ticket constraint would be a primitive resource <code>rsc1</code> that depends on <code>ticketA</code>. If you set <code>loss-policy=&quot;fence&quot;</code>, the node that runs <code>rsc1</code> would be fenced in case <code>ticketA</code> is revoked from the cluster site this node belongs to.</p>
+    </section>
+  </aside>
+</div>
+{{ end }}
