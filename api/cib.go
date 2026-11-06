@@ -60,21 +60,22 @@ type ClusterDetails struct {
  ***************************/
 
 type CIB struct {
-	LocationResources []string      `xml:"-"`
-	TagObjects        []string      `xml:"-"`
-	XMLName           xml.Name      `xml:"cib"`
-	ValidateWith      string        `xml:"validate-with,attr"`
-	Epoch             string        `xml:"epoch,attr"`
-	NumUpdates        string        `xml:"num_updates,attr"`
-	AdminEpoch        string        `xml:"admin_epoch,attr"`
-	CibLastWritten    string        `xml:"cib-last-written,attr"`
-	UpdateOrigin      string        `xml:"update-origin,attr"`
-	UpdateClient      string        `xml:"update-client,attr"`
-	UpdateUser        string        `xml:"update-user,attr"`
-	HaveQuorum        string        `xml:"have-quorum,attr"`
-	DcUuid            string        `xml:"dc-uuid,attr"`
-	Configuration     Configuration `xml:"configuration"`
-	Status            Status        `xml:"status"`
+	ColocationResources []string      `xml:"-"`
+	LocationResources   []string      `xml:"-"`
+	TagObjects          []string      `xml:"-"`
+	XMLName             xml.Name      `xml:"cib"`
+	ValidateWith        string        `xml:"validate-with,attr"`
+	Epoch               string        `xml:"epoch,attr"`
+	NumUpdates          string        `xml:"num_updates,attr"`
+	AdminEpoch          string        `xml:"admin_epoch,attr"`
+	CibLastWritten      string        `xml:"cib-last-written,attr"`
+	UpdateOrigin        string        `xml:"update-origin,attr"`
+	UpdateClient        string        `xml:"update-client,attr"`
+	UpdateUser          string        `xml:"update-user,attr"`
+	HaveQuorum          string        `xml:"have-quorum,attr"`
+	DcUuid              string        `xml:"dc-uuid,attr"`
+	Configuration       Configuration `xml:"configuration"`
+	Status              Status        `xml:"status"`
 }
 
 func GetCIB() (CIB, int, error) {
@@ -96,6 +97,11 @@ func GetCIB() (CIB, int, error) {
 	}
 
 	cib.TagObjects, err = tagObjectsFromXML(output)
+	if err != nil {
+		return CIB{}, 0, err
+	}
+
+	cib.ColocationResources, err = colocationResourcesFromXML(output)
 	if err != nil {
 		return CIB{}, 0, err
 	}

@@ -1,0 +1,17 @@
+#colocation-create-form [hidden] { display: none !important; }
+.colocation-row, .colocation-resource-row { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); column-gap: 26px; align-items: center; margin-bottom: 15px; }
+.colocation-row > label, .colocation-resource-row > label { text-align: right; font-weight: normal; margin: 0; }
+.colocation-input-group { display: flex; min-width: 0; }
+.colocation-input-group > .form-control { flex: 1; min-width: 0; width: 0; }
+.colocation-input-group > .btn { margin-left: -1px; flex: 0 0 auto; }
+.colocation-input-group > :not(:first-child):not(:last-child) { border-radius: 0; }
+.colocation-input-group > :first-child { border-radius: 4px 0 0 4px; }
+.colocation-input-group > :last-child { border-radius: 0 4px 4px 0; }
+.colocation-score { position: relative; }
+.colocation-score > button { margin-left: 0; margin-right: -1px; }
+#colocation-score-presets:not([hidden]) { display: block; }
+#colocation-create-form legend { font-size: 16px; margin-top: 15px; padding-bottom: 8px; }
+#colocation-create-form fieldset + fieldset { margin-top: 20px; }
+.colocation-resource-row:last-child { margin-bottom: 0; }
+.colocation-addition { margin-bottom: 15px; }
+.colocation-actions { margin-top: 20px; text-align: center; }
