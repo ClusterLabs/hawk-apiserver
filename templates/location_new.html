@@ -1,0 +1,54 @@
+{{ define "content" }}
+<link rel="stylesheet" href="/static/css/primitive_edit.css">
+<link rel="stylesheet" href="/static/css/common.css">
+<link rel="stylesheet" href="/static/css/location_new.css">
+<script src="/static/js/classes/LocationRules.js"></script>
+<script src="/static/js/classes/Location.js"></script>
+<script src="/static/js/location_new.js" defer></script>
+<div class="edit-layout">
+  <div class="edit-left">
+    <h2><i class="fas fa-globe" aria-hidden="true"></i> Create Location</h2>
+    <form id="location-create-form" class="primitive-create-panel">
+      <div id="location-error" class="alert alert-danger" role="alert" hidden></div>
+      <div class="kvsection-row kvsection-row-thin"><label for="input-location-id">Constraint ID</label>
+        <input id="input-location-id" name="location[id]" class="form-control location-control" required></div>
+      <div class="kvsection-row location-resources-row"><label for="location_resources">Resources</label>
+        <select id="location_resources" name="location[resources][]" class="form-control location-control" multiple size="5" data-help-filter=".row.resources"></select></div>
+      <div class="panel panel-default" id="location-variants">
+        <div class="panel-heading"><ul class="nav nav-tabs" role="tablist">
+          <li class="active" role="presentation"><a href="#locsimple" role="tab" aria-controls="locsimple" aria-selected="true" data-location-tab="locsimple">Simple</a></li>
+          <li role="presentation"><a href="#locadvanced" role="tab" aria-controls="locadvanced" aria-selected="false" data-location-tab="locadvanced">Advanced</a></li>
+        </ul></div>
+        <div class="panel-body">
+          <div id="locsimple" role="tabpanel">
+            <div class="kvsection-row"><label for="simple-score">Score</label>
+              <div class="location-control location-score-control">
+                <button id="simple-score-btn" class="btn btn-default" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Score presets"><i class="fa fa-caret-down" aria-hidden="true"></i></button>
+                <ul id="score-presets" class="dropdown-menu" hidden><li><a href="#" data-score="INFINITY">Always</a><a href="#" data-score="-INFINITY">Never</a><a href="#" data-score="0">Advisory</a></li></ul>
+                <input id="simple-score" class="form-control" value="INFINITY">
+              </div>
+            </div>
+            <div class="kvsection-row"><label for="simple-node">Node</label>
+              <select id="simple-node" class="form-control location-control"><option value=""></option></select></div>
+          </div>
+          <div id="locadvanced" role="tabpanel" hidden>
+            <div class="kvsection-row"><label for="location_discovery">Resource Discovery</label>
+              <select id="location_discovery" name="location[discovery]" class="form-control location-control" data-help-filter=".row.resource-discovery"><option value=""></option><option>always</option><option>never</option><option>exclusive</option></select></div>
+            <div id="location-rules"></div>
+          </div>
+        </div>
+      </div>
+      <div class="location-actions"><button id="create-location-button" name="submit" type="submit" class="btn btn-success" disabled>Create</button>
+        <a href="/cib/live/constraints/types" class="btn btn-white">Back</a></div>
+    </form>
+  </div>
+  <aside class="edit-right" aria-label="Location help">
+    <h4>Location</h4>
+    <p>A location constraint defines on which node a resource may be run, is preferred to be run, or may not be run.</p>
+    <p>To create a location constraint, specify an ID, select the resource for which to define the constraint, a score and node. The score indicates the value you are assigning to this resource constraint. Constraints with higher scores are applied before those with lower scores.</p>
+    <p>An example of a location constraint is to place all resources related to a certain database on the same node.</p>
+    <h4 id="field-shortdesc"></h4><p id="field-longdesc"></p>
+    <p id="field-default" hidden><em>Default:</em> <code id="field-default-value"></code></p>
+  </aside>
+</div>
+{{ end }}

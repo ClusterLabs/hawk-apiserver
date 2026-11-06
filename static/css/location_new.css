@@ -1,0 +1,35 @@
+.location-control { width: 60%; margin-left: auto; }
+#location-create-form .kvsection-row > label { flex-basis: auto; white-space: nowrap; font-weight: normal; }
+.location-resources-row { align-items: flex-start; }
+.location-resources-row > label { padding-top: 6px; }
+.location-score-control { display: flex; position: relative; }
+.location-score-control > input { flex: 1; min-width: 0; border-radius: 0 4px 4px 0; }
+.location-score-control > button { height: auto; align-self: stretch; border-radius: 4px 0 0 4px; border-right: 0; }
+#score-presets:not([hidden]) { display: block; }
+#location-variants { margin-top: 20px; }
+#location-variants > .panel-heading { padding: 5px 5px 0; }
+#location-variants .nav-tabs { margin-bottom: -1px; border-bottom: 0; }
+#location-rules legend { margin-top: 15px; }
+#location-rules fieldset > legend { display: flex; align-items: center; justify-content: space-between; padding-bottom: 6px; }
+#location-rules fieldset > legend > span { display: flex; gap: 4px; }
+#location-rules .btn-xs { padding: 1px 4px; font-size: 12px; line-height: 1.2; height: auto; }
+#location-rules .location-expression-addition { display: flex; }
+#location-rules .location-expression-addition-row { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 26px; }
+#location-rules .location-expression-addition-row > label { margin: 0; }
+#location-rules .location-expression-addition { width: 100%; margin-left: 0; }
+#location-rules .location-expression-addition > select { flex: 1; min-width: 0; border-radius: 4px 0 0 4px; }
+#location-rules .location-expression-addition > button { align-self: stretch; margin-left: 0; padding: 6px 12px; border-left: 0; border-radius: 0 4px 4px 0; }
+.location-expression { display: flex; gap: 26px; margin-bottom: 10px; }
+.location-expression-attribute { flex: 5; }
+.location-expression-value { flex: 7; }
+.location-expression > div { display: flex; min-width: 0; }
+.location-expression > div > .form-control { border-radius: 0; }
+.location-expression > div > :first-child { border-radius: 4px 0 0 4px; }
+.location-expression > div > :last-child { border-radius: 0 4px 4px 0; }
+.location-expression > div > :only-child { border-radius: 4px; }
+.location-expression > div > :not(:first-child) { margin-left: -1px; }
+#location-rules .location-expression button { padding: 1px 10px; align-self: stretch; }
+.location-expression input { flex: 1; min-width: 0; }
+.location-expression select { width: auto; }
+.location-actions { margin-top: 20px; text-align: center; }
+.edit-layout [hidden] { display: none !important; }
