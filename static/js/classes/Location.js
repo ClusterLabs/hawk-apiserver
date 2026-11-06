@@ -6,8 +6,8 @@ class Location {
         this.rules = rules;
     }
 
-    async create() {
-        const response = await fetch("/api/cib/location/create", {
+    async create(editMode = false) {
+        const response = await fetch(editMode ? "/api/cib/location/update" : "/api/cib/location/create", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({

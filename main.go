@@ -134,6 +134,8 @@ func main() {
 	mux.HandleFunc("/cib/live/locations/new/", authMiddleware(api.LocationNewHandler))
 	mux.HandleFunc("/cib/live/locations/", authMiddleware(api.LocationRubyHandler))
 	mux.HandleFunc("/api/cib/location/options/fetch", authMiddleware(api.FetchLocationOptions))
+	mux.HandleFunc("/api/cib/location/fetch", authMiddleware(api.FetchLocation))
+	mux.HandleFunc("/api/cib/location/update", authMiddleware(api.LocationUpdateHandler))
 	mux.HandleFunc("/api/cib/location/create", authMiddleware(api.LocationCreateHandler))
 	mux.HandleFunc("/cib/live/constraints/types", authMiddleware(api.ConstraintTypesHandler))
 	mux.HandleFunc("/cib/live/constraints/types/", authMiddleware(api.ConstraintTypesHandler))

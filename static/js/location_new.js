@@ -1,3 +1,4 @@
+const locationID = document.getElementById("location-create-form").dataset.locationId;
 let locationReady = false;
 let creatingLocation = false;
 const rules = new LocationRules(document.getElementById("location-rules"));
@@ -23,7 +24,7 @@ function clickCreateButton(event) {
     const button = document.getElementById("create-location-button");
     creatingLocation = true;
     button.disabled = true;
-    location.create().catch(err => showFlash("danger", err.message)).finally(() => {
+    location.create(Boolean(locationID)).catch(err => showFlash("danger", err.message)).finally(() => {
         creatingLocation = false;
         button.disabled = !locationReady;
     });
@@ -36,6 +37,32 @@ async function initializeLocationForm() {
         const options = await response.json();
         for (const id of options.resources) document.getElementById("location_resources").add(new Option(id, id));
         for (const name of options.nodes) document.getElementById("simple-node").add(new Option(name, name));
+        if (locationID) {
+            const response = await fetch("/api/cib/location/fetch?id=" + encodeURIComponent(locationID), { method: "POST" });
+            if (!response.ok) throw new Error(await response.text());
+            const location = await response.json();
+            document.getElementById("input-location-id").value = location.id;
+            for (const option of document.getElementById("location_resources").options) option.selected = location.resources.includes(option.value);
+            document.getElementById("location_discovery").value = location.discovery;
+            rules.setValues(location.rules);
+            const rule = location.rules[0];
+            const expression = rule?.expressions?.[0];
+            const simple = location.rules.length === 1 && rule.expressions.length === 1 && !rule.role && expression.attribute === "#uname" && expression.operation === "eq" && expression.value;
+            if (simple) {
+                document.getElementById("simple-score").value = rule.score;
+                const nodes = document.getElementById("simple-node");
+                if (!Array.from(nodes.options).some(option => option.value === expression.value)) nodes.add(new Option(expression.value, expression.value));
+                nodes.value = expression.value;
+            }
+            if (!simple || location.discovery) document.querySelector('[data-location-tab="locadvanced"]').click();
+        }
+        const flash = new URL(window.location.href).searchParams.get("flash");
+        if (flash === "created" || flash === "updated") {
+            showFlash("success", `Constraint ${flash} successfully`);
+            const url = new URL(window.location.href);
+            url.searchParams.delete("flash");
+            history.replaceState({}, "", url);
+        }
         locationReady = true;
         document.getElementById("create-location-button").disabled = false;
     } catch (err) {
@@ -103,3 +130,5 @@ function showLocationHelp(event) {
 
 document.getElementById("location-create-form").addEventListener("mouseover", showLocationHelp);
 document.getElementById("location-create-form").addEventListener("focusin", showLocationHelp);
+
+document.getElementById("revert-location-button")?.addEventListener("click", () => window.location.reload());
