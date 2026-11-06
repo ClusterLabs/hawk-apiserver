@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os/exec"
 	"regexp"
 	"strings"
 )
@@ -229,5 +230,160 @@ func createLocation(w http.ResponseWriter, r *http.Request, read func() (CIB, in
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "redirect": "/cib/live/locations/" + url.PathEscape(location.ID) + "/edit?flash=created"})
 }
 func LocationRubyHandler(w http.ResponseWriter, r *http.Request) {
-	resourceRubyHandler(w, r, "Constraint")
+	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if len(parts) != 5 || parts[4] != "edit" {
+		resourceRubyHandler(w, r, "Constraint")
+		return
+	}
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		w.Header().Set("Allow", "GET, HEAD")
+		http.Error(w, "Method not allowed", 405)
+		return
+	}
+	renderTemplate(w, "location_new", map[string]any{"Title": "Edit Location Constraint", "EditMode": true, "LocationID": parts[3]})
+}
+
+// Read the original XML so unsupported rules are never silently discarded.
+func readLocation(ctx context.Context, id string) (locationCreate, error) {
+	if !groupID.MatchString(id) {
+		return locationCreate{}, fmt.Errorf("Invalid ID")
+	}
+	data, err := exec.CommandContext(ctx, "cibadmin", "-Q", "--xpath", "//constraints/rsc_location[@id='"+id+"']").Output()
+	if err != nil {
+		return locationCreate{}, fmt.Errorf("Unable to read location constraint: %w", err)
+	}
+	return locationFromXML(data)
+}
+
+func locationFromXML(data []byte) (locationCreate, error) {
+	var x struct {
+		ID        string  `xml:"id,attr"`
+		Resource  string  `xml:"rsc,attr"`
+		Node      string  `xml:"node,attr"`
+		Score     *string `xml:"score,attr"`
+		Discovery string  `xml:"resource-discovery,attr"`
+		Sets      []struct {
+			Resources []struct {
+				ID string `xml:"id,attr"`
+			} `xml:"resource_ref"`
+		} `xml:"resource_set"`
+		Rules []struct {
+			Score          string `xml:"score,attr"`
+			ScoreAttribute string `xml:"score-attribute,attr"`
+			Role           string `xml:"role,attr"`
+			Operator       string `xml:"boolean-op,attr"`
+			Children       []struct {
+				XMLName   xml.Name
+				Attribute string `xml:"attribute,attr"`
+				Operation string `xml:"operation,attr"`
+				Value     string `xml:"value,attr"`
+				Type      string `xml:"type,attr"`
+			} `xml:",any"`
+		} `xml:"rule"`
+	}
+	if err := xml.Unmarshal(data, &x); err != nil {
+		return locationCreate{}, err
+	}
+	l := locationCreate{ID: x.ID, Discovery: x.Discovery, Resources: []string{}, Rules: []locationRule{}}
+	if x.Resource != "" {
+		l.Resources = append(l.Resources, x.Resource)
+	}
+	for _, set := range x.Sets {
+		for _, resource := range set.Resources {
+			l.Resources = append(l.Resources, resource.ID)
+		}
+	}
+	if x.Score != nil {
+		l.Rules = append(l.Rules, locationRule{Score: *x.Score, Expressions: []locationExpression{{Attribute: "#uname", Operation: "eq", Value: x.Node, Kind: "uname"}}})
+	} else {
+		for _, r := range x.Rules {
+			rule := locationRule{Score: r.Score, Role: r.Role, Operator: r.Operator, Expressions: []locationExpression{}}
+			if rule.Score == "" {
+				rule.Score = r.ScoreAttribute
+			}
+			if rule.Operator == "" {
+				rule.Operator = "and"
+			}
+			for _, e := range r.Children {
+				if e.XMLName.Local != "expression" {
+					return locationCreate{}, fmt.Errorf("Constraint is too complex - it contains nested rules or date expressions")
+				}
+				kind := "attr-val"
+				if strings.HasPrefix(e.Attribute, "#") {
+					kind = "uname"
+				}
+				if e.Operation == "defined" || e.Operation == "not_defined" {
+					kind = "attr-def"
+				}
+				rule.Expressions = append(rule.Expressions, locationExpression{Attribute: e.Attribute, Operation: e.Operation, Value: e.Value, Type: e.Type, Kind: kind})
+			}
+			l.Rules = append(l.Rules, rule)
+		}
+	}
+	return l, nil
+}
+
+func FetchLocation(w http.ResponseWriter, r *http.Request) {
+	if !groupFetchMethod(w, r) {
+		return
+	}
+	l, err := readLocation(r.Context(), r.URL.Query().Get("id"))
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(l)
+}
+
+func LocationUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	if !groupFetchMethod(w, r) {
+		return
+	}
+	var l locationCreate
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&l); err != nil {
+		http.Error(w, "Invalid request", 400)
+		return
+	}
+	args, err := locationCreateArgs(l)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+	if _, err = readLocation(r.Context(), l.ID); err != nil {
+		http.Error(w, err.Error(), 409)
+		return
+	}
+	cib, _, err := GetCIB()
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	available := map[string]bool{}
+	for _, id := range cib.LocationResources {
+		available[id] = true
+	}
+	for _, id := range l.Resources {
+		if !available[id] {
+			http.Error(w, "Resource is no longer available: "+id, 409)
+			return
+		}
+	}
+	// crmsh reads a configuration document, not a shell command.
+	tokens := make([]string, 0, len(args)-1)
+	for _, arg := range args[1:] {
+		if strings.ContainsAny(arg, "\r\n") {
+			http.Error(w, "Newlines are not allowed", 400)
+			return
+		}
+		tokens = append(tokens, "\""+strings.NewReplacer("\\", "\\\\", "\"", "\\\"").Replace(arg)+"\"")
+	}
+	cmd := exec.CommandContext(r.Context(), "/usr/sbin/crm", "-F", "configure", "load", "update", "/dev/stdin")
+	cmd.Stdin = strings.NewReader(strings.Join(tokens, " ") + "\n")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		http.Error(w, strings.TrimSpace(string(out)), 500)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "redirect": "/cib/live/locations/" + url.PathEscape(l.ID) + "/edit?flash=updated"})
 }

@@ -61,7 +61,7 @@ class LocationRules {
             legend.append(buttons);
             fieldset.append(legend);
             this.field(fieldset, "Score", rule.score, null, value => rule.score = value);
-            this.field(fieldset, "Role", rule.role, [["", ""], ["Started", "Started"], ["Master", "Promoted"], ["Slave", "Promotable"]], value => rule.role = value);
+            this.field(fieldset, "Role", rule.role, [["", ""], ["Started", "Started"], ["Master", "Promoted"], ["Slave", "Unpromoted"]], value => rule.role = value);
             this.field(fieldset, "Boolean Operator", rule.operator || "and", [["and", "and"], ["or", "or"]], value => rule.operator = value);
             const well = document.createElement("div");
             well.className = "well location-expressions";

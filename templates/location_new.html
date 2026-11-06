@@ -7,11 +7,11 @@
 <script src="/static/js/location_new.js" defer></script>
 <div class="edit-layout">
   <div class="edit-left">
-    <h2><i class="fas fa-globe" aria-hidden="true"></i> Create Location</h2>
-    <form id="location-create-form" class="primitive-create-panel">
+    <h2><i class="fas fa-globe" aria-hidden="true"></i> {{ if .EditMode }}Edit{{ else }}Create{{ end }} Location</h2>
+    <form id="location-create-form" class="primitive-create-panel" data-location-id="{{ .LocationID }}">
       <div id="location-error" class="alert alert-danger" role="alert" hidden></div>
       <div class="kvsection-row kvsection-row-thin"><label for="input-location-id">Constraint ID</label>
-        <input id="input-location-id" name="location[id]" class="form-control location-control" required></div>
+        <input id="input-location-id" name="location[id]" class="form-control location-control" {{ if .EditMode }}readonly{{ end }} required></div>
       <div class="kvsection-row location-resources-row"><label for="location_resources">Resources</label>
         <select id="location_resources" name="location[resources][]" class="form-control location-control" multiple size="5" data-help-filter=".row.resources"></select></div>
       <div class="panel panel-default" id="location-variants">
@@ -38,8 +38,9 @@
           </div>
         </div>
       </div>
-      <div class="location-actions"><button id="create-location-button" name="submit" type="submit" class="btn btn-success" disabled>Create</button>
-        <a href="/cib/live/constraints/types" class="btn btn-white">Back</a></div>
+      <div class="location-actions"><button id="create-location-button" name="submit" type="submit" class="btn btn-success" disabled>{{ if .EditMode }}Apply{{ else }}Create{{ end }}</button>
+        {{ if .EditMode }}<button id="revert-location-button" type="button" class="btn btn-default">Revert</button>{{ end }}
+        <a href="{{ if .EditMode }}/cib/live/config/edit#constraints{{ else }}/cib/live/constraints/types{{ end }}" class="btn btn-white">Back</a></div>
     </form>
   </div>
   <aside class="edit-right" aria-label="Location help">
