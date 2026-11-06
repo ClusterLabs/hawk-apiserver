@@ -1,0 +1,40 @@
+{{ define "content" }}
+<link rel="stylesheet" href="/static/css/primitive_edit.css">
+<link rel="stylesheet" href="/static/css/colocation_new.css">
+<script src="/static/js/classes/ConstraintResources.js"></script>
+<script src="/static/js/classes/Colocation.js"></script>
+<script src="/static/js/colocation_new.js" defer></script>
+<div class="edit-layout">
+  <div class="edit-left">
+    <h2><i class="fa fa-tasks" aria-hidden="true"></i> Create Colocation</h2>
+    <form id="colocation-create-form" class="primitive-create-panel">
+      <div id="colocation-error" class="alert alert-danger" role="alert" hidden></div>
+      <div class="colocation-row" data-help="id"><label for="colocation_id">Constraint ID</label><input id="colocation_id" name="colocation[id]" class="form-control" required></div>
+      <div class="colocation-row" data-help="score"><label for="colocation_score">Score</label>
+        <div class="colocation-input-group colocation-score">
+          <button id="colocation_score_btn" class="btn btn-default" type="button" aria-label="Score presets" aria-haspopup="true" aria-expanded="false"><span class="caret"></span></button>
+          <ul id="colocation-score-presets" class="dropdown-menu" hidden><li><a href="#" data-score="INFINITY">Always</a><a href="#" data-score="-INFINITY">Never</a></li></ul>
+          <input id="colocation_score" name="colocation[score]" class="form-control">
+        </div>
+      </div>
+      <fieldset>
+        <legend>Resources</legend>
+        <div id="colocation-resources"></div>
+      </fieldset>
+      <fieldset>
+        <legend>Advanced</legend>
+        <div id="colocation-advanced"><div class="colocation-row" data-help="node-attribute"><label for="colocation_node_attr">Node Attribute</label><input id="colocation_node_attr" name="colocation[node_attr]" class="form-control"></div></div>
+      </fieldset>
+      <div class="colocation-actions"><button id="create-colocation-button" type="submit" name="submit" class="btn btn-success" disabled>Create</button><a id="colocation-back" href="/cib/live/constraints/types" class="btn btn-white">Back</a></div>
+    </form>
+  </div>
+  <aside class="edit-right" aria-label="Colocation help">
+    <h4>Colocation</h4>
+    <p>A colocational constraint tells the cluster which resources may or may not run together on a node.</p>
+    <p>To create a location constraint, specify an ID, select the resources between which to define the constraint, and add a score. The score determines the location relationship between the resources.</p>
+    <ul><li>Positive values: The resources should run on the same node.</li><li>Negative values: The resources should not run on the same node.</li><li>Score of INFINITY: The resources have to run on the same node.</li><li>Score of -INFINITY: The resources must not run on the same node.</li></ul>
+    <p>An example for use of a colocation constraint is a Web service that depends on an IP address. Configure individual resources for the IP address and the Web service, then add a colocation constraint with a score of INFINITY. It defines that the Web service must run on the same node as the IP address. This also means that if the IP address is not running on any node, the Web service will not be permitted to run.</p>
+    <h4 id="field-shortdesc"></h4><p id="field-longdesc"></p>
+  </aside>
+</div>
+{{ end }}
