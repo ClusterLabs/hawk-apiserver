@@ -130,6 +130,11 @@ func main() {
 	// Register BOTH /cib/live/foo and /cib/live/foo/ to avoid conflicts with Ruby
 	mux.HandleFunc("/cib/live/commands", authMiddleware(api.CommandsHandler))
 	mux.HandleFunc("/cib/live/commands/", authMiddleware(api.CommandsHandler))
+	mux.HandleFunc("/cib/live/locations/new", authMiddleware(api.LocationNewHandler))
+	mux.HandleFunc("/cib/live/locations/new/", authMiddleware(api.LocationNewHandler))
+	mux.HandleFunc("/cib/live/locations/", authMiddleware(api.LocationRubyHandler))
+	mux.HandleFunc("/api/cib/location/options/fetch", authMiddleware(api.FetchLocationOptions))
+	mux.HandleFunc("/api/cib/location/create", authMiddleware(api.LocationCreateHandler))
 	mux.HandleFunc("/cib/live/constraints/types", authMiddleware(api.ConstraintTypesHandler))
 	mux.HandleFunc("/cib/live/constraints/types/", authMiddleware(api.ConstraintTypesHandler))
 	mux.HandleFunc("/cib/live/resources/types", authMiddleware(api.ResourceTypesHandler))
