@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os/exec"
 	"strings"
 )
 
@@ -194,5 +195,129 @@ func createColocation(w http.ResponseWriter, r *http.Request, read func() (CIB, 
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "redirect": "/cib/live/colocations/" + url.PathEscape(c.ID) + "/edit?flash=created"})
 }
 func ColocationRubyHandler(w http.ResponseWriter, r *http.Request) {
-	resourceRubyHandler(w, r, "Constraint")
+	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if len(parts) != 5 || parts[4] != "edit" {
+		resourceRubyHandler(w, r, "Constraint")
+		return
+	}
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		w.Header().Set("Allow", "GET, HEAD")
+		http.Error(w, "Method not allowed", 405)
+		return
+	}
+	renderTemplate(w, "colocation_new", map[string]any{"Title": "Edit Colocation", "EditMode": true, "ColocationID": parts[3]})
+}
+
+func colocationFromXML(data []byte) (colocationCreate, error) {
+	var x struct {
+		XMLName      xml.Name `xml:"rsc_colocation"`
+		ID           string   `xml:"id,attr"`
+		Score        string   `xml:"score,attr"`
+		NodeAttr     string   `xml:"node-attribute,attr"`
+		Resource     string   `xml:"rsc,attr"`
+		WithResource string   `xml:"with-rsc,attr"`
+		Role         string   `xml:"rsc-role,attr"`
+		WithRole     string   `xml:"with-rsc-role,attr"`
+		Sets         []struct {
+			Sequential string `xml:"sequential,attr"`
+			Role       string `xml:"role,attr"`
+			Resources  []struct {
+				ID string `xml:"id,attr"`
+			} `xml:"resource_ref"`
+		} `xml:"resource_set"`
+	}
+	if err := xml.Unmarshal(data, &x); err != nil {
+		return colocationCreate{}, err
+	}
+	c := colocationCreate{ID: x.ID, Score: x.Score, NodeAttr: x.NodeAttr, Resources: []colocationSet{}}
+	if x.Resource != "" {
+		c.Resources = append(c.Resources, colocationSet{true, x.Role, []string{x.Resource}}, colocationSet{true, x.WithRole, []string{x.WithResource}})
+	} else {
+		for _, set := range x.Sets {
+			resources := []string{}
+			// Ruby displays resource sets in reverse XML order.
+			for i := len(set.Resources) - 1; i >= 0; i-- {
+				resources = append(resources, set.Resources[i].ID)
+			}
+			c.Resources = append(c.Resources, colocationSet{set.Sequential != "false", set.Role, resources})
+		}
+	}
+	return c, nil
+}
+func readColocation(ctx context.Context, id string) (colocationCreate, error) {
+	if !groupID.MatchString(id) {
+		return colocationCreate{}, fmt.Errorf("Invalid ID")
+	}
+	data, err := exec.CommandContext(ctx, "cibadmin", "-Q", "--xpath", "//constraints/rsc_colocation[@id='"+id+"']").Output()
+	if err != nil {
+		return colocationCreate{}, fmt.Errorf("Unable to read colocation constraint: %w", err)
+	}
+	return colocationFromXML(data)
+}
+func FetchColocation(w http.ResponseWriter, r *http.Request) {
+	if !groupFetchMethod(w, r) {
+		return
+	}
+	c, err := readColocation(r.Context(), r.URL.Query().Get("id"))
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(c)
+}
+func runColocationUpdate(ctx context.Context, args ...string) error {
+	// All tokens have already been validated by colocationCreateArgs.
+	cmd := exec.CommandContext(ctx, "/usr/sbin/crm", "-F", "configure", "load", "update", "/dev/stdin")
+	cmd.Stdin = strings.NewReader(strings.Join(args[1:], " ") + "\n")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("%s: %w", strings.TrimSpace(string(out)), err)
+	}
+	return nil
+}
+func ColocationUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	updateColocation(w, r, readColocation, GetCIB, runColocationUpdate)
+}
+func updateColocation(w http.ResponseWriter, r *http.Request, find func(context.Context, string) (colocationCreate, error), read func() (CIB, int, error), run func(context.Context, ...string) error) {
+	if !groupFetchMethod(w, r) {
+		return
+	}
+	var c colocationCreate
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&c); err != nil {
+		http.Error(w, "Invalid request", 400)
+		return
+	}
+	args, err := colocationCreateArgs(c)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+	if _, err := find(r.Context(), c.ID); err != nil {
+		http.Error(w, err.Error(), 409)
+		return
+	}
+	cib, _, err := read()
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	available := map[string]bool{}
+	for _, id := range cib.ColocationResources {
+		available[id] = true
+	}
+	for _, set := range c.Resources {
+		for _, id := range set.Resources {
+			if !available[id] {
+				http.Error(w, "Resource is no longer available: "+id, 409)
+				return
+			}
+		}
+	}
+	if err := run(r.Context(), args...); err != nil {
+		http.Error(w, tagCreateError(c.ID, err), 500)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "redirect": "/cib/live/colocations/" + url.PathEscape(c.ID) + "/edit?flash=updated"})
 }

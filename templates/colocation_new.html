@@ -6,10 +6,10 @@
 <script src="/static/js/colocation_new.js" defer></script>
 <div class="edit-layout">
   <div class="edit-left">
-    <h2><i class="fa fa-tasks" aria-hidden="true"></i> Create Colocation</h2>
-    <form id="colocation-create-form" class="primitive-create-panel">
+    <h2><i class="fa fa-tasks" aria-hidden="true"></i> {{ if .EditMode }}Edit{{ else }}Create{{ end }} Colocation</h2>
+    <form id="colocation-create-form" class="primitive-create-panel" data-colocation-id="{{ .ColocationID }}">
       <div id="colocation-error" class="alert alert-danger" role="alert" hidden></div>
-      <div class="colocation-row" data-help="id"><label for="colocation_id">Constraint ID</label><input id="colocation_id" name="colocation[id]" class="form-control" required></div>
+      <div class="colocation-row" data-help="id"><label for="colocation_id">Constraint ID</label><input id="colocation_id" name="colocation[id]" class="form-control" {{ if .EditMode }}readonly{{ end }} required></div>
       <div class="colocation-row" data-help="score"><label for="colocation_score">Score</label>
         <div class="colocation-input-group colocation-score">
           <button id="colocation_score_btn" class="btn btn-default" type="button" aria-label="Score presets" aria-haspopup="true" aria-expanded="false"><span class="caret"></span></button>
@@ -25,7 +25,7 @@
         <legend>Advanced</legend>
         <div id="colocation-advanced"><div class="colocation-row" data-help="node-attribute"><label for="colocation_node_attr">Node Attribute</label><input id="colocation_node_attr" name="colocation[node_attr]" class="form-control"></div></div>
       </fieldset>
-      <div class="colocation-actions"><button id="create-colocation-button" type="submit" name="submit" class="btn btn-success" disabled>Create</button><a id="colocation-back" href="/cib/live/constraints/types" class="btn btn-white">Back</a></div>
+      <div class="colocation-actions"><button id="create-colocation-button" type="submit" name="submit" class="btn btn-success" disabled>{{ if .EditMode }}Apply{{ else }}Create{{ end }}</button>{{ if .EditMode }}<button id="revert-colocation-button" type="button" class="btn btn-default" hidden>Revert</button>{{ end }}<a id="colocation-back" href="{{ if .EditMode }}/cib/live/config/edit#constraints{{ else }}/cib/live/constraints/types{{ end }}" class="btn btn-white">Back</a></div>
     </form>
   </div>
   <aside class="edit-right" aria-label="Colocation help">

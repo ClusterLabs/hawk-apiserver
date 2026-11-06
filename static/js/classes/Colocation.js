@@ -6,8 +6,8 @@ class Colocation {
         this.resources = resources;
     }
 
-    async create() {
-        const response = await fetch("/api/cib/colocation/create", {
+    async create(editMode = false) {
+        const response = await fetch(editMode ? "/api/cib/colocation/update" : "/api/cib/colocation/create", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({

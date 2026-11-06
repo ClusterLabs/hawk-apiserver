@@ -1,9 +1,10 @@
 // Resource sets follow Hawk's constraintList ordering and shared role behavior.
 class ConstraintResources {
-    constructor(container, available) {
+    constructor(container, available, entries = []) {
         this.container = container;
-        this.remaining = [...available];
-        this.entries = [];
+        this.entries = entries.map(entry => ({ ...entry, resources: [...entry.resources] }));
+        const selected = new Set(entries.flatMap(entry => entry.resources));
+        this.remaining = available.filter(id => !selected.has(id));
         this.render();
     }
 
@@ -64,6 +65,7 @@ class ConstraintResources {
                 role.addEventListener("change", () => {
                     entry.action = role.value;
                     this.render();
+                    this.container.dispatchEvent(new Event("change", { bubbles: true }));
                 });
                 group.append(role);
                 const first = setIndex === 0 && index === 0;
@@ -110,6 +112,7 @@ class ConstraintResources {
             this.entries.push({ action: role.value, resources: [resource.value] });
             this.remaining.splice(this.remaining.indexOf(resource.value), 1);
             this.render();
+            this.container.dispatchEvent(new Event("change", { bubbles: true }));
         };
         // Ruby adds the selection on change as well as through the plus button.
         resource.addEventListener("change", add);

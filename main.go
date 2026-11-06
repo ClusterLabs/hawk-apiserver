@@ -134,6 +134,8 @@ func main() {
 	mux.HandleFunc("/cib/live/colocations/new/", authMiddleware(api.ColocationNewHandler))
 	mux.HandleFunc("/cib/live/colocations/", authMiddleware(api.ColocationRubyHandler))
 	mux.HandleFunc("/api/cib/colocation/options/fetch", authMiddleware(api.FetchColocationOptions))
+	mux.HandleFunc("/api/cib/colocation/fetch", authMiddleware(api.FetchColocation))
+	mux.HandleFunc("/api/cib/colocation/update", authMiddleware(api.ColocationUpdateHandler))
 	mux.HandleFunc("/api/cib/colocation/create", authMiddleware(api.ColocationCreateHandler))
 	mux.HandleFunc("/cib/live/locations/new", authMiddleware(api.LocationNewHandler))
 	mux.HandleFunc("/cib/live/locations/new/", authMiddleware(api.LocationNewHandler))

@@ -111,3 +111,70 @@ func TestColocationTemplate(t *testing.T) {
 	ColocationNewHandler(response, httptest.NewRequest("POST", "/cib/live/colocations/new", nil))
 	require.Equal(t, 405, response.Code)
 }
+
+func TestColocationFromXML(t *testing.T) {
+	c, err := colocationFromXML([]byte(`<rsc_colocation id="colocation34" rsc="a" with-rsc="b" rsc-role="Master" with-rsc-role="Started" score="INFINITY" node-attribute="rack"/>`))
+	require.NoError(t, err)
+	require.Equal(t, "rack", c.NodeAttr)
+	require.Equal(t, []colocationSet{{true, "Master", []string{"a"}}, {true, "Started", []string{"b"}}}, c.Resources)
+	args, err := colocationCreateArgs(c)
+	require.NoError(t, err)
+	require.Equal(t, []string{"configure", "colocation", "colocation34", "INFINITY:", "a:Master", "b:Started", "node-attribute=rack"}, args)
+	c, err = colocationFromXML([]byte(`<rsc_colocation id="chain" score="100"><resource_set id="s1" role="Started" sequential="false"><resource_ref id="b"/><resource_ref id="a"/></resource_set><resource_set id="s2"><resource_ref id="c"/></resource_set></rsc_colocation>`))
+	require.NoError(t, err)
+	require.Equal(t, []colocationSet{{false, "Started", []string{"a", "b"}}, {true, "", []string{"c"}}}, c.Resources)
+	args, err = colocationCreateArgs(c)
+	require.NoError(t, err)
+	require.Equal(t, []string{"configure", "colocation", "chain", "100:", "(", "b:Started", "a:Started", ")", "c"}, args)
+	_, err = colocationFromXML([]byte(`<rsc_location/>`))
+	require.Error(t, err)
+}
+
+func TestUpdateColocation(t *testing.T) {
+	c := colocationCreate{ID: "colocation34", Score: "100", Resources: []colocationSet{{true, "", []string{"a"}}, {true, "", []string{"b"}}}}
+	payload, _ := json.Marshal(c)
+	for _, tt := range []struct {
+		name      string
+		findErr   error
+		available []string
+		runErr    error
+		status    int
+		calls     int
+	}{
+		{"updated", nil, []string{"a", "b"}, nil, 200, 1},
+		{"deleted", fmt.Errorf("no longer exists"), nil, nil, 409, 0},
+		{"stale resource", nil, []string{"a"}, nil, 409, 0},
+		{"crm error", nil, []string{"a", "b"}, fmt.Errorf("ERROR: rejected"), 500, 1},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			calls := 0
+			response := httptest.NewRecorder()
+			updateColocation(response, httptest.NewRequest("POST", "/", strings.NewReader(string(payload))), func(_ context.Context, id string) (colocationCreate, error) {
+				require.Equal(t, c.ID, id)
+				return c, tt.findErr
+			}, func() (CIB, int, error) { return CIB{ColocationResources: tt.available}, 0, nil }, func(_ context.Context, args ...string) error {
+				calls++
+				require.Equal(t, []string{"configure", "colocation", "colocation34", "100:", "a", "b"}, args)
+				return tt.runErr
+			})
+			require.Equal(t, tt.status, response.Code)
+			require.Equal(t, tt.calls, calls)
+			if tt.status == 200 {
+				require.Contains(t, response.Body.String(), "/cib/live/colocations/colocation34/edit?flash=updated")
+			}
+		})
+	}
+}
+
+func TestColocationEditTemplate(t *testing.T) {
+	tmpl, err := template.ParseFiles("../templates/colocation_new.html")
+	require.NoError(t, err)
+	var body strings.Builder
+	require.NoError(t, tmpl.ExecuteTemplate(&body, "content", map[string]any{"EditMode": true, "ColocationID": "colocation34"}))
+	for _, value := range []string{`data-colocation-id="colocation34"`, `readonly`, `>Apply</button>`, `id="revert-colocation-button"`, `/cib/live/config/edit#constraints`} {
+		require.Contains(t, body.String(), value)
+	}
+	response := httptest.NewRecorder()
+	ColocationRubyHandler(response, httptest.NewRequest("POST", "/cib/live/colocations/colocation34/edit", nil))
+	require.Equal(t, 405, response.Code)
+}
