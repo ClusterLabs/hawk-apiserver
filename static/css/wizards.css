@@ -1,0 +1,8 @@
+.wizards [hidden] { display: none !important; }
+.wizard-category { width: 100%; cursor: pointer; }
+.wizard-chevron { margin-left: auto; margin-right: 20px; }
+.wizard-list { margin: 20px 15px 0; }
+.wizard-list .wizard-link { display: flex; align-items: center; margin-bottom: 14px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #fff; color: #444; font-size: 15px; }
+.wizard-list .wizard-link:hover, .wizard-list .wizard-link:focus { background: linear-gradient(to bottom right, #fff, #e0e0e0); }
+.wizard-link > i { margin-left: auto; padding-left: 15px; }
+.wizard-link:hover > i, .wizard-link:focus > i { color: #00c081; }
