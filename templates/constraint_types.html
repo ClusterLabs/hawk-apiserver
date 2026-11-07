@@ -51,18 +51,6 @@
     <p>To create an order constraint, specify an ID, select the resources between which to define the constraint, and add a score. The score determines the location relationship between the resources: The constraint is mandatory if the score is greater than zero, otherwise it is only a suggestion. The default value is INFINITY. Keeping the option <code>Symmetrical</code> set to <code>Yes</code> (default) defines that the resources are stopped in reverse order.</p>
     <p>An example for use of an order constraint is a Web service (e.g. Apache) that depends on a certain IP address. Configure resources for the IP address and the Web service, then add an order constraint that defines that the IP address is started before Apache is started.</p>
     </section>
-    <section id="help-tickets" class="resource-type-help">
-    <h3>Ticket</h3>
-    <p>Tickets are a special type of constraint used for Geo clustering. A ticket grants the right to run certain resources on a specific cluster site.</p>
-    <p>To create a ticket constraint, specify a constraint ID, enter a ticket&#x27;s ID and add the resources that you want to depend on this ticket. Additionally, you can set a loss-policy to define what should happen to the resources if the ticket is revoked. The attribute <code>loss-policy</code> can have the following values:</p>
-    <ul>
-      <li><code>fence</code>: Fence the nodes that are running the relevant resources.</li>
-      <li><code>stop</code>: Stop the relevant resources.</li>
-      <li><code>freeze</code>: Do nothing to the relevant resources.</li>
-      <li><code>demote</code>: Demote relevant promoted resources.</li>
-    </ul>
-    <p>An example for a ticket constraint would be a primitive resource <code>rsc1</code> that depends on <code>ticketA</code>. If you set <code>loss-policy=&quot;fence&quot;</code>, the node that runs <code>rsc1</code> would be fenced in case <code>ticketA</code> is revoked from the cluster site this node belongs to.</p>
-    </section>
   </aside>
 </div>
 {{ end }}
