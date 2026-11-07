@@ -1,6 +1,7 @@
 // Resource sets follow Hawk's constraintList ordering and shared role behavior.
 class ConstraintResources {
-    constructor(container, available, entries = []) {
+    constructor(container, available, entries = [], kind = "colocation") {
+        this.kind = kind;
         this.container = container;
         this.entries = entries.map(entry => ({ ...entry, resources: [...entry.resources] }));
         const selected = new Set(entries.flatMap(entry => entry.resources));
@@ -27,6 +28,7 @@ class ConstraintResources {
     }
 
     roles(value) {
+        if (this.kind === "order") return this.select([["start", "Start"], ["promote", "Promote"], ["demote", "Demote"], ["stop", "Stop"]], value, "Action");
         return this.select([["Started", "Started"], ["Master", "Promoted"], ["Slave", "Unpromoted"], ["Stopped", "Stopped"]], value, "Role");
     }
 
@@ -61,7 +63,7 @@ class ConstraintResources {
                 const group = document.createElement("div");
                 group.className = "colocation-input-group";
                 const role = this.roles(entry.action);
-                role.setAttribute("aria-label", `Role for ${resource}`);
+                role.setAttribute("aria-label", `${this.kind === "order" ? "Action" : "Role"} for ${resource}`);
                 role.addEventListener("change", () => {
                     entry.action = role.value;
                     this.render();
@@ -105,7 +107,7 @@ class ConstraintResources {
         resource.name = "temp[selector]";
         const group = document.createElement("div");
         group.className = "colocation-input-group";
-        const role = this.roles("Started");
+        const role = this.roles(this.kind === "order" ? "start" : "Started");
         role.name = "temp[value]";
         const add = () => {
             if (!resource.value) return;

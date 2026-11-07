@@ -1,0 +1,33 @@
+{{ define "content" }}
+<link rel="stylesheet" href="/static/css/primitive_edit.css">
+<link rel="stylesheet" href="/static/css/colocation_new.css">
+<script src="/static/js/classes/ConstraintResources.js"></script>
+<script src="/static/js/classes/Order.js"></script>
+<script src="/static/js/order_new.js" defer></script>
+<div class="edit-layout">
+  <div class="edit-left">
+    <h2><i class="fa fa-sort-amount-down" aria-hidden="true"></i> Create Order</h2>
+    <form id="order-create-form" class="primitive-create-panel">
+      <div id="order-error" class="alert alert-danger" role="alert" hidden></div>
+      <div class="colocation-row" data-help="id"><label for="order_id">Constraint ID</label><input id="order_id" name="order[id]" class="form-control" required></div>
+      <div class="colocation-row" data-help="score"><label for="order_score">Kind</label>
+        <div class="colocation-input-group colocation-score">
+          <button id="order_score_btn" class="btn btn-default" type="button" aria-label="Kind presets" aria-haspopup="true" aria-expanded="false"><span class="caret"></span></button>
+          <ul id="order-score-presets" class="dropdown-menu" hidden><li><a href="#" data-score="Mandatory">Mandatory</a><a href="#" data-score="Optional">Optional</a><a href="#" data-score="Serialize">Serialize</a></li></ul>
+          <input id="order_score" name="order[score]" class="form-control">
+        </div>
+      </div>
+      <div class="colocation-row"><label for="order_score_symmetrical">Symmetrical</label><select id="order_score_symmetrical" name="order[symmetrical]" class="form-control"><option value="true">Yes</option><option value="false">No</option></select></div>
+      <fieldset><legend>Resources</legend><div id="order-resources"></div></fieldset>
+      <div class="colocation-actions"><button id="create-order-button" type="submit" name="submit" class="btn btn-success" disabled>Create</button><a id="order-back" href="/cib/live/constraints/types" class="btn btn-white">Back</a></div>
+    </form>
+  </div>
+  <aside class="edit-right" aria-label="Order help">
+    <h4>Order</h4>
+    <p>Ordering constraints define the order in which resources are started and stopped.</p>
+    <p>To create an order constraint, specify an ID, select the resources between which to define the constraint, and add a score. The score determines the location relationship between the resources: The constraint is mandatory if the score is greater than zero, otherwise it is only a suggestion. The default value is INFINITY. Keeping the option <code>Symmetrical</code> set to <code>Yes</code> (default) defines that the resources are stopped in reverse order.</p>
+    <p>An example for use of an order constraint is a Web service (e.g. Apache) that depends on a certain IP address. Configure resources for the IP address and the Web service, then add an order constraint that defines that the IP address is started before Apache is started.</p>
+    <h4 id="field-shortdesc"></h4><p id="field-longdesc"></p>
+  </aside>
+</div>
+{{ end }}
