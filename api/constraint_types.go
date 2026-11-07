@@ -14,7 +14,6 @@ func constraintTypes() []constraintType {
 		{Name: "Location", Path: "locations", Icon: "globe", HelpFilter: "location"},
 		{Name: "Colocation", Path: "colocations", Icon: "tasks", HelpFilter: "colocation"},
 		{Name: "Order", Path: "orders", Icon: "sort-amount-down", HelpFilter: "order"},
-		{Name: "Ticket", Path: "tickets", Icon: "ticket", HelpFilter: "ticket"},
 	}
 }
 

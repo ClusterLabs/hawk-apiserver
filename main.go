@@ -128,6 +128,14 @@ func main() {
 		routehandler.ServeHTTP(w, r) // if not exactly "/cib/live/" --> Ruby fallback
 	})
 	// Register BOTH /cib/live/foo and /cib/live/foo/ to avoid conflicts with Ruby
+	mux.HandleFunc("/cib/live/wizards", authMiddleware(api.WizardsHandler))
+	mux.HandleFunc("/cib/live/wizards/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/cib/live/wizards/" {
+			authMiddleware(api.WizardsHandler)(w, r)
+			return
+		}
+		routehandler.ServeHTTP(w, r)
+	})
 	mux.HandleFunc("/cib/live/commands", authMiddleware(api.CommandsHandler))
 	mux.HandleFunc("/cib/live/commands/", authMiddleware(api.CommandsHandler))
 	mux.HandleFunc("/cib/live/orders/new", authMiddleware(api.OrderNewHandler))

@@ -1,0 +1,32 @@
+{{ define "content" }}
+<link rel="stylesheet" href="/static/css/primitive_edit.css">
+<link rel="stylesheet" href="/static/css/resource_types.css">
+<link rel="stylesheet" href="/static/css/wizards.css">
+<script src="/static/js/wizards.js" defer></script>
+<div class="edit-layout resource-types wizards">
+  <div class="edit-left">
+    <h1><i class="fa fa-magic" aria-hidden="true"></i> Wizards</h1>
+    <ul class="nav nav-pills nav-stacked resource-type-list wizard-categories nav-bighelp nav-topspace">
+      {{ range .Categories }}
+      <li class="toggable">
+        <span class="wizard-category resource-type-link" role="button" tabindex="0" href="#{{ .ID }}" data-toggle="collapse" data-parent=".nav-bighelp" aria-expanded="false" aria-controls="{{ .ID }}">
+          <span class="resource-type-icon" aria-hidden="true"><i class="fa fa-{{ .Icon }}"></i></span>
+          <span class="resource-type-name">{{ .Title }}</span>
+          <i class="fa fa-chevron-down wizard-chevron" aria-hidden="true"></i>
+        </span>
+        <ul class="nav nav-pills nav-stacked wizard-list collapse" id="{{ .ID }}" hidden>
+          {{ range .Wizards }}
+          <li><a href="{{ .Href }}" class="wizard-link" aria-describedby="{{ .HelpID }}" data-wizard-help="{{ .HelpID }}"><span>{{ .Title }}</span><i class="fa fa-circle-plus" aria-hidden="true"></i></a></li>
+          {{ end }}
+        </ul>
+      </li>
+      {{ end }}
+    </ul>
+  </div>
+  <aside class="edit-right" aria-label="Wizard help">
+    {{ range .Categories }}{{ range .Wizards }}
+    <section id="{{ .HelpID }}" class="wizard-help" hidden><h2>{{ .Title }}</h2>{{ range .Paragraphs }}<p>{{ . }}</p>{{ end }}</section>
+    {{ end }}{{ end }}
+  </aside>
+</div>
+{{ end }}
