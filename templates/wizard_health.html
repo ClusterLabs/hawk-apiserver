@@ -1,11 +1,11 @@
 {{ define "content" }}
 <link rel="stylesheet" href="/static/css/primitive_edit.css">
 <link rel="stylesheet" href="/static/css/wizard_health.css">
-<script src="/static/js/wizard_health.js" defer></script>
+<script src="/static/js/wizard_apply.js" defer></script>
 <div class="edit-layout health-wizard">
   <div class="edit-left {{ if .VerifyMode }}wizard-verify{{ end }}">
     <h1><i class="fa fa-magic" aria-hidden="true"></i> {{ .Title }}</h1>
-    <form class="form-horizontal" id="edit_wizard_health" role="form" action="/cib/live/wizards/health{{ if .VerifyMode }}/submit{{ end }}" method="post" {{ if .VerifyMode }}data-health-apply="true"{{ end }}>
+    <form class="form-horizontal" id="edit_wizard_health" data-wizard-form role="form" action="/cib/live/wizards/health{{ if .VerifyMode }}/submit{{ end }}" method="post" {{ if .VerifyMode }}data-wizard-apply="true"{{ end }}>
       {{ if .VerifyMode }}<input type="hidden" name="pa" id="pa" value="{}">{{ else }}<input type="hidden" name="_method" value="patch">{{ end }}
       <div class="panel panel-default">
         <div class="panel-steps"><ul class="nav nav-pills">{{ if .VerifyMode }}<li class="btn btn-circle {{ if .Errors }}btn-danger{{ else }}btn-success{{ end }} active"><i class="fa {{ if .Errors }}fa-exclamation-triangle{{ else }}fa-check{{ end }}" aria-hidden="true"></i></li>{{ end }}</ul></div>
