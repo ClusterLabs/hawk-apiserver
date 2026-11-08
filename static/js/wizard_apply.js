@@ -1,4 +1,4 @@
-function showHealthNotification(type, message) {
+function showWizardNotification(type, message) {
     const notification = document.createElement("div");
     notification.className = `alert alert-${type}`;
     notification.textContent = message;
@@ -11,7 +11,7 @@ function showHealthNotification(type, message) {
     document.querySelector(".notifications").replaceChildren(notification);
 }
 
-async function clickApplyHealth(event) {
+async function clickApplyWizard(event) {
     event.preventDefault();
     const form = event.currentTarget;
     const button = form.querySelector('[name="submit"]');
@@ -19,14 +19,14 @@ async function clickApplyHealth(event) {
     button.disabled = true;
     const actions = form.querySelectorAll(".actions .list-group-item");
     actions.forEach(action => action.classList.add("disabled"));
-    showHealthNotification("info", "Collecting information and checking cluster health...");
+    showWizardNotification("info", form.dataset.progressMessage || "Collecting information and checking cluster health...");
     try {
         const response = await fetch(form.action, {
             method: "POST",
-            body: new URLSearchParams({ pa: document.getElementById("pa").value }),
+            body: new URLSearchParams({ pa: form.querySelector('[name="pa"]').value }),
         });
         const result = await response.json();
-        if (!response.ok) throw new Error(Array.isArray(result) ? result.join("\n") : result.error || "Unable to apply health wizard.");
+        if (!response.ok) throw new Error(Array.isArray(result) ? result.join("\n") : result.error || "Unable to apply wizard.");
         actions.forEach(action => {
             action.classList.remove("disabled");
             action.classList.add("list-group-item-success");
@@ -46,20 +46,20 @@ async function clickApplyHealth(event) {
             });
             last.replaceChildren(report);
         }
-        showHealthNotification("success", "Changes applied successfully.");
+        showWizardNotification("success", "Changes applied successfully.");
     } catch (err) {
         actions[0]?.classList.remove("disabled");
         actions[0]?.classList.add("list-group-item-danger");
-        showHealthNotification("danger", err.message);
+        showWizardNotification("danger", err.message);
     }
 }
 
-const healthForm = document.getElementById("edit_wizard_health");
-if (healthForm.dataset.healthApply) healthForm.addEventListener("submit", clickApplyHealth);
-healthForm.querySelector('[data-confirm]').addEventListener("click", event => {
+const wizardForm = document.querySelector("[data-wizard-form]");
+if (wizardForm.dataset.wizardApply) wizardForm.addEventListener("submit", clickApplyWizard);
+wizardForm.querySelector('[data-confirm]').addEventListener("click", event => {
     if (!window.confirm(event.currentTarget.dataset.confirm)) event.preventDefault();
 });
-healthForm.querySelector(".previous.disabled")?.addEventListener("click", event => event.preventDefault());
+wizardForm.querySelector(".previous.disabled")?.addEventListener("click", event => event.preventDefault());
 document.getElementById("monitoringMenu").classList.remove("in");
 document.getElementById("configurationMenu").classList.add("in");
 document.querySelector('a[href="/cib/live/wizards"]').setAttribute("aria-current", "page");

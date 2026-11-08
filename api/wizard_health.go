@@ -70,6 +70,11 @@ func runHealthCommand(ctx context.Context, operation string) (out []byte, err er
 }
 
 func healthCommandResult(ctx context.Context, operation string, run healthCommand) healthResult {
+	return wizardCommandResult(ctx, operation, run)
+}
+
+// Both wizard interfaces use crmsh's newline-delimited JSON action results.
+func wizardCommandResult(ctx context.Context, operation string, run healthCommand) healthResult {
 	out, err := run(ctx, operation)
 	result := healthResult{Actions: []healthAction{}, Errors: []string{}}
 	if err != nil {
@@ -102,7 +107,7 @@ func healthCommandResult(ctx context.Context, operation string, run healthComman
 				continue
 			}
 			if failed && action.Error == "" {
-				action.Error = action.Shortdesc + ": health check action failed"
+				action.Error = action.Shortdesc + ": wizard action failed"
 				if action.Output != "" {
 					action.Error += "\n" + action.Output
 				}
@@ -124,7 +129,7 @@ func healthCommandResult(ctx context.Context, operation string, run healthComman
 		result.Errors = append(result.Errors, err.Error())
 	}
 	if operation == "run" && len(result.Actions) == 0 && len(result.Errors) == 0 {
-		result.Errors = append(result.Errors, "Health check returned no execution results")
+		result.Errors = append(result.Errors, "Wizard returned no execution results")
 	}
 	return result
 }
