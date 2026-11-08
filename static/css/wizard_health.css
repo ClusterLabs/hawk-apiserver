@@ -1,0 +1,20 @@
+.health-wizard [hidden] { display: none !important; }
+.health-wizard .panel-steps { margin: 20px 0; text-align: center; position: relative; }
+.health-wizard .panel-steps::before { content: " "; position: absolute; top: 15px; left: 0; right: 0; height: 2px; background: #ccc; }
+.health-wizard .panel-steps .nav { margin: 0 auto; }
+.health-wizard .panel-steps .nav > li { display: inline-block; float: none; margin: 0 8px; position: relative; }
+.health-wizard .btn-circle { width: 35px; height: 35px; text-align: center; padding: 6px 0; line-height: 1.428571429; border-radius: 20px; }
+.health-wizard .btn-circle .fa-exclamation-triangle { line-height: 1.5em; }
+.health-wizard .btn-circle .fa-check { padding-top: 3px; }
+.health-wizard-buttons { margin-left: 41.66666667%; width: 58.33333333%; padding: 0 15px; }
+.health-wizard-buttons .btn { margin-left: 0; }
+@media (max-width: 767px) { .health-wizard-buttons { margin-left: 0; width: 100%; } }
+.health-wizard .no-bottom-border { border-bottom: 0; }
+.health-wizard legend { font-size: 1.2em; }
+.health-wizard .actions .list-group-item { padding: 15px 15px 7px; }
+.health-wizard .actions h4.list-group-item-heading { margin-top: 0; margin-bottom: 15px; font-size: 1.1em; font-weight: normal; }
+.health-wizard .actions button.list-group-item { font: inherit; font-weight: normal; }
+.health-wizard .actions pre { white-space: pre-wrap; }
+.health-output { white-space: pre-wrap; max-height: 70vh; overflow: auto; }
+.health-progress-icon { vertical-align: middle; animation: health-pulsate 1s ease-out infinite; }
+@keyframes health-pulsate { 0%, 100% { opacity: .2; } 50% { opacity: 1; } }
