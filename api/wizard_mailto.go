@@ -11,9 +11,12 @@ import (
 	"strings"
 )
 
-type mailtoParams map[string]string
+type wizardParams map[string]string
+type mailtoParams = wizardParams
 
-type mailtoParameter struct {
+type wizardParameter struct {
+	Advanced  bool   `json:"advanced"`
+	Label     string `json:"-"`
 	Name      string `json:"name"`
 	Shortdesc string `json:"shortdesc"`
 	Longdesc  string `json:"longdesc"`
@@ -22,20 +25,31 @@ type mailtoParameter struct {
 	Example   string `json:"example"`
 	Value     string `json:"value"`
 }
-type mailtoDefinition struct {
+type mailtoParameter = wizardParameter
+
+type resourceWizardDefinition struct {
 	Shortdesc string `json:"shortdesc"`
 	Longdesc  string `json:"longdesc"`
 	Steps     []struct {
 		Longdesc   string            `json:"longdesc"`
-		Parameters []mailtoParameter `json:"parameters"`
+		Parameters []wizardParameter `json:"parameters"`
 	} `json:"steps"`
 }
 
+type mailtoDefinition = resourceWizardDefinition
+
 func mailtoScriptCommand(ctx context.Context, operation string, params mailtoParams) (*exec.Cmd, error) {
-	if operation != "show" && operation != "verify" && operation != "run" {
-		return nil, fmt.Errorf("Invalid mail wizard operation")
+	return resourceWizardScriptCommand(ctx, "mailto", operation, params)
+}
+
+func resourceWizardScriptCommand(ctx context.Context, name, operation string, params wizardParams) (*exec.Cmd, error) {
+	if name != "mailto" && name != "virtual-ip" {
+		return nil, fmt.Errorf("Invalid resource wizard")
 	}
-	args := []any{operation, "mailto"}
+	if operation != "show" && operation != "verify" && operation != "run" {
+		return nil, fmt.Errorf("Invalid resource wizard operation")
+	}
+	args := []any{operation, name}
 	if operation != "show" {
 		args = append(args, params)
 	}
@@ -52,7 +66,11 @@ func mailtoScriptCommand(ctx context.Context, operation string, params mailtoPar
 type mailtoCommand func(context.Context, string, mailtoParams) ([]byte, error)
 
 func runMailtoCommand(ctx context.Context, operation string, params mailtoParams) ([]byte, error) {
-	cmd, err := mailtoScriptCommand(ctx, operation, params)
+	return runResourceWizardCommand(ctx, "mailto", operation, params)
+}
+
+func runResourceWizardCommand(ctx context.Context, name, operation string, params wizardParams) ([]byte, error) {
+	cmd, err := resourceWizardScriptCommand(ctx, name, operation, params)
 	if err != nil {
 		return nil, err
 	}
@@ -92,24 +110,26 @@ func validateMailtoParams(params mailtoParams) error {
 
 // Retain form values for Back, as Ruby's one-hour wizard cache does. The cookie
 // contains only editable form values; never trust it without re-verification.
-const mailtoCookie = "hawk_wizard_mailto"
-
 func rememberMailto(w http.ResponseWriter, r *http.Request, params mailtoParams) {
+	rememberWizardValues(w, r, "mailto", params)
+}
+func rememberWizardValues(w http.ResponseWriter, r *http.Request, name string, params wizardParams) {
 	data, _ := json.Marshal(params)
 	if len(data) > 2500 {
 		return
 	}
-	http.SetCookie(w, &http.Cookie{Name: mailtoCookie, Value: base64.RawURLEncoding.EncodeToString(data), Path: "/cib/live/wizards/mailto", MaxAge: 3600, HttpOnly: true, Secure: r.TLS != nil, SameSite: http.SameSiteLaxMode})
+	http.SetCookie(w, &http.Cookie{Name: "hawk_wizard_" + strings.ReplaceAll(name, "-", "_"), Value: base64.RawURLEncoding.EncodeToString(data), Path: "/cib/live/wizards/" + name, MaxAge: 3600, HttpOnly: true, Secure: r.TLS != nil, SameSite: http.SameSiteLaxMode})
 }
-func recalledMailto(r *http.Request) mailtoParams {
-	params := mailtoParams{}
-	if cookie, err := r.Cookie(mailtoCookie); err == nil {
+func recalledMailto(r *http.Request) mailtoParams { return recalledWizardValues(r, "mailto") }
+func recalledWizardValues(r *http.Request, name string) wizardParams {
+	params := wizardParams{}
+	if cookie, err := r.Cookie("hawk_wizard_" + strings.ReplaceAll(name, "-", "_")); err == nil {
 		if data, err := base64.RawURLEncoding.DecodeString(cookie.Value); err == nil {
 			_ = json.Unmarshal(data, &params)
 		}
 	}
 	if params == nil {
-		params = mailtoParams{}
+		params = wizardParams{}
 	}
 	return params
 }
@@ -149,7 +169,7 @@ func serveMailtoWizard(w http.ResponseWriter, r *http.Request, run mailtoCommand
 			http.Error(w, "Invalid request", 400)
 			return
 		}
-		params = mailtoParams{}
+		params = wizardParams{}
 		for _, name := range []string{"id", "email", "subject"} {
 			if value := r.FormValue("mailto." + name); value != "" {
 				params[name] = value

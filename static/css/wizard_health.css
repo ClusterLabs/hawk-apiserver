@@ -18,6 +18,13 @@
 .health-output { white-space: pre-wrap; max-height: 70vh; overflow: auto; }
 .health-progress-icon { vertical-align: middle; animation: health-pulsate 1s ease-out infinite; }
 @keyframes health-pulsate { 0%, 100% { opacity: .2; } 50% { opacity: 1; } }
-#edit_wizard_mailto label { font-weight: normal; }
-#edit_wizard_mailto .help-block { text-align: right; }
+:is(#edit_wizard_mailto, #edit_wizard_virtual-ip) label { font-weight: normal; }
+:is(#edit_wizard_mailto, #edit_wizard_virtual-ip) .help-block { text-align: right; }
 .health-wizard .panel-steps .nav-pills .active > a { background: #00c081; color: #fff; }
+
+#virtual-ip-advanced .wizard-advanced-group { display: flex; }
+#virtual-ip-advanced .wizard-advanced-group > .form-control { flex: 1; min-width: 0; width: 0; border-radius: 4px 0 0 4px; }
+#virtual-ip-advanced .wizard-advanced-group > .btn { margin-left: -1px; border-radius: 0 4px 4px 0; }
+.virtual-ip-wizard .edit-right { padding-left: 35px; }
+.virtual-ip-wizard .stephelp { margin-left: 0; margin-right: 0; }
+.virtual-ip-wizard .stephelp h3 > code { padding-left: 0; }
