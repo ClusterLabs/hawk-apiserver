@@ -28,6 +28,7 @@
             {{ range .Steps }}<div class="tab-pane db2-step{{ if not .Index }} active{{ end }}" id="step{{ .Index }}" role="tabpanel" {{ if .Index }}hidden{{ end }}>
               {{ if .Index }}<fieldset><legend>{{ .Title }}</legend></fieldset>{{ end }}
               {{ if .Description }}<div class="well">{{ range .Description }}<p>{{ . }}</p>{{ end }}</div>{{ end }}
+              {{ if .Optional }}<div class="form-group"><div class="col-sm-5 text-right"><label for="{{ .EnableID }}">Enable this step</label></div><div class="col-sm-7"><select id="{{ .EnableID }}" name="{{ .EnableID }}" class="form-control" data-wizard-enable="true"><option value="true" {{ if .Enabled }}selected{{ end }}>Yes</option><option value="false" {{ if not .Enabled }}selected{{ end }}>No</option></select></div></div>{{ end }}
               {{ range .Groups }}
                 {{ if .Title }}<fieldset><legend>{{ .Title }}</legend></fieldset>{{ end }}
                 {{ range .Basic }}{{ template "db2-field" . }}{{ end }}
