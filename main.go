@@ -128,6 +128,8 @@ func main() {
 		routehandler.ServeHTTP(w, r) // if not exactly "/cib/live/" --> Ruby fallback
 	})
 	// Register BOTH /cib/live/foo and /cib/live/foo/ to avoid conflicts with Ruby
+	mux.HandleFunc("/cib/live/wizards/db2-hadr", authMiddleware(api.DB2HADRWizardHandler))
+	mux.HandleFunc("/cib/live/wizards/db2-hadr/", authMiddleware(api.DB2HADRWizardHandler))
 	mux.HandleFunc("/cib/live/wizards/db2", authMiddleware(api.DB2WizardHandler))
 	mux.HandleFunc("/cib/live/wizards/db2/", authMiddleware(api.DB2WizardHandler))
 	mux.HandleFunc("/cib/live/wizards/database", authMiddleware(api.DatabaseWizardHandler))

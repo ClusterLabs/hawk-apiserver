@@ -10,7 +10,7 @@
 <div class="edit-layout health-wizard resource-wizard">
   <div class="edit-left {{ if .VerifyMode }}wizard-verify{{ end }}">
     <h1><i class="fa fa-magic" aria-hidden="true"></i> {{ .Title }}</h1>
-    <form id="edit_wizard_db2" class="form-horizontal" role="form" data-wizard-form data-resource-wizard="db2" data-progress-message="Applying configuration changes..." action="/cib/live/wizards/db2{{ if .VerifyMode }}/submit{{ end }}" method="post" {{ if .VerifyMode }}data-wizard-apply="true"{{ end }}>
+    <form id="edit_wizard_{{ .WizardName }}" data-nested-wizard="{{ .WizardName }}" class="form-horizontal" role="form" data-wizard-form data-resource-wizard="{{ .WizardName }}" data-progress-message="Applying configuration changes..." action="/cib/live/wizards/{{ .WizardName }}{{ if .VerifyMode }}/submit{{ end }}" method="post" {{ if .VerifyMode }}data-wizard-apply="true"{{ end }}>
       {{ if .VerifyMode }}<input type="hidden" name="pa" id="pa" value="{{ .ParamsJSON }}">{{ else }}<input type="hidden" name="_method" value="patch">{{ end }}
       <div class="panel panel-default">
         <div class="panel-steps"><ul class="nav nav-pills" role="tablist">
@@ -38,14 +38,14 @@
           {{ end }}
           <div class="wizard health-wizard-buttons"><span class="btn-group" role="group">
             <a href="/cib/live/wizards" class="btn btn-default" data-confirm="Do you really want to cancel the wizard setup?">Cancel</a>
-            {{ if .VerifyMode }}<a href="/cib/live/wizards/db2" class="btn btn-default">Back</a><input type="submit" name="submit" value="Apply" class="btn btn-primary finish submit" {{ if .Errors }}disabled{{ end }}>
+            {{ if .VerifyMode }}<a href="/cib/live/wizards/{{ .WizardName }}" class="btn btn-default">Back</a><input type="submit" name="submit" value="Apply" class="btn btn-primary finish submit" {{ if .Errors }}disabled{{ end }}>
             {{ else }}<button id="db2-previous" type="button" class="btn btn-default previous" hidden>Back</button><button id="db2-next" type="button" class="btn btn-default next">Next</button><input id="db2-verify" type="submit" name="submit" value="Verify" class="btn btn-primary finish" hidden>{{ end }}
           </span></div>
         </div>
       </div>
     </form>
   </div>
-  <aside class="edit-right" aria-label="DB2 wizard help"><h2>{{ .Title }}</h2>{{ range .Description }}<p>{{ . }}</p>{{ end }}{{ if not .VerifyMode }}{{ range .Fields }}<section class="db2-param-help row stephelp" id="{{ .HelpID }}" hidden><h3><code>{{ .Name }}</code></h3><p>{{ if .Longdesc }}{{ .Longdesc }}{{ else }}{{ .Shortdesc }}{{ end }}</p>{{ if .Example }}<em>Default: <code>{{ .Example }}</code></em>{{ end }}</section>{{ end }}{{ end }}</aside>
+  <aside class="edit-right" aria-label="{{ .Title }} help"><h2>{{ .Title }}</h2>{{ range .Description }}<p>{{ . }}</p>{{ end }}{{ if not .VerifyMode }}{{ range .Fields }}<section class="db2-param-help row stephelp" id="{{ .HelpID }}" hidden><h3><code>{{ .Name }}</code></h3><p>{{ if .Longdesc }}{{ .Longdesc }}{{ else }}{{ .Shortdesc }}{{ end }}</p>{{ if .Example }}<em>Default: <code>{{ .Example }}</code></em>{{ end }}</section>{{ end }}{{ end }}</aside>
 </div>
 {{ end }}
 

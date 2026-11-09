@@ -1,4 +1,5 @@
-const db2Form = document.getElementById("edit_wizard_db2");
+const db2Form = document.querySelector("[data-nested-wizard]");
+const nestedWizardName = db2Form.dataset.nestedWizard;
 const db2Steps = Array.from(db2Form.querySelectorAll(".db2-step"));
 let db2Step = 0;
 
@@ -29,8 +30,8 @@ function nextDB2Step() {
 
 function showDB2Help(event) {
     const row = event.target.closest("[data-param-help]");
-    const input = row?.querySelector('[name^="db2."]');
-    if (!input) return;
+    const input = row?.querySelector("[name]");
+    if (!input || !input.name.startsWith(`${nestedWizardName}.`)) return;
     const id = input.name.replaceAll(".", "-");
     document.querySelectorAll(".db2-param-help").forEach(section => section.hidden = section.id !== id);
 }

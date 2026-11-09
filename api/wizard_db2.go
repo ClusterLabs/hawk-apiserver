@@ -76,6 +76,9 @@ func db2Value(params db2Params, path []string) string {
 	return value
 }
 func buildDB2View(definition resourceWizardDefinition, params db2Params) db2View {
+	return buildNestedWizardView(definition, params, "db2")
+}
+func buildNestedWizardView(definition resourceWizardDefinition, params db2Params, name string) db2View {
 	view := db2View{Steps: []db2StepView{}, Fields: []db2Field{}, Advanced: []db2AdvancedGroup{}, Scopes: map[string]bool{}}
 	var groups func(wizardStep, []string, string, int, bool) []db2Group
 	groups = func(step wizardStep, parent []string, parentTitle string, index int, top bool) []db2Group {
@@ -88,11 +91,11 @@ func buildDB2View(definition resourceWizardDefinition, params db2Params) db2View
 		if title == "" {
 			title = parentTitle
 		}
-		prefix := "db2"
+		prefix := name
 		if len(path) > 0 {
 			prefix += "." + strings.Join(path, ".")
 		}
-		group := db2Group{Prefix: prefix, Basic: []db2Field{}, Advanced: []wizardParameter{}, Values: wizardParams{}, ContainerID: fmt.Sprintf("db2-advanced-%d", len(view.Advanced))}
+		group := db2Group{Prefix: prefix, Basic: []db2Field{}, Advanced: []wizardParameter{}, Values: wizardParams{}, ContainerID: fmt.Sprintf("%s-advanced-%d", name, len(view.Advanced))}
 		if !top && title != parentTitle {
 			group.Title = title
 		}
@@ -228,12 +231,16 @@ func db2Result(ctx context.Context, operation string, params db2Params, run db2C
 }
 func DB2WizardHandler(w http.ResponseWriter, r *http.Request) { serveDB2Wizard(w, r, runDB2Command) }
 func serveDB2Wizard(w http.ResponseWriter, r *http.Request, run db2Command) {
+	serveNestedWizard(w, r, run, resourceWizardConfig{Name: "db2", Title: "DB2"})
+}
+func serveNestedWizard(w http.ResponseWriter, r *http.Request, run db2Command, config resourceWizardConfig) {
+	base := "/cib/live/wizards/" + config.Name
 	path := strings.TrimSuffix(r.URL.Path, "/")
-	if path == "/cib/live/wizards/db2/submit" {
-		submitDB2Wizard(w, r, run)
+	if path == base+"/submit" {
+		submitNestedWizard(w, r, run, config)
 		return
 	}
-	if path != "/cib/live/wizards/db2" {
+	if path != base {
 		http.NotFound(w, r)
 		return
 	}
@@ -244,16 +251,16 @@ func serveDB2Wizard(w http.ResponseWriter, r *http.Request, run db2Command) {
 	}
 	definition, err := loadDB2Definition(r.Context(), run)
 	if err != nil {
-		http.Error(w, "Unable to load DB2 wizard: "+err.Error(), 500)
+		http.Error(w, "Unable to load "+config.Title+" wizard: "+err.Error(), 500)
 		return
 	}
 	params := db2Params{}
-	_ = json.Unmarshal(recalledEncryptedWizardValues(r, "db2"), &params)
+	_ = json.Unmarshal(recalledEncryptedWizardValues(r, config.Name), &params)
 	if params == nil {
 		params = db2Params{}
 	}
-	view := buildDB2View(definition, params)
-	data := map[string]any{"Title": definition.Shortdesc, "Description": strings.Split(definition.Longdesc, "\n\n"), "Steps": view.Steps, "Fields": view.Fields, "AdvancedGroups": view.Advanced}
+	view := buildNestedWizardView(definition, params, config.Name)
+	data := map[string]any{"Title": definition.Shortdesc, "Description": strings.Split(definition.Longdesc, "\n\n"), "Steps": view.Steps, "Fields": view.Fields, "AdvancedGroups": view.Advanced, "WizardName": config.Name}
 	if r.Method == http.MethodPost || r.Method == http.MethodPatch {
 		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 		if err := r.ParseForm(); err != nil {
@@ -261,7 +268,7 @@ func serveDB2Wizard(w http.ResponseWriter, r *http.Request, run db2Command) {
 			return
 		}
 		params = db2FormParams(r, definition, view)
-		rememberEncryptedWizardValues(w, r, "db2", params)
+		rememberEncryptedWizardValues(w, r, config.Name, params)
 		result := healthResult{Actions: []healthAction{}, Errors: []string{}}
 		if err := validateDB2Params(params, view); err != nil {
 			result.Errors = append(result.Errors, err.Error())
@@ -277,6 +284,9 @@ func serveDB2Wizard(w http.ResponseWriter, r *http.Request, run db2Command) {
 	renderTemplate(w, "wizard_db2", data)
 }
 func submitDB2Wizard(w http.ResponseWriter, r *http.Request, run db2Command) {
+	submitNestedWizard(w, r, run, resourceWizardConfig{Name: "db2", Title: "DB2"})
+}
+func submitNestedWizard(w http.ResponseWriter, r *http.Request, run db2Command, config resourceWizardConfig) {
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", "POST")
 		http.Error(w, "Method not allowed", 405)
@@ -289,15 +299,15 @@ func submitDB2Wizard(w http.ResponseWriter, r *http.Request, run db2Command) {
 	}
 	var params db2Params
 	if json.Unmarshal([]byte(r.FormValue("pa")), &params) != nil || params == nil {
-		http.Error(w, "Invalid DB2 wizard parameters", 400)
+		http.Error(w, "Invalid "+config.Title+" wizard parameters", 400)
 		return
 	}
 	definition, err := loadDB2Definition(r.Context(), run)
 	if err != nil {
-		http.Error(w, "Unable to load DB2 wizard: "+err.Error(), 500)
+		http.Error(w, "Unable to load "+config.Title+" wizard: "+err.Error(), 500)
 		return
 	}
-	if err := validateDB2Params(params, buildDB2View(definition, nil)); err != nil {
+	if err := validateDB2Params(params, buildNestedWizardView(definition, nil, config.Name)); err != nil {
 		http.Error(w, err.Error(), 400)
 		return
 	}
@@ -306,7 +316,7 @@ func submitDB2Wizard(w http.ResponseWriter, r *http.Request, run db2Command) {
 		expected := len(result.Actions)
 		result = db2Result(r.Context(), "run", params, run)
 		if len(result.Errors) == 0 && len(result.Actions) != expected {
-			result.Errors = append(result.Errors, fmt.Sprintf("DB2 wizard returned %d of %d expected action results", len(result.Actions), expected))
+			result.Errors = append(result.Errors, fmt.Sprintf("%s wizard returned %d of %d expected action results", config.Title, len(result.Actions), expected))
 		}
 	}
 	w.Header().Set("Content-Type", "application/json")
