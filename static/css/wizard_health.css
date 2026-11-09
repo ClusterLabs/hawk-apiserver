@@ -22,9 +22,9 @@
 :is(#edit_wizard_mailto, [data-resource-wizard]) .help-block { text-align: right; }
 .health-wizard .panel-steps .nav-pills .active > a { background: #00c081; color: #fff; }
 
-#wizard-advanced .wizard-advanced-group { display: flex; }
-#wizard-advanced .wizard-advanced-group > .form-control { flex: 1; min-width: 0; width: 0; border-radius: 4px 0 0 4px; }
-#wizard-advanced .wizard-advanced-group > .btn { margin-left: -1px; border-radius: 0 4px 4px 0; }
+:is(#wizard-advanced, .wizard-advanced) .wizard-advanced-group { display: flex; }
+:is(#wizard-advanced, .wizard-advanced) .wizard-advanced-group > .form-control { flex: 1; min-width: 0; width: 0; border-radius: 4px 0 0 4px; }
+:is(#wizard-advanced, .wizard-advanced) .wizard-advanced-group > .btn { margin-left: -1px; border-radius: 0 4px 4px 0; }
 .resource-wizard .edit-right { padding-left: 35px; }
 .resource-wizard .stephelp { margin-left: 0; margin-right: 0; }
 .resource-wizard .stephelp h3 > code { padding-left: 0; }

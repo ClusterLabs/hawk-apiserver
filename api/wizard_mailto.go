@@ -62,13 +62,18 @@ func (p *wizardParameter) UnmarshalJSON(data []byte) error {
 
 type mailtoParameter = wizardParameter
 
+type wizardStep struct {
+	Name       string            `json:"name"`
+	Shortdesc  string            `json:"shortdesc"`
+	Longdesc   string            `json:"longdesc"`
+	Required   bool              `json:"required"`
+	Parameters []wizardParameter `json:"parameters"`
+	Steps      []wizardStep      `json:"steps"`
+}
 type resourceWizardDefinition struct {
-	Shortdesc string `json:"shortdesc"`
-	Longdesc  string `json:"longdesc"`
-	Steps     []struct {
-		Longdesc   string            `json:"longdesc"`
-		Parameters []wizardParameter `json:"parameters"`
-	} `json:"steps"`
+	Shortdesc string       `json:"shortdesc"`
+	Longdesc  string       `json:"longdesc"`
+	Steps     []wizardStep `json:"steps"`
 }
 
 type mailtoDefinition = resourceWizardDefinition
@@ -78,7 +83,11 @@ func mailtoScriptCommand(ctx context.Context, operation string, params mailtoPar
 }
 
 func resourceWizardScriptCommand(ctx context.Context, name, operation string, params wizardParams) (*exec.Cmd, error) {
-	if name != "mailto" && name != "virtual-ip" && name != "database" {
+	return nestedWizardScriptCommand(ctx, name, operation, params)
+}
+
+func nestedWizardScriptCommand(ctx context.Context, name, operation string, params any) (*exec.Cmd, error) {
+	if name != "mailto" && name != "virtual-ip" && name != "database" && name != "db2" {
 		return nil, fmt.Errorf("Invalid resource wizard")
 	}
 	if operation != "show" && operation != "verify" && operation != "run" {
@@ -105,7 +114,10 @@ func runMailtoCommand(ctx context.Context, operation string, params mailtoParams
 }
 
 func runResourceWizardCommand(ctx context.Context, name, operation string, params wizardParams) ([]byte, error) {
-	cmd, err := resourceWizardScriptCommand(ctx, name, operation, params)
+	return runNestedWizardCommand(ctx, name, operation, params)
+}
+func runNestedWizardCommand(ctx context.Context, name, operation string, params any) ([]byte, error) {
+	cmd, err := nestedWizardScriptCommand(ctx, name, operation, params)
 	if err != nil {
 		return nil, err
 	}
