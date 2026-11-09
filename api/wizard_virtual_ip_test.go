@@ -76,20 +76,20 @@ func TestVirtualIPTemplate(t *testing.T) {
 	definition := virtualIPTestDefinition(t)
 	basic := definition.Steps[0].Parameters[:4]
 	advanced := definition.Steps[0].Parameters[4:]
-	tmpl, err := template.ParseFiles("../templates/wizard_virtual_ip.html")
+	tmpl, err := template.ParseFiles("../templates/wizard_resource.html")
 	require.NoError(t, err)
 	var body bytes.Buffer
-	require.NoError(t, tmpl.ExecuteTemplate(&body, "content", map[string]any{"Title": "Virtual IP", "Parameters": definition.Steps[0].Parameters, "Basic": basic, "Advanced": advanced, "Values": wizardParams{"ip": "192.0.2.10"}}))
+	require.NoError(t, tmpl.ExecuteTemplate(&body, "content", map[string]any{"Title": "Virtual IP", "WizardName": "virtual-ip", "Parameters": definition.Steps[0].Parameters, "Basic": basic, "Advanced": advanced, "Values": wizardParams{"ip": "192.0.2.10"}}))
 	for _, name := range []string{"id", "ip", "cidr_netmask", "broadcast"} {
 		require.Contains(t, body.String(), `id="virtual-ip.`+name+`"`)
 		require.Contains(t, body.String(), `name="virtual-ip.`+name+`"`)
 	}
-	for _, value := range []string{`name="submit" value="Verify"`, `pattern="[0-9]+"`, `virtual-ip-advanced-fields`, `Default:`, `/static/css/highlight.css`} {
+	for _, value := range []string{`name="submit" value="Verify"`, `pattern="[0-9]+"`, `wizard-advanced-fields`, `Default:`, `/static/css/highlight.css`} {
 		require.Contains(t, body.String(), value)
 	}
 	require.NotContains(t, body.String(), `name="virtual-ip.nic"`, "advanced fields are added on demand")
 	body.Reset()
-	require.NoError(t, tmpl.ExecuteTemplate(&body, "content", map[string]any{"Title": "Virtual IP", "VerifyMode": true, "ParamsJSON": `{"id":"vip","ip":"192.0.2.10"}`, "Actions": []healthAction{{Number: 1, Name: "cib", Shortdesc: "Configure cluster resources", Text: "primitive vip <unsafe>"}}}))
+	require.NoError(t, tmpl.ExecuteTemplate(&body, "content", map[string]any{"Title": "Virtual IP", "WizardName": "virtual-ip", "VerifyMode": true, "ParamsJSON": `{"id":"vip","ip":"192.0.2.10"}`, "Actions": []healthAction{{Number: 1, Name: "cib", Shortdesc: "Configure cluster resources", Text: "primitive vip <unsafe>"}}}))
 	for _, value := range []string{`name="submit" value="Apply"`, `action="/cib/live/wizards/virtual-ip/submit"`, `class="crmsh hljs"`, `&lt;unsafe&gt;`} {
 		require.Contains(t, body.String(), value)
 	}
