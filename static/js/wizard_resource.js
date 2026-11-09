@@ -1,8 +1,8 @@
-function showVirtualIPHelp(event) {
+function showResourceWizardHelp(event) {
     const row = event.target.closest("[data-param-help]");
     if (!row) return;
-    document.querySelectorAll(".virtual-ip-param-help").forEach(section => {
-        section.hidden = section.id !== `virtual-ip-help-${row.dataset.paramHelp}`;
+    document.querySelectorAll(".resource-param-help").forEach(section => {
+        section.hidden = section.id !== `${resourceWizardName}-help-${row.dataset.paramHelp}`;
     });
 }
 
@@ -41,7 +41,7 @@ class WizardAdvancedParameters {
             row.dataset.paramHelp = name;
             const label = document.createElement("label");
             label.className = "col-sm-5 control-label";
-            label.htmlFor = `virtual-ip.${name}`;
+            label.htmlFor = `${resourceWizardName}.${name}`;
             label.textContent = name;
             const column = document.createElement("div");
             column.className = "col-sm-7";
@@ -49,7 +49,7 @@ class WizardAdvancedParameters {
             group.className = "wizard-advanced-group";
             const input = document.createElement(parameter.type === "boolean" ? "select" : "input");
             input.className = "form-control";
-            input.id = input.name = `virtual-ip.${name}`;
+            input.id = input.name = `${resourceWizardName}.${name}`;
             if (parameter.type === "boolean") {
                 input.add(new Option("Yes", "true"));
                 input.add(new Option("No", "false"));
@@ -88,7 +88,7 @@ class WizardAdvancedParameters {
             if (!parameter) return;
             this.values[parameter.name] = parameter.example || "";
             this.render();
-            const input = document.getElementById(`virtual-ip.${parameter.name}`);
+            const input = document.getElementById(`${resourceWizardName}.${parameter.name}`);
             input?.dispatchEvent(new Event("focusin", { bubbles: true }));
         };
         select.addEventListener("change", add);
@@ -100,13 +100,14 @@ class WizardAdvancedParameters {
     }
 }
 
-const virtualIPForm = document.getElementById("edit_wizard_virtual-ip");
-virtualIPForm.addEventListener("mouseover", showVirtualIPHelp);
-virtualIPForm.addEventListener("focusin", showVirtualIPHelp);
-const resourceID = document.getElementById("virtual-ip.id");
+const resourceWizardForm = document.querySelector("[data-resource-wizard]");
+const resourceWizardName = resourceWizardForm.dataset.resourceWizard;
+resourceWizardForm.addEventListener("mouseover", showResourceWizardHelp);
+resourceWizardForm.addEventListener("focusin", showResourceWizardHelp);
+const resourceID = document.getElementById(`${resourceWizardName}.id`);
 resourceID?.addEventListener("input", () => {
     resourceID.setCustomValidity(resourceID.value.includes(" ") ? "Must be a valid resource ID" : "");
 });
-const advanced = document.getElementById("virtual-ip-advanced-fields");
-if (advanced) new WizardAdvancedParameters(advanced, window.virtualIPData.parameters, window.virtualIPData.values);
+const advanced = document.getElementById("wizard-advanced-fields");
+if (advanced) new WizardAdvancedParameters(advanced, window.resourceWizardData.parameters, window.resourceWizardData.values);
 document.querySelectorAll("pre code.crmsh").forEach(block => hljs.highlightBlock(block));

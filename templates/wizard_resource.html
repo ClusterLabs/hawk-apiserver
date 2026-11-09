@@ -4,12 +4,12 @@
 <link rel="stylesheet" href="/static/css/highlight.css">
 <script src="/static/js/vendor/highlight.js" defer></script>
 <script src="/static/js/wizard_apply.js" defer></script>
-<script>window.virtualIPData = { parameters: {{ .Advanced }}, values: {{ .Values }} };</script>
-<script src="/static/js/wizard_virtual_ip.js" defer></script>
-<div class="edit-layout health-wizard virtual-ip-wizard">
+<script>window.resourceWizardData = { parameters: {{ .Advanced }}, values: {{ .Values }} };</script>
+<script src="/static/js/wizard_resource.js" defer></script>
+<div class="edit-layout health-wizard resource-wizard">
   <div class="edit-left {{ if .VerifyMode }}wizard-verify{{ end }}">
     <h1><i class="fa fa-magic" aria-hidden="true"></i> {{ .Title }}</h1>
-    <form class="form-horizontal" id="edit_wizard_virtual-ip" data-wizard-form data-progress-message="Applying configuration changes..." role="form" action="/cib/live/wizards/virtual-ip{{ if .VerifyMode }}/submit{{ end }}" method="post" {{ if .VerifyMode }}data-wizard-apply="true"{{ end }}>
+    <form class="form-horizontal" id="edit_wizard_{{ .WizardName }}" data-resource-wizard="{{ .WizardName }}" data-wizard-form data-progress-message="Applying configuration changes..." role="form" action="/cib/live/wizards/{{ .WizardName }}{{ if .VerifyMode }}/submit{{ end }}" method="post" {{ if .VerifyMode }}data-wizard-apply="true"{{ end }}>
       {{ if .VerifyMode }}<input type="hidden" name="pa" id="pa" value="{{ .ParamsJSON }}">{{ else }}<input type="hidden" name="_method" value="patch">{{ end }}
       <div class="panel panel-default">
         <div class="panel-steps"><ul class="nav nav-pills">{{ if .VerifyMode }}<li class="btn btn-default btn-circle disabled">1</li>{{ else }}<li role="presentation" class="active"><a href="#step0" class="btn btn-default btn-circle" role="tab" aria-controls="step0">1</a></li>{{ end }}{{ if .VerifyMode }}<li class="btn btn-circle {{ if .Errors }}btn-danger{{ else }}btn-success{{ end }} active"><i class="fa {{ if .Errors }}fa-exclamation-triangle{{ else }}fa-check{{ end }}" aria-hidden="true"></i></li>{{ end }}</ul></div>
@@ -23,19 +23,19 @@
           <div class="tab-content"><div class="tab-pane active" id="step0" role="tabpanel">
           {{ if .StepDescription }}<div class="well">{{ .StepDescription }}</div>{{ end }}
           {{ range .Basic }}
-          <div class="form-group" data-param-help="{{ .Name }}" data-help-filter=".virtual-ip-{{ .Name }}">
-            <div class="col-sm-5 text-right"><label for="virtual-ip.{{ .Name }}">{{ .Label }}</label></div>
-            <div class="col-sm-7"><input id="virtual-ip.{{ .Name }}" name="virtual-ip.{{ .Name }}" type="{{ if eq .Type "email" }}email{{ else }}text{{ end }}" class="form-control{{ if eq .Type "resource" }} resource-id{{ end }}" data-param-type="{{ .Type }}" data-param-required="{{ .Required }}" {{ if eq .Type "integer" }}inputmode="numeric" pattern="[0-9]+" digits="true"{{ end }} {{ if .Required }}required{{ end }} value="{{ with index $.Values .Name }}{{ . }}{{ else }}{{ .Value }}{{ end }}" {{ if .Example }}placeholder="Example: {{ .Example }}"{{ end }}></div>
+          <div class="form-group" data-param-help="{{ .Name }}" data-help-filter=".{{ $.WizardName }}-{{ .Name }}">
+            <div class="col-sm-5 text-right"><label for="{{ $.WizardName }}.{{ .Name }}">{{ .Label }}</label></div>
+            <div class="col-sm-7">{{ if eq .Type "boolean" }}<select id="{{ $.WizardName }}.{{ .Name }}" name="{{ $.WizardName }}.{{ .Name }}" class="form-control" data-param-type="boolean"><option value="true" {{ if eq (index $.Values .Name) "true" }}selected{{ else }}{{ if and (not (index $.Values .Name)) (eq .Value "true") }}selected{{ end }}{{ end }}>Yes</option><option value="false" {{ if eq (index $.Values .Name) "false" }}selected{{ else }}{{ if and (not (index $.Values .Name)) (ne .Value "true") }}selected{{ end }}{{ end }}>No</option></select>{{ else }}<input id="{{ $.WizardName }}.{{ .Name }}" name="{{ $.WizardName }}.{{ .Name }}" type="{{ if eq .Type "email" }}email{{ else }}text{{ end }}" class="form-control{{ if eq .Type "resource" }} resource-id{{ end }}" data-param-type="{{ .Type }}" data-param-required="{{ .Required }}" {{ if eq .Type "integer" }}inputmode="numeric" pattern="[0-9]+" digits="true"{{ end }} {{ if .Required }}required{{ end }} value="{{ with index $.Values .Name }}{{ . }}{{ else }}{{ .Value }}{{ end }}" {{ if .Example }}placeholder="Example: {{ .Example }}"{{ end }}>{{ end }}</div>
             <div class="col-sm-5 help-block">{{ .Shortdesc }}</div>
           </div>
           {{ end }}
-          {{ if .Advanced }}<fieldset id="virtual-ip-advanced"><legend>Advanced</legend><div id="virtual-ip-advanced-fields"></div></fieldset>{{ end }}
+          {{ if .Advanced }}<fieldset id="wizard-advanced"><legend>Advanced</legend><div id="wizard-advanced-fields"></div></fieldset>{{ end }}
           </div></div>
           {{ end }}
           <div class="wizard health-wizard-buttons"><span class="btn-group" role="group">
             <a href="/cib/live/wizards" class="btn btn-default" data-confirm="Do you really want to cancel the wizard setup?">Cancel</a>
             {{ if .VerifyMode }}
-            <a href="/cib/live/wizards/virtual-ip" class="btn btn-default">Back</a>
+            <a href="/cib/live/wizards/{{ .WizardName }}" class="btn btn-default">Back</a>
             <input type="submit" name="submit" value="Apply" class="btn btn-primary finish submit" {{ if .Errors }}disabled{{ end }}>
             {{ else }}
             <a href="#" class="btn btn-default previous disabled" aria-disabled="true" hidden>Back</a>
@@ -46,6 +46,6 @@
       </div>
     </form>
   </div>
-  <aside class="edit-right" aria-label="Virtual IP wizard help"><h2>{{ .Title }}</h2>{{ range .Description }}<p>{{ . }}</p>{{ end }}{{ if not .VerifyMode }}{{ range .Parameters }}<section class="virtual-ip-param-help virtual-ip-{{ .Name }} row stephelp" id="virtual-ip-help-{{ .Name }}" hidden><h3><code>{{ .Name }}</code></h3><p>{{ if .Longdesc }}{{ .Longdesc }}{{ else }}{{ .Shortdesc }}{{ end }}</p>{{ if .Example }}<em>Default: <code>{{ .Example }}</code></em>{{ end }}</section>{{ end }}{{ end }}</aside>
+  <aside class="edit-right" aria-label="{{ .Title }} help"><h2>{{ .Title }}</h2>{{ range .Description }}<p>{{ . }}</p>{{ end }}{{ if not .VerifyMode }}{{ range .Parameters }}<section class="resource-param-help {{ $.WizardName }}-{{ .Name }} row stephelp" id="{{ $.WizardName }}-help-{{ .Name }}" hidden><h3><code>{{ .Name }}</code></h3><p>{{ if .Longdesc }}{{ .Longdesc }}{{ else }}{{ .Shortdesc }}{{ end }}</p>{{ if .Example }}<em>Default: <code>{{ .Example }}</code></em>{{ end }}</section>{{ end }}{{ end }}</aside>
 </div>
 {{ end }}

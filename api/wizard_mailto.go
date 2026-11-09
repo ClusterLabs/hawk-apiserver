@@ -25,6 +25,41 @@ type wizardParameter struct {
 	Example   string `json:"example"`
 	Value     string `json:"value"`
 }
+
+// crmsh returns actual booleans for values such as database.install.
+// Keep the form-facing representation textual, as Rails' select_tag does.
+func (p *wizardParameter) UnmarshalJSON(data []byte) error {
+	type plain wizardParameter
+	var value struct {
+		*plain
+		Value json.RawMessage `json:"value"`
+	}
+	value.plain = (*plain)(p)
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	if len(value.Value) == 0 || string(value.Value) == "null" {
+		p.Value = ""
+		return nil
+	}
+	var text string
+	if json.Unmarshal(value.Value, &text) == nil {
+		p.Value = text
+		return nil
+	}
+	var boolean bool
+	if json.Unmarshal(value.Value, &boolean) == nil {
+		p.Value = fmt.Sprint(boolean)
+		return nil
+	}
+	var number json.Number
+	if json.Unmarshal(value.Value, &number) == nil {
+		p.Value = number.String()
+		return nil
+	}
+	return fmt.Errorf("Unsupported wizard parameter value")
+}
+
 type mailtoParameter = wizardParameter
 
 type resourceWizardDefinition struct {
@@ -43,7 +78,7 @@ func mailtoScriptCommand(ctx context.Context, operation string, params mailtoPar
 }
 
 func resourceWizardScriptCommand(ctx context.Context, name, operation string, params wizardParams) (*exec.Cmd, error) {
-	if name != "mailto" && name != "virtual-ip" {
+	if name != "mailto" && name != "virtual-ip" && name != "database" {
 		return nil, fmt.Errorf("Invalid resource wizard")
 	}
 	if operation != "show" && operation != "verify" && operation != "run" {
@@ -114,6 +149,10 @@ func rememberMailto(w http.ResponseWriter, r *http.Request, params mailtoParams)
 	rememberWizardValues(w, r, "mailto", params)
 }
 func rememberWizardValues(w http.ResponseWriter, r *http.Request, name string, params wizardParams) {
+	if name == "database" {
+		rememberDatabaseValues(w, r, params)
+		return
+	}
 	data, _ := json.Marshal(params)
 	if len(data) > 2500 {
 		return
@@ -122,6 +161,9 @@ func rememberWizardValues(w http.ResponseWriter, r *http.Request, name string, p
 }
 func recalledMailto(r *http.Request) mailtoParams { return recalledWizardValues(r, "mailto") }
 func recalledWizardValues(r *http.Request, name string) wizardParams {
+	if name == "database" {
+		return recalledDatabaseValues(r)
+	}
 	params := wizardParams{}
 	if cookie, err := r.Cookie("hawk_wizard_" + strings.ReplaceAll(name, "-", "_")); err == nil {
 		if data, err := base64.RawURLEncoding.DecodeString(cookie.Value); err == nil {
