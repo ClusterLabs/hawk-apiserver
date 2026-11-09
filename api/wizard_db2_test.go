@@ -109,7 +109,7 @@ func TestDB2Template(t *testing.T) {
 	view := buildDB2View(d, nil)
 	tmpl, err := template.ParseFiles("../templates/wizard_db2.html")
 	require.NoError(t, err)
-	data := map[string]any{"Title": d.Shortdesc, "Description": []string{d.Longdesc}, "Steps": view.Steps, "Fields": view.Fields, "AdvancedGroups": view.Advanced}
+	data := map[string]any{"Title": d.Shortdesc, "WizardName": "db2", "Description": []string{d.Longdesc}, "Steps": view.Steps, "Fields": view.Fields, "AdvancedGroups": view.Advanced}
 	var body bytes.Buffer
 	require.NoError(t, tmpl.ExecuteTemplate(&body, "content", data))
 	for _, value := range []string{`name="db2.id"`, `name="db2.instance"`, `name="db2.virtual-ip.ip"`, `name="db2.filesystem.device"`, `value="db2-database"`, `value="db2inst1"`, `value="xfs"`, `id="step0"`, `id="step1"`, `id="step2"`, `id="db2-next"`, `id="db2-previous"`, `name="submit" value="Verify"`} {
