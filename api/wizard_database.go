@@ -40,8 +40,11 @@ func newDatabaseStateCipher() cipher.AEAD {
 	return state
 }
 func rememberDatabaseValues(w http.ResponseWriter, r *http.Request, params wizardParams) {
+	rememberEncryptedWizardValues(w, r, "database", params)
+}
+func rememberEncryptedWizardValues(w http.ResponseWriter, r *http.Request, name string, params any) {
 	data, _ := json.Marshal(struct {
-		Params  wizardParams
+		Params  any
 		Expires int64
 	}{params, time.Now().Add(time.Hour).Unix()})
 	if len(data) > 2400 {
@@ -51,30 +54,37 @@ func rememberDatabaseValues(w http.ResponseWriter, r *http.Request, params wizar
 	if _, err := rand.Read(nonce); err != nil {
 		return
 	}
-	encrypted := databaseStateCipher.Seal(nonce, nonce, data, []byte("database"))
-	http.SetCookie(w, &http.Cookie{Name: "hawk_wizard_database", Value: base64.RawURLEncoding.EncodeToString(encrypted), Path: "/cib/live/wizards/database", MaxAge: 3600, HttpOnly: true, Secure: r.TLS != nil, SameSite: http.SameSiteLaxMode})
+	encrypted := databaseStateCipher.Seal(nonce, nonce, data, []byte(name))
+	http.SetCookie(w, &http.Cookie{Name: "hawk_wizard_" + name, Value: base64.RawURLEncoding.EncodeToString(encrypted), Path: "/cib/live/wizards/" + name, MaxAge: 3600, HttpOnly: true, Secure: r.TLS != nil, SameSite: http.SameSiteLaxMode})
 }
 func recalledDatabaseValues(r *http.Request) wizardParams {
-	empty := wizardParams{}
-	cookie, err := r.Cookie("hawk_wizard_database")
+	params := wizardParams{}
+	_ = json.Unmarshal(recalledEncryptedWizardValues(r, "database"), &params)
+	if params == nil {
+		params = wizardParams{}
+	}
+	return params
+}
+func recalledEncryptedWizardValues(r *http.Request, name string) json.RawMessage {
+	cookie, err := r.Cookie("hawk_wizard_" + name)
 	if err != nil {
-		return empty
+		return nil
 	}
 	encrypted, err := base64.RawURLEncoding.DecodeString(cookie.Value)
 	size := databaseStateCipher.NonceSize()
 	if err != nil || len(encrypted) < size {
-		return empty
+		return nil
 	}
-	data, err := databaseStateCipher.Open(nil, encrypted[:size], encrypted[size:], []byte("database"))
+	data, err := databaseStateCipher.Open(nil, encrypted[:size], encrypted[size:], []byte(name))
 	if err != nil {
-		return empty
+		return nil
 	}
 	var state struct {
-		Params  wizardParams
+		Params  json.RawMessage
 		Expires int64
 	}
-	if json.Unmarshal(data, &state) != nil || state.Expires <= time.Now().Unix() || state.Params == nil {
-		return empty
+	if json.Unmarshal(data, &state) != nil || state.Expires <= time.Now().Unix() {
+		return nil
 	}
 	return state.Params
 }
