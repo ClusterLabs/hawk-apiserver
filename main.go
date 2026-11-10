@@ -128,6 +128,8 @@ func main() {
 		routehandler.ServeHTTP(w, r) // if not exactly "/cib/live/" --> Ruby fallback
 	})
 	// Register BOTH /cib/live/foo and /cib/live/foo/ to avoid conflicts with Ruby
+	mux.HandleFunc("/cib/live/wizards/exportfs", authMiddleware(api.ExportFSWizardHandler))
+	mux.HandleFunc("/cib/live/wizards/exportfs/", authMiddleware(api.ExportFSWizardHandler))
 	mux.HandleFunc("/cib/live/wizards/raid-lvm", authMiddleware(api.RAIDLVMWizardHandler))
 	mux.HandleFunc("/cib/live/wizards/raid-lvm/", authMiddleware(api.RAIDLVMWizardHandler))
 	mux.HandleFunc("/cib/live/wizards/lvm-drbd", authMiddleware(api.LVMDRBDWizardHandler))
