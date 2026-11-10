@@ -28,6 +28,14 @@ function nextDB2Step() {
     if (db2Step < db2Steps.length - 1) showDB2Step(db2Step + 1);
 }
 
+function updateOptionalWizardStep(step) {
+    const enable = step.querySelector("[data-wizard-enable]");
+    if (!enable) return;
+    for (const input of step.querySelectorAll("input, select, button")) {
+        if (input !== enable) input.disabled = enable.value !== "true";
+    }
+}
+
 function showDB2Help(event) {
     const row = event.target.closest("[data-param-help]");
     const input = row?.querySelector("[name]");
@@ -49,6 +57,10 @@ if (db2Steps.length) {
     db2Form.querySelectorAll(".db2-step-link").forEach(link => link.addEventListener("click", event => event.preventDefault()));
     for (const group of window.db2WizardData.groups) {
         new WizardAdvancedParameters(document.getElementById(group.containerID), group.parameters, group.values, group.prefix);
+    }
+    for (const step of db2Steps) {
+        step.querySelector("[data-wizard-enable]")?.addEventListener("change", () => updateOptionalWizardStep(step));
+        updateOptionalWizardStep(step);
     }
     showDB2Step(0);
 }

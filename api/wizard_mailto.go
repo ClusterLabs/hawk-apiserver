@@ -87,7 +87,7 @@ func resourceWizardScriptCommand(ctx context.Context, name, operation string, pa
 }
 
 func nestedWizardScriptCommand(ctx context.Context, name, operation string, params any) (*exec.Cmd, error) {
-	if name != "mailto" && name != "virtual-ip" && name != "database" && name != "db2" && name != "db2-hadr" && name != "oracle" && name != "drbd" && name != "filesystem" && name != "gfs2" {
+	if name != "mailto" && name != "virtual-ip" && name != "database" && name != "db2" && name != "db2-hadr" && name != "oracle" && name != "drbd" && name != "filesystem" && name != "gfs2" && name != "lvm-drbd" {
 		return nil, fmt.Errorf("Invalid resource wizard")
 	}
 	if operation != "show" && operation != "verify" && operation != "run" {

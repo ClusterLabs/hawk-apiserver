@@ -12,11 +12,12 @@ type db2Params map[string]any
 type db2Command func(context.Context, string, db2Params) ([]byte, error)
 type db2Field struct {
 	wizardParameter
-	FieldID   string
-	HelpID    string
-	Path      []string
-	Current   string
-	StepIndex int
+	FieldID       string
+	HelpID        string
+	Path          []string
+	Current       string
+	StepIndex     int
+	OptionalScope string
 }
 type db2Group struct {
 	Title       string
@@ -27,6 +28,9 @@ type db2Group struct {
 	ContainerID string
 }
 type db2StepView struct {
+	EnableID    string
+	Optional    bool
+	Enabled     bool
 	Index       int
 	Number      int
 	Title       string
@@ -144,13 +148,27 @@ func buildNestedWizardView(definition resourceWizardDefinition, params db2Params
 	for i, step := range definition.Steps {
 		title := strings.TrimSpace(step.Shortdesc)
 		if title == "" {
-			title = "db2"
+			title = strings.NewReplacer("_", " ", "-", " ").Replace(name)
 		}
 		paragraphs := []string{}
 		if strings.TrimSpace(step.Longdesc) != "" {
 			paragraphs = strings.Split(step.Longdesc, "\n\n")
 		}
-		view.Steps = append(view.Steps, db2StepView{Index: i, Number: i + 1, Title: title, Description: paragraphs, Groups: groups(step, nil, title, i, true)})
+		start := len(view.Fields)
+		stepGroups := groups(step, nil, title, i, true)
+		optional := !step.Required
+		scope := step.Name
+		_, enabled := params[scope]
+		if optional {
+			for j := start; j < len(view.Fields); j++ {
+				view.Fields[j].OptionalScope = scope
+			}
+		}
+		enableID := "enable:" + name
+		if scope != "" {
+			enableID += "." + scope
+		}
+		view.Steps = append(view.Steps, db2StepView{Index: i, Number: i + 1, Title: title, Description: paragraphs, Groups: stepGroups, Optional: optional, Enabled: enabled, EnableID: enableID})
 	}
 	return view
 }
@@ -175,6 +193,9 @@ func db2FormParams(r *http.Request, definition resourceWizardDefinition, view db
 		}
 	}
 	for _, field := range view.Fields {
+		if field.OptionalScope != "" && r.FormValue(view.Steps[field.StepIndex].EnableID) != "true" {
+			continue
+		}
 		if value := r.FormValue(field.FieldID); value != "" {
 			setDB2Value(params, field.Path, value)
 		}
@@ -214,6 +235,11 @@ func validateDB2Params(params db2Params, view db2View) error {
 	}
 	for _, field := range view.Fields {
 		value := db2Value(params, field.Path)
+		if field.OptionalScope != "" {
+			if _, enabled := params[field.OptionalScope]; !enabled {
+				continue
+			}
+		}
 		if field.Required && strings.TrimSpace(value) == "" {
 			return fmt.Errorf("%s is required", field.Label)
 		}
