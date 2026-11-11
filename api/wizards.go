@@ -98,6 +98,9 @@ func wizardCategories(data []byte) ([]wizardCategory, error) {
 			words[j] = string(letters)
 		}
 		title = strings.Join(words, " ")
+		if name == "sap" || name == "nfs" {
+			title = strings.ToUpper(name)
+		}
 		if name == "wizard" {
 			title = "Legacy Wizards"
 		}
