@@ -128,6 +128,8 @@ func main() {
 		routehandler.ServeHTTP(w, r) // if not exactly "/cib/live/" --> Ruby fallback
 	})
 	// Register BOTH /cib/live/foo and /cib/live/foo/ to avoid conflicts with Ruby
+	mux.HandleFunc("/cib/live/wizards/sap-as", authMiddleware(api.SAPASWizardHandler))
+	mux.HandleFunc("/cib/live/wizards/sap-as/", authMiddleware(api.SAPASWizardHandler))
 	mux.HandleFunc("/cib/live/wizards/nfsserver-lvm-drbd", authMiddleware(api.NFSServerLVMDRBDWizardHandler))
 	mux.HandleFunc("/cib/live/wizards/nfsserver-lvm-drbd/", authMiddleware(api.NFSServerLVMDRBDWizardHandler))
 	mux.HandleFunc("/cib/live/wizards/nfsserver", authMiddleware(api.NFSServerWizardHandler))
