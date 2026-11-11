@@ -128,6 +128,8 @@ func main() {
 		routehandler.ServeHTTP(w, r) // if not exactly "/cib/live/" --> Ruby fallback
 	})
 	// Register BOTH /cib/live/foo and /cib/live/foo/ to avoid conflicts with Ruby
+	mux.HandleFunc("/cib/live/wizards/haproxy", authMiddleware(api.HAProxyWizardHandler))
+	mux.HandleFunc("/cib/live/wizards/haproxy/", authMiddleware(api.HAProxyWizardHandler))
 	mux.HandleFunc("/cib/live/wizards/apache", authMiddleware(api.ApacheWizardHandler))
 	mux.HandleFunc("/cib/live/wizards/apache/", authMiddleware(api.ApacheWizardHandler))
 	mux.HandleFunc("/cib/live/wizards/sap-simple-stack-plus", authMiddleware(api.SAPSimpleStackPlusWizardHandler))
