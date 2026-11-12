@@ -1,7 +1,7 @@
 class DeletePopup extends Popup {
     #resourceID;
 
-    constructor(resourceID) {
+    constructor(resourceID, onConfirm = null) {
         super();
 
         this.#resourceID = resourceID;
@@ -23,6 +23,7 @@ class DeletePopup extends Popup {
         header.appendChild(icon);
 
         this._appendModalContentChild(header);
+        if (onConfirm) header.closest(".modal-content").classList.add("config-delete-confirmation");
 
         // Body
         const modalBody = document.createElement("div");
@@ -30,7 +31,7 @@ class DeletePopup extends Popup {
 
         const centerBlock = document.createElement("div");
         centerBlock.className = "text-center";
-        centerBlock.innerHTML = `Are you sure you want to delete: <strong>${this.#resourceID}</strong> ?`;
+        centerBlock.textContent = `Are you sure you wish to delete ${this.#resourceID}?`;
         modalBody.appendChild(centerBlock);
 
         this._appendModalContentChild(modalBody);
@@ -47,7 +48,14 @@ class DeletePopup extends Popup {
         const okBtn = document.createElement("button");
         okBtn.className = "btn btn-danger commit";
         okBtn.textContent = "OK";
-        okBtn.onclick = () => this.#handleDelete();
+        okBtn.onclick = () => {
+            if (okBtn.disabled) return;
+            okBtn.disabled = true;
+            if (onConfirm) {
+                this.close();
+                onConfirm();
+            } else this.#handleDelete();
+        };
 
         footer.append(cancelBtn, okBtn);
         this._appendModalContentChild(footer);
