@@ -234,6 +234,9 @@ func main() {
 	mux.HandleFunc("/cib/live/clones/new/", authMiddleware(api.CloneNewHandler))
 	mux.HandleFunc("/cib/live/nodes", authMiddleware(api.NodesEditHandler))
 	mux.HandleFunc("/cib/live/nodes/", authMiddleware(api.NodesEditHandler))
+	mux.HandleFunc("/cib/live/config/edit", authMiddleware(api.ConfigEditHandler))
+	mux.HandleFunc("/cib/live/config/edit/", authMiddleware(api.ConfigEditHandler))
+
 	dashboardStore := internal.NewDashboardConfigStore("")
 	mux.HandleFunc("/api/dashboard/clusters", authMiddleware(api.NewDashboardClustersHandler(dashboardStore)))
 	mux.HandleFunc("/dashboard", authMiddleware(api.DashboardHandler))

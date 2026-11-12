@@ -1,0 +1,30 @@
+{{ define "content" }}
+<link rel="stylesheet" href="/static/css/config_edit.css">
+<script src="/static/js/classes/XAlert.js" defer></script>
+<script src="/static/js/classes/DeletePopup.js" defer></script>
+<script src="/static/js/classes/RAInfoPopup.js" defer></script>
+<script src="/static/js/config_edit.js" defer></script>
+<div class="container-fluid config-edit" id="config-editor">
+  <div class="row"><h1><i class="fa fa-database" aria-hidden="true"></i> Edit Configuration
+    <span class="pull-right btn-group config-view-links" role="group">
+      <a href="/cib/live/config/edit" class="btn btn-default disabled" aria-disabled="true"><i class="fa fa-database"></i> Edit</a>
+      <a href="/cib/live/config" class="btn btn-default"><i class="fa fa-list"></i> Show</a>
+      <a href="/cib/live/config?xml=true" class="btn btn-default"><i class="fa fa-file-code"></i> XML</a>
+      <a href="/cib/live/graph" class="btn btn-default"><i class="fa fa-file-image"></i> Graph</a>
+    </span>
+  </h1></div>
+  <div id="config-notifications" role="status" aria-live="polite"></div>
+  <div class="row"><div class="panel panel-default with-nav-tabs">
+    <div class="panel-heading"><ul class="nav nav-tabs" role="tablist">
+      {{ range .Tabs }}<li role="presentation" {{ if eq . "resources" }}class="active"{{ end }}><a href="#{{ . }}" data-config-tab="{{ . }}" role="tab" aria-controls="{{ . }}" aria-selected="{{ if eq . "resources" }}true{{ else }}false{{ end }}">{{ if eq . "resources" }}Resources{{ else if eq . "constraints" }}Constraints{{ else if eq . "nodes" }}Nodes{{ else if eq . "tags" }}Tags{{ else if eq . "alerts" }}Alerts{{ else }}Fencing{{ end }}</a></li>{{ end }}
+    </ul></div>
+    <div class="panel-body"><div class="tab-content">
+      {{ range .Tabs }}<div id="{{ . }}" role="tabpanel" class="tab-pane{{ if eq . "resources" }} active{{ end }}" {{ if ne . "resources" }}hidden{{ end }}>
+        {{ if eq . "fencing" }}<div class="config-fencing-toolbar"><a href="/cib/live/fencing/edit" class="btn btn-default btn-sm"><i class="fa fa-pencil"></i> Edit</a></div>{{ end }}
+        <div class="config-table-error alert alert-danger" role="alert" hidden></div>
+        <table class="table table-striped {{ . }}{{ if eq . "fencing" }} table-bordered{{ end }}" aria-label="{{ . }}" data-config-table="{{ . }}"></table>
+      </div>{{ end }}
+    </div></div>
+  </div></div>
+</div>
+{{ end }}

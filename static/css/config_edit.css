@@ -1,0 +1,33 @@
+.config-edit { width: 100%; min-width: 0; padding: 30px; }
+.config-edit > .row { margin-left: 0; margin-right: 0; }
+.config-edit h1 { font-size: 20px; line-height: 34px; margin: 10px 0 15px; }
+.config-edit .panel-heading { padding: 5px 5px 0; background: linear-gradient(#fafafa, #e8e8e8); }
+.config-edit .panel-heading .nav-tabs { border-bottom: 0; }
+.config-edit .nav-tabs a { color: #777; }
+.config-edit .nav-tabs .active a { color: #555; }
+.config-edit .panel-body { padding: 15px 15px 25px; }
+.config-edit [hidden] { display: none !important; }
+.config-table-toolbar { display: flex; justify-content: space-between; padding: 10px; margin-bottom: 0; gap: 10px; }
+.config-table-toolbar input { width: 186px; max-width: 100%; }
+.config-edit table { width: 100%; margin-bottom: 0; table-layout: fixed; border: 1px solid #ddd; }
+.config-edit th, .config-edit td { text-align: center; border: 1px solid #ddd; }
+.config-edit th { white-space: nowrap; padding: 10px 8px !important; }
+.config-edit th button { border: 0; background: transparent; padding: 0; font-weight: bold; text-align: center; width: 100%; }
+.config-edit .config-sort { float: right; margin-left: 8px; color: #ccc; }
+.config-edit th[aria-sort="ascending"] .config-sort, .config-edit th[aria-sort="descending"] .config-sort { color: #8884e8; }
+.config-edit td { vertical-align: middle !important; overflow-wrap: break-word; }
+.config-edit .config-operations { white-space: nowrap; }
+.config-edit .btn-group { display: inline-flex; vertical-align: middle; }
+.config-edit .btn-group > .btn { margin-left: 0; }
+.config-edit .btn-group > .btn + .btn { margin-left: -1px; }
+.config-edit .btn-xs { padding: 1px 5px; font-size: 12px; line-height: 1.5; }
+.config-table-pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 10px 10px 0; }
+.config-table-pagination select { display: inline-block; width: auto; height: auto; padding: 0; margin-left: 12px; border: 0; box-shadow: none; background: transparent; color: inherit; }
+.config-table-pagination .pagination { margin: 0; }
+.config-table-pagination .pagination > .active > a { background: #00c081; border-color: #00c081; }
+.config-fencing-toolbar { text-align: right; margin-bottom: 15px; }
+.config-view-links .btn { font-size: 14px; }
+.modal-content.config-delete-confirmation { width: 600px; max-width: calc(100vw - 30px); padding: 0; }
+.config-delete-confirmation .modal-header { border-bottom: 0; padding: 35px 15px 0; }
+.config-delete-confirmation .modal-body { padding: 20px 15px 28px; }
+@media (max-width: 700px) { .config-edit { padding: 15px; } .config-view-links { float: none !important; display: flex; margin: 15px 0; } .config-edit .panel-body { overflow-x: auto; } .config-edit table { min-width: 560px; } }
