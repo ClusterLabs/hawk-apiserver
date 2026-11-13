@@ -242,6 +242,11 @@ func main() {
 	mux.HandleFunc("/api/cib/cluster/config/options", authMiddleware(api.ClusterConfigOptionsHandler))
 	mux.HandleFunc("/api/cib/cluster/config/update", authMiddleware(api.ClusterConfigUpdateHandler))
 
+	mux.HandleFunc("/cib/live/roles", authMiddleware(api.RolesHandler))
+	mux.HandleFunc("/cib/live/roles/", authMiddleware(api.RolesHandler))
+	mux.HandleFunc("/api/cib/acl/roles", authMiddleware(api.RolesListHandler))
+	mux.HandleFunc("/api/cib/acl/roles/delete", authMiddleware(api.RoleDeleteHandler))
+
 	dashboardStore := internal.NewDashboardConfigStore("")
 	mux.HandleFunc("/api/dashboard/clusters", authMiddleware(api.NewDashboardClustersHandler(dashboardStore)))
 	mux.HandleFunc("/dashboard", authMiddleware(api.DashboardHandler))
