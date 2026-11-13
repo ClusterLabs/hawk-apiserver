@@ -56,6 +56,11 @@ const rolesTable = new ConfigTable(document.querySelector("table.roles"), {
         return data.roles;
     },
 });
+const rolesFlash = sessionStorage.getItem("rolesFlash");
+if (rolesFlash) {
+    sessionStorage.removeItem("rolesFlash");
+    showRolesNotification(rolesFlash);
+}
 rolesTable.load();
 pollClusterStatus(() => rolesTable.load());
 document.getElementById("monitoringMenu").classList.remove("in");

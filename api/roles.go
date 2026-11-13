@@ -26,6 +26,7 @@ type aclRolesState struct {
 	Roles     []aclRole `json:"roles"`
 	Enabled   bool      `json:"enabled"`
 	Supported bool      `json:"supported"`
+	Legacy    bool      `json:"legacy"`
 }
 
 func loadACLRoles(ctx context.Context, run clusterConfigCommand) (aclRolesState, error) {
@@ -58,6 +59,7 @@ func loadACLRoles(ctx context.Context, run clusterConfigCommand) (aclRolesState,
 		return state, err
 	}
 	var cib struct {
+		Schema        string `xml:"validate-with,attr"`
 		Configuration struct {
 			Properties []struct {
 				Pairs []Nvpair `xml:"nvpair"`
@@ -80,6 +82,7 @@ func loadACLRoles(ctx context.Context, run clusterConfigCommand) (aclRolesState,
 	if err := xml.Unmarshal(data, &cib); err != nil {
 		return state, err
 	}
+	state.Legacy = strings.HasPrefix(cib.Schema, "pacemaker-1.")
 	for _, set := range cib.Configuration.Properties {
 		for _, p := range set.Pairs {
 			if p.Name == "enable-acl" && p.Value == "true" {
@@ -108,6 +111,17 @@ func loadACLRoles(ctx context.Context, run clusterConfigCommand) (aclRolesState,
 	return state, nil
 }
 func RolesHandler(w http.ResponseWriter, r *http.Request) {
+	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if len(parts) == 5 && parts[0] == "cib" && parts[1] == "live" && parts[2] == "roles" && parts[4] == "edit" {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			w.Header().Set("Allow", "GET, HEAD")
+			http.Error(w, "Method not allowed", 405)
+			return
+		}
+		renderTemplate(w, "role_edit", map[string]any{"Title": "Edit Role", "RoleID": parts[3]})
+		return
+	}
+
 	if r.URL.Path != "/cib/live/roles" && r.URL.Path != "/cib/live/roles/" {
 		if Routehandler != nil {
 			Routehandler.ServeHTTP(w, r)

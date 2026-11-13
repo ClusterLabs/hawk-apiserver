@@ -246,6 +246,7 @@ func main() {
 	mux.HandleFunc("/cib/live/roles/", authMiddleware(api.RolesHandler))
 	mux.HandleFunc("/api/cib/acl/roles", authMiddleware(api.RolesListHandler))
 	mux.HandleFunc("/api/cib/acl/roles/delete", authMiddleware(api.RoleDeleteHandler))
+	mux.HandleFunc("/api/cib/acl/role", authMiddleware(api.RoleEditHandler))
 
 	dashboardStore := internal.NewDashboardConfigStore("")
 	mux.HandleFunc("/api/dashboard/clusters", authMiddleware(api.NewDashboardClustersHandler(dashboardStore)))
