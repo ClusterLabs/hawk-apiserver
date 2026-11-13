@@ -1,0 +1,28 @@
+{{ define "content" }}
+<link rel="stylesheet" href="/static/css/primitive_edit.css">
+<link rel="stylesheet" href="/static/css/common.css">
+<link rel="stylesheet" href="/static/css/cluster_config.css">
+<script src="/static/js/XCSS.js"></script>
+<script src="/static/js/classes/XAlert.js"></script>
+<script src="/static/js/classes/SelectOption.js"></script>
+<script src="/static/js/classes/Select.js"></script>
+<script src="/static/js/classes/Input.js"></script>
+<script src="/static/js/classes/XKvGroupBase.js"></script>
+<script src="/static/js/classes/XKvGroup.js"></script>
+<script src="/static/js/cluster_config.js" defer></script>
+<div class="edit-layout cluster-config">
+ <div class="edit-left">
+  <div id="cluster-config-notifications" role="status" aria-live="polite"></div>
+  <h1><i class="fa fa-cog" aria-hidden="true"></i> Cluster Configuration</h1>
+  <div class="panel panel-default"><div class="panel-body">
+   <form id="edit_crm_config" class="form-horizontal" action="/api/cib/cluster/config/update" method="post">
+    <fieldset><x-kvgroup light-dom legacy-picker help-heading="shortdesc" ruby-layout name="crm_config" field-prefix="crm_config[crm_config]" options-api="/api/cib/cluster/config/options" api-arguments='{"section":"crm_config"}'></x-kvgroup></fieldset>
+    <fieldset><legend><button type="button" class="config-section-toggle" aria-expanded="true" aria-controls="resource-defaults">Resource Defaults <i class="fa fa-chevron-up pull-right"></i></button></legend><div id="resource-defaults"><x-kvgroup light-dom legacy-picker help-heading="shortdesc" ruby-layout name="rsc_defaults" field-prefix="crm_config[rsc_defaults]" options-api="/api/cib/cluster/config/options" api-arguments='{"section":"rsc_defaults"}'></x-kvgroup></div></fieldset>
+    <fieldset><legend><button type="button" class="config-section-toggle" aria-expanded="true" aria-controls="operation-defaults">Operation Defaults <i class="fa fa-chevron-up pull-right"></i></button></legend><div id="operation-defaults"><x-kvgroup light-dom legacy-picker help-heading="shortdesc" ruby-layout name="op_defaults" field-prefix="crm_config[op_defaults]" options-api="/api/cib/cluster/config/options" api-arguments='{"section":"op_defaults"}'></x-kvgroup></div></fieldset>
+    <div class="cluster-config-buttons btn-group"><button type="submit" name="submit" class="btn btn-primary" disabled>Apply</button><button type="button" name="revert" class="btn btn-default">Revert</button></div>
+   </form>
+  </div></div>
+ </div>
+ <aside class="edit-right"><h2>Cluster Configuration</h2><p>Global cluster options control how the cluster behaves when confronted with certain situations.</p><h3>Resource and operation defaults</h3><p>These are default values that apply to all configured resources, unless otherwise specified in the particular resource.</p><h3 id="field-shortdesc"></h3><div id="field-longdesc"></div></aside>
+</div>
+{{ end }}

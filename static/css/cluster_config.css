@@ -1,0 +1,13 @@
+.cluster-config .edit-left { padding: 30px; }
+.cluster-config h1 { font-size: 20px; margin: 10px 0 15px; }
+.cluster-config .edit-right { padding: 30px; }
+.cluster-config .edit-right h2 { font-size: 22px; }
+.cluster-config .edit-right h3 { font-size: 18px; }
+.cluster-config fieldset { margin-bottom: 15px; min-width: 0; }
+.cluster-config legend { font-size: 16px; margin-bottom: 20px; padding-bottom: 0; }
+.cluster-config x-kvgroup { display: block; --kv-label-width: 42%; --kv-label-white-space: nowrap; }
+.config-section-toggle { background: none; border: 0; padding: 0; width: 100%; text-align: left; font: inherit; color: inherit; }
+.cluster-config-buttons { display: flex; justify-content: center; }
+.cluster-config-buttons .btn { margin-left: 0; }
+.cluster-config [hidden] { display: none !important; }
+@media (max-width: 800px) { .cluster-config { flex-direction: column; } }

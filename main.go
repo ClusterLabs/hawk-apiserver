@@ -237,6 +237,11 @@ func main() {
 	mux.HandleFunc("/cib/live/config/edit", authMiddleware(api.ConfigEditHandler))
 	mux.HandleFunc("/cib/live/config/edit/", authMiddleware(api.ConfigEditHandler))
 
+	mux.HandleFunc("/cib/live/crm_config/edit", authMiddleware(api.ClusterConfigHandler))
+	mux.HandleFunc("/cib/live/crm_config/edit/", authMiddleware(api.ClusterConfigHandler))
+	mux.HandleFunc("/api/cib/cluster/config/options", authMiddleware(api.ClusterConfigOptionsHandler))
+	mux.HandleFunc("/api/cib/cluster/config/update", authMiddleware(api.ClusterConfigUpdateHandler))
+
 	dashboardStore := internal.NewDashboardConfigStore("")
 	mux.HandleFunc("/api/dashboard/clusters", authMiddleware(api.NewDashboardClustersHandler(dashboardStore)))
 	mux.HandleFunc("/dashboard", authMiddleware(api.DashboardHandler))

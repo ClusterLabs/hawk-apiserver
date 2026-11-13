@@ -19,6 +19,7 @@ type NameValue struct {
 // it has nothing to do with parsing xml,
 // it's in the structure conveniet to work with in the js
 type SelectOption struct {
+	Uneditable     bool     `json:"-"` // Cluster properties retained for display but excluded from writes.
 	Name           string   `json:"Name"`
 	DefaultValue   string   `json:"DefaultValue"`
 	Shortdesc      string   `json:"Shortdesc"`
@@ -912,15 +913,15 @@ func FetchResourceMetaAttributes(w http.ResponseWriter, r *http.Request) {
 	for _, param := range fullPrimitive.MetaAttributes {
 		content.Options = append(content.Options,
 			SelectOption{
-				param.Name,
-				param.Content.Default,
-				param.Shortdesc,
-				param.Longdesc,
-				param.Content.Type,
-				param.Content.PossibleValues,
-				param.Content.Required,
-				param.Content.CibID,
-				param.Content.CibValue,
+				Name:           param.Name,
+				DefaultValue:   param.Content.Default,
+				Shortdesc:      param.Shortdesc,
+				Longdesc:       param.Longdesc,
+				Type:           param.Content.Type,
+				PossibleValues: param.Content.PossibleValues,
+				Required:       param.Content.Required,
+				CibID:          param.Content.CibID,
+				CibValue:       param.Content.CibValue,
 			})
 	}
 
@@ -1070,15 +1071,15 @@ func FetchResourceParams(w http.ResponseWriter, r *http.Request) {
 	for _, param := range fullPrimitive.Parameters {
 		content.Options = append(content.Options,
 			SelectOption{
-				param.Name,
-				param.Content.Default,
-				param.Shortdesc,
-				param.Longdesc,
-				param.Content.Type,
-				param.Content.PossibleValues,
-				param.Content.Required,
-				param.Content.CibID,
-				param.Content.CibValue,
+				Name:           param.Name,
+				DefaultValue:   param.Content.Default,
+				Shortdesc:      param.Shortdesc,
+				Longdesc:       param.Longdesc,
+				Type:           param.Content.Type,
+				PossibleValues: param.Content.PossibleValues,
+				Required:       param.Content.Required,
+				CibID:          param.Content.CibID,
+				CibValue:       param.Content.CibValue,
 			})
 	}
 

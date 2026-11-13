@@ -47,11 +47,16 @@ class XKvGroup extends window.XKvGroupBase {
     // but override it here. Obviously it's code repeating.
     this.#selectObj = new Select(this.#selectRow, controlWrap, "", "", "", "", true, true, "");
     if (this.getAttribute("field-prefix") === "op") this.#selectObj.getHTML().name = "temp_op";
+    if (this.hasAttribute("legacy-picker")) {
+      this.setAttribute("aria-busy", "true");
+      this.#selectObj.getHTML().disabled = true;
+    }
     this.#selectObj.setOnChangeEvent(() => this.#onCreateOption());
 
     // Button
     const addBtn = document.createElement("button");
     addBtn.type = "button";
+    addBtn.disabled = this.hasAttribute("legacy-picker");
     addBtn.className = "btn btn-default";
     addBtn.onclick = () => this.#onCreateOption();
 
@@ -69,7 +74,19 @@ class XKvGroup extends window.XKvGroupBase {
       .then(() => true)
       .catch(err => { console.error("Failed to init x-kvgroup:", err); return false; })
       .finally(() => this.#readyResolve())
-      .then(async ready => { await this.applyKvMap(this.#initialValues); return ready; })
+      .then(async ready => {
+        await this.applyKvMap(this.#initialValues);
+        if (this.hasAttribute("legacy-picker")) {
+          if (ready) {
+            // A legacy By.NAME lookup must never find an empty loading picker.
+            this.#selectObj.getHTML().name = `temp_${this.getAttribute("field-prefix")}`;
+            this.#selectObj.getHTML().disabled = false;
+            addBtn.disabled = false;
+          }
+          this.setAttribute("aria-busy", "false");
+        }
+        return ready;
+      })
       .catch(err => console.error("Failed to apply initial x-kvgroup values:", err));
   }
 
@@ -112,7 +129,7 @@ class XKvGroup extends window.XKvGroupBase {
   }
 
   #updateSelectVisibility() {
-    if (this.getAttribute("field-prefix") === "op") {
+    if (this.getAttribute("field-prefix") === "op" || this.hasAttribute("legacy-picker")) {
       // Match the legacy attribute picker: selected attributes are not options.
       for (const option of Array.from(this.#selectObj.getHTML().options)) {
         if (option.hidden) option.remove();
@@ -224,10 +241,27 @@ class XKvGroup extends window.XKvGroupBase {
     const fieldLongdesc = document.getElementById('field-longdesc');
     divContainer.addEventListener("mouseenter", () => {
       if (!fieldShortdesc || !fieldLongdesc) return;
-      fieldShortdesc.innerHTML = `<code>${name}</code>`;
+      if (this.getAttribute("help-heading") === "shortdesc") {
+        fieldShortdesc.textContent = shortdesc?.trim() || name;
+      } else {
+        const code = document.createElement("code");
+        code.textContent = name;
+        fieldShortdesc.replaceChildren(code);
+      }
       fieldLongdesc.innerHTML = longdesc  || "";
       if (defaultValue) {
-        fieldLongdesc.innerHTML += `<em> Default: <code>${defaultValue}</code></em>`;
+        if (this.getAttribute("help-heading") === "shortdesc") {
+          const paragraph = document.createElement("p");
+          const emphasis = document.createElement("em");
+          const code = document.createElement("code");
+          code.textContent = defaultValue;
+          emphasis.append("Default: ", code);
+          paragraph.append(emphasis);
+          paragraph.style.marginTop = "10px";
+          fieldLongdesc.append(paragraph);
+        } else {
+          fieldLongdesc.innerHTML += `<em> Default: <code>${defaultValue}</code></em>`;
+        }
       }
     });
 
@@ -258,7 +292,7 @@ class XKvGroup extends window.XKvGroupBase {
   restoreOption(inputObj) {
     this.#inputs = this.#inputs.filter(i => i !== inputObj);
     this.#selectObj.showOption(inputObj.getName());
-    if (this.getAttribute("field-prefix") === "op") {
+    if (this.getAttribute("field-prefix") === "op" || this.hasAttribute("legacy-picker")) {
       const select = this.#selectObj.getHTML();
       select.appendChild(this.#selectObj.getOption(inputObj.getName()).getHTML());
       Array.from(select.options).sort((a, b) => a.text.localeCompare(b.text)).forEach(option => select.appendChild(option));

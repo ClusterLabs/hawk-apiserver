@@ -30,8 +30,12 @@ class XKvGroupBase extends HTMLElement {
           all: revert;
         }
       ` + Array.from(window.XCSS?.debugSheet?.cssRules || []).map(rule => {
-        const selectors = rule.selectorText.split(",").map(selector =>
-          `${scope} ${selector.trim()}`);
+        const selectors = rule.selectorText.split(",").map(selector => {
+          const value = selector.trim();
+          // Preserve opt-in host styling when rendering the same controls in light DOM.
+          if (value.startsWith(":host(")) return value.replace(/^:host\(([^)]+)\)/, `${scope}$1`);
+          return `${scope} ${value}`;
+        });
         return `${selectors.join(",")} { ${rule.style.cssText} }`;
       }).join("\n");
       // Legacy XPath requires an anchor for Edit; visually it remains a button.
