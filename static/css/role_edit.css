@@ -1,0 +1,10 @@
+.role-editor > fieldset { min-width: 0; border: 0; padding: 0; margin: 0; background: transparent; }
+.role-editor .form-group { margin-bottom: 15px; }
+.role-editor .control-label { font-weight: normal; white-space: nowrap; }
+.role-editor .form-control { height: 34px; }
+.role-editor #rules > fieldset { border: 0; padding: 0; min-width: 0; }
+.role-editor legend { font-size: 16px; margin-bottom: 20px; padding-bottom: 5px; }
+.role-editor .rule { border: 0; background: transparent; color: #44545f; padding: 0 4px; font-size: 14px; }
+@media (min-width: 768px) { .role-editor .control-label { text-align: right; padding-top: 7px; } }
+
+.role-editor [hidden] { display: none !important; }

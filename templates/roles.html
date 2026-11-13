@@ -1,0 +1,18 @@
+{{ define "content" }}
+<link rel="stylesheet" href="/static/css/primitive_edit.css">
+<link rel="stylesheet" href="/static/css/config_edit.css">
+<link rel="stylesheet" href="/static/css/roles.css">
+<script src="/static/js/classes/XAlert.js" defer></script>
+<script src="/static/js/classes/DeletePopup.js" defer></script>
+<script src="/static/js/classes/ConfigTable.js" defer></script>
+<script src="/static/js/roles.js" defer></script>
+<div class="edit-layout roles-page">
+ <div class="edit-left config-edit">
+  <div id="roles-notifications" role="status" aria-live="polite"></div>
+  <div id="roles-acl-warning" class="alert alert-warning alert-dismissible" role="alert" hidden><button type="button" class="close" aria-label="Close"><span aria-hidden="true">&times;</span></button><a href="/cib/live/crm_config/edit">To enable ACLs, set "enable-acl" in the Cluster Configuration ('Configuration &gt; Cluster Configuration')</a></div>
+  <div class="row"><h1><i class="fa fa-users" aria-hidden="true"></i> Roles <small>Access Control Lists</small><span class="pull-right"><a href="/cib/live/roles/new" class="btn btn-default" id="create-role"><i class="fa fa-plus"></i> Create</a></span></h1></div>
+  <div class="panel panel-default roles-panel"><div class="config-table-error alert alert-danger" role="alert" hidden></div><table class="table table-striped roles" aria-label="Roles" data-config-table="roles"></table></div>
+ </div>
+ <aside class="edit-right"><h3>ACL Role</h3><p>An ACL role is a set of rules which describe access rights to CIB. Each rule consists of:</p><ul><li>an access right (<code>read</code>, <code>write</code>, or <code>deny</code>)</li><li>a specification (XPath expression, type, or ID reference) where to apply the rule</li></ul><h4>Create Role</h4><p><strong>Role ID:</strong> Define a unique ID.</p><p><strong>Right:</strong> Select the access right (read/write/deny).</p><p><strong>Xpath:</strong> Enter an XPath expression for the CIB elements that you want the access right to apply to (e.g. <code>//constraints/rsc_location</code>).</p><p><strong>Type:</strong> Enter the name of the CIB XML element (e.g. <code>rsc_location</code>).</p><p><strong>Ref:</strong> Enter the ID of the CIB XML element (e.g. <code>rsc1</code>).</p></aside>
+</div>
+{{ end }}

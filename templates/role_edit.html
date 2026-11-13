@@ -1,0 +1,28 @@
+{{ define "content" }}
+<link rel="stylesheet" href="/static/css/primitive_edit.css">
+<link rel="stylesheet" href="/static/css/roles.css">
+<link rel="stylesheet" href="/static/css/config_edit.css">
+<link rel="stylesheet" href="/static/css/role_edit.css">
+<script src="/static/js/classes/XAlert.js" defer></script>
+<script src="/static/js/classes/DeletePopup.js" defer></script>
+<script src="/static/js/classes/ConfigTable.js" defer></script>
+<script src="/static/js/role_edit.js" defer></script>
+<div class="edit-layout roles-page">
+ <div class="edit-left">
+  <div id="role-notifications" role="status" aria-live="polite"></div>
+  <div id="roles-acl-warning" class="alert alert-warning alert-dismissible" role="alert" hidden><button type="button" class="close" aria-label="Close"><span aria-hidden="true">&times;</span></button><a href="/cib/live/crm_config/edit">To enable ACLs, set "enable-acl" in the Cluster Configuration ('Configuration &gt; Cluster Configuration')</a></div>
+  <h1><i class="fa fa-users" aria-hidden="true"></i> Edit Role <span class="pull-right"><button type="button" id="delete-role" class="btn btn-default" disabled><i class="fa fa-trash"></i> Delete</button></span></h1>
+  <div class="panel panel-default"><div class="panel-body">
+   <form class="form-horizontal role-editor" id="edit_role" data-role-id="{{ .RoleID }}" aria-busy="true">
+    <p id="role-loading" class="text-muted" role="status">Loading role…</p>
+    <fieldset id="role-fields" disabled hidden>
+     <div class="form-group"><label class="col-sm-5 control-label" for="role_id">Role ID</label><div class="col-sm-7"><input class="form-control" id="role_id" name="role[id]" readonly value="{{ .RoleID }}"></div></div>
+     <div id="rules"></div>
+     <div class="form-group"><div class="col-sm-7 col-sm-offset-5"><div class="btn-group"><button type="submit" class="btn btn-primary submit" name="submit">Apply</button><button type="button" class="btn btn-default cancel revert" name="revert">Revert</button><a href="/cib/live/roles" class="btn btn-default back">Back</a></div></div></div>
+    </fieldset>
+   </form>
+  </div></div>
+ </div>
+ <aside class="edit-right"><h3>ACL Role</h3><p>An ACL role is a set of rules which describe access rights to CIB. Each rule consists of:</p><ul><li>an access right (<code>read</code>, <code>write</code>, or <code>deny</code>)</li><li>a specification (XPath expression, type, or ID reference) where to apply the rule</li></ul><h4>Create Role</h4><p><strong>Role ID:</strong> Define a unique ID.</p><p><strong>Right:</strong> Select the access right (read/write/deny).</p><p><strong>Xpath:</strong> Enter an XPath expression for the CIB elements that you want the access right to apply to (e.g. <code>//constraints/rsc_location</code>).</p><p><strong>Type:</strong> Enter the name of the CIB XML element (e.g. <code>rsc_location</code>).</p><p><strong>Ref:</strong> Enter the ID of the CIB XML element (e.g. <code>rsc1</code>).</p></aside>
+</div>
+{{ end }}

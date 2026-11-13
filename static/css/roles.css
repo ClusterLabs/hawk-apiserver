@@ -1,0 +1,10 @@
+.roles-page .edit-left { min-width: 0; }
+.roles-page .edit-right { padding: 30px; }
+.roles-page .edit-right h3 { margin-top: 10px; font-size: 18px; }
+.roles-page .roles-panel { padding-bottom: 15px; }
+.roles-page h1 small { font-size: 65%; }
+.roles-page table th:last-child { width: 95px; }
+.roles-page .roles-panel .config-table-error { margin: 15px; }
+@media (max-width: 800px) { .roles-page { flex-direction: column; } }
+
+.roles-page #roles-acl-warning { margin-bottom: 50px; }
