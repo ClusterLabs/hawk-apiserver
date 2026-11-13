@@ -183,15 +183,15 @@ func FetchCloneMetaAttributes(w http.ResponseWriter, r *http.Request) {
 	for _, param := range metadata.MetaAttributes {
 		content.Options = append(content.Options,
 			SelectOption{
-				param.Name,
-				param.Content.Default,
-				param.Shortdesc,
-				param.Longdesc,
-				param.Content.Type,
-				param.Content.PossibleValues,
-				param.Content.Required,
-				param.Content.CibID,
-				param.Content.CibValue,
+				Name:           param.Name,
+				DefaultValue:   param.Content.Default,
+				Shortdesc:      param.Shortdesc,
+				Longdesc:       param.Longdesc,
+				Type:           param.Content.Type,
+				PossibleValues: param.Content.PossibleValues,
+				Required:       param.Content.Required,
+				CibID:          param.Content.CibID,
+				CibValue:       param.Content.CibValue,
 			})
 	}
 

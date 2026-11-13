@@ -73,10 +73,50 @@
     }
 
     label {
-      flex: 0 0 120px;
+      flex: 0 0 var(--kv-label-width, 120px);
+      white-space: var(--kv-label-white-space, normal);
       text-align: right;
       padding-right: 10px;
     }
+
+    /* Opt in to the legacy horizontal form geometry without changing editors. */
+    :host([ruby-layout]) .kvsection-row {
+      display: grid;
+      grid-template-columns: 5fr 7fr;
+      gap: 0;
+      margin: 0 -15px 15px;
+    }
+    :host([ruby-layout]) label {
+      box-sizing: border-box;
+      width: auto;
+      padding: 0 15px;
+      font-size: 14px;
+      font-weight: 400;
+      white-space: nowrap;
+    }
+    :host([ruby-layout]) .kv-control {
+      grid-column: 2;
+      width: auto;
+      min-width: 0;
+      margin: 0 15px;
+      height: 34px;
+    }
+    :host([ruby-layout]) .form-control {
+      height: 34px;
+      padding: 6px 12px;
+      color: #555;
+      font: inherit;
+      font-size: 14px;
+      line-height: 20px;
+    }
+    :host([ruby-layout]) button.btn {
+      width: 44px;
+      height: 34px;
+      padding: 6px 12px;
+      font-size: 14px;
+      color: #444;
+    }
+    :host([ruby-layout]) .kvsection-row:last-child { margin-bottom: 0; }
 
     /* THIS IS FOR DEBUGGING */
     /*
