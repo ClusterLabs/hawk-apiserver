@@ -12,6 +12,12 @@ function configNotification(message, danger = false) {
     document.getElementById("config-notifications").replaceChildren(alert);
 }
 
+const configFlash = sessionStorage.getItem("configFlash");
+if (configFlash) {
+    sessionStorage.removeItem("configFlash");
+    configNotification(configFlash);
+}
+
 // Rename forms continue to use the existing Rails endpoint.
 async function openConfigRenameModal(url) {
     try {

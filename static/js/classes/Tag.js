@@ -5,19 +5,28 @@ class Tag {
     }
 
     async create() {
+        const result = await this.save("create");
+        window.location.href = result.redirect;
+    }
+
+    async update() {
+        return this.save("update");
+    }
+
+    async save(operation) {
         const tag = {
             id: this.idInput.value.trim(),
             refs: Array.from(this.objectsList.querySelectorAll('input[name="tag[refs][]"]:checked'))
                 .map(input => input.value),
         };
-        const response = await fetch("/api/cib/tag/create", {
+        const response = await fetch(`/api/cib/tag/${operation}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(tag),
         });
-        if (!response.ok) throw new Error(await response.text() || "Unable to create tag.");
+        if (!response.ok) throw new Error(await response.text() || "Unable to save tag.");
         const result = await response.json();
-        if (result.status !== "ok") throw new Error(result.error || "Unable to create tag.");
-        window.location.href = result.redirect;
+        if (result.status !== "ok") throw new Error(result.error || "Unable to save tag.");
+        return result;
     }
 }
