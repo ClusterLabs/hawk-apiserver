@@ -1,0 +1,26 @@
+{{ define "content" }}
+<link rel="stylesheet" href="/static/css/config_edit.css">
+<link rel="stylesheet" href="/static/css/config_show.css">
+<link rel="stylesheet" href="/static/css/highlight.css">
+<script src="/static/js/vendor/highlight.js" defer></script>
+<script src="/static/js/config_show.js" defer></script>
+<div class="container-fluid config-edit config-view">
+  <div class="row"><h1><i class="fa fa-{{ .Icon }}" aria-hidden="true"></i> {{ .Heading }}
+    <span class="pull-right btn-group config-view-links" role="group">
+      <a href="/cib/live/config/edit" class="btn btn-default" role="button"><i class="fa fa-database"></i> Edit</a>
+      <a href="/cib/live/config" class="btn btn-default{{ if eq .Mode "show" }} disabled{{ end }}" {{ if eq .Mode "show" }}aria-disabled="true"{{ end }} role="button"><i class="fa fa-list"></i> Show</a>
+      <a href="/cib/live/config?xml=true" class="btn btn-default{{ if eq .Mode "xml" }} disabled{{ end }}" {{ if eq .Mode "xml" }}aria-disabled="true"{{ end }} role="button"><i class="fa fa-file-code"></i> XML</a>
+      <a href="/cib/live/graph" class="btn btn-default{{ if eq .Mode "graph" }} disabled{{ end }}" {{ if eq .Mode "graph" }}aria-disabled="true"{{ end }} role="button"><i class="fa fa-file-image"></i> Graph</a>
+    </span>
+  </h1></div>
+  {{ if .Graph }}
+  <div class="row"><div class="panel panel-default"><div class="panel-body">
+    <div class="graph-placeholder text-center" role="status"><i class="fa fa-refresh fa-pulse-opacity fa-2x" aria-hidden="true"></i><span class="sr-only">Loading graph…</span></div>
+    <div class="graph-error alert alert-danger" role="alert" hidden>Unable to load cluster graph.</div>
+    <div class="graph-image"><a href="{{ .GraphURL }}" target="_blank" rel="noopener"><img src="{{ .GraphURL }}" class="img-responsive center-block" alt="Graph"></a></div>
+  </div></div></div>
+  {{ else }}
+  <div class="row"><pre><code class="{{ .Language }} hljs">{{ .Configuration }}</code></pre></div>
+  {{ end }}
+</div>
+{{ end }}

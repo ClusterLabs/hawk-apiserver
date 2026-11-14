@@ -1,0 +1,5 @@
+.config-view pre code { white-space: pre; overflow-x: auto; }
+.config-view .graph-image img { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+.config-view .graph-placeholder { padding: 15px; }
+.config-view .fa-pulse-opacity { animation: config-graph-pulse 1s ease-out infinite; }
+@keyframes config-graph-pulse { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
