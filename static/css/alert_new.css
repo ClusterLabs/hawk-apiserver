@@ -6,3 +6,6 @@
 .alert-actions { margin-top: 20px; text-align: center; }
 .alert-recipient-form details { margin-top: 10px; border-top: 1px solid #ddd; padding-top: 10px; }
 .alert-recipient-form summary { margin-bottom: 15px; cursor: pointer; }
+
+#alert-form-fields { border: 0; padding: 0; margin: 0; min-width: 0; background: transparent; }
+#alert-create-form [hidden] { display: none !important; }

@@ -8,7 +8,16 @@ class Alert {
     }
 
     async create() {
-        const response = await fetch("/api/cib/alert/create", {
+        const result = await this.save("create");
+        window.location.href = result.redirect;
+    }
+
+    async update() {
+        return this.save("update");
+    }
+
+    async save(operation) {
+        const response = await fetch(`/api/cib/alert/${operation}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -17,9 +26,9 @@ class Alert {
                 meta: this.meta.getFrontendKValues(),
             }),
         });
-        if (!response.ok) throw new Error(await response.text() || "Unable to create alert.");
+        if (!response.ok) throw new Error(await response.text() || "Unable to save alert.");
         const result = await response.json();
-        if (result.status !== "ok") throw new Error(result.error || "Unable to create alert.");
-        window.location.href = result.redirect;
+        if (result.status !== "ok") throw new Error(result.error || "Unable to save alert.");
+        return result;
     }
 }
