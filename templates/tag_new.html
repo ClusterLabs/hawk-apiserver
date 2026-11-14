@@ -4,17 +4,27 @@
 <link rel="stylesheet" href="/static/css/tag_new.css">
 <script src="/static/js/XCSS.js"></script>
 <script src="/static/js/classes/Tag.js"></script>
+<script src="/static/js/classes/XAlert.js" defer></script>
+{{ if .Editing }}
+<script src="/static/js/classes/ConfigTable.js" defer></script>
+<script src="/static/js/classes/Input.js" defer></script>
+<script src="/static/js/classes/RenamePopup.js" defer></script>
+<script src="/static/js/classes/DeletePopup.js" defer></script>
+<link rel="stylesheet" href="/static/css/config_edit.css">
+{{ end }}
 <script src="/static/js/tag_new.js" defer></script>
 
 <div class="edit-layout">
   <div class="edit-left">
-    <h2><i class="far fa-copy" aria-hidden="true"></i> Create Tag</h2>
-    <form id="tag-create-form" class="primitive-create-panel">
+    <h2><i class="far fa-copy" aria-hidden="true"></i> {{ if .Editing }}Edit Tag{{ else }}Create Tag{{ end }}
+      {{ if .Editing }}<span class="pull-right btn-group"><a class="btn btn-white" href="/cib/live/tags/new"><i class="fa fa-plus"></i> Create</a><button type="button" class="btn btn-white" name="rename" id="rename-tag"><i class="fa fa-font"></i> Rename</button><button type="button" class="btn btn-white" name="delete" id="delete-tag"><i class="fa fa-trash"></i> Delete</button></span>{{ end }}</h2>
+    <div id="tag-notifications" role="status" aria-live="polite"></div>
+    <form id="tag-create-form" class="primitive-create-panel" {{ if .Editing }}data-editing="true" data-tag-id="{{ .TagID }}"{{ end }}>
       <div id="tag-alert" class="alert alert-danger" role="alert" hidden></div>
       <div class="form-section">
         <div class="kvsection-row kvsection-row-thin">
           <label for="input-tag-id">Tag ID</label>
-          <input id="input-tag-id" class="form-control tag-control" name="tag[id]" type="text" required>
+          <input id="input-tag-id" class="form-control tag-control" name="tag[id]" type="text" required {{ if .Editing }}readonly value="{{ .TagID }}"{{ end }}>
         </div>
         <div class="kvsection-row kvsection-row-thin tag-objects-row">
           <label id="tag-objects-label">Objects</label>
@@ -25,8 +35,9 @@
       </div>
       <div class="accordion">
         <div class="tag-actions">
-          <button id="create-tag-button" name="submit" class="btn btn-success" type="submit" disabled>Create</button>
-          <a class="btn btn-white" href="/cib/live/resources/types">Back</a>
+          <button id="create-tag-button" name="submit" class="btn btn-success" type="submit" disabled>{{ if .Editing }}Apply{{ else }}Create{{ end }}</button>
+          {{ if .Editing }}<button class="btn btn-white revert" name="revert" type="button" id="revert-tag" disabled>Revert</button>{{ end }}
+          {{ if .Editing }}<a class="btn btn-white back" href="/cib/live/config/edit#tags">Back</a>{{ else }}<a class="btn btn-white back" href="/cib/live/resources/types">Back</a>{{ end }}
         </div>
       </div>
     </form>
