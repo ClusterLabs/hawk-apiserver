@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"io"
 	"net/http"
 	"sort"
 	"strconv"
@@ -32,11 +33,12 @@ type aclTarget struct {
 }
 
 type aclRolesState struct {
-	Targets   []aclTarget `json:"targets"`
-	Roles     []aclRole   `json:"roles"`
-	Enabled   bool        `json:"enabled"`
-	Supported bool        `json:"supported"`
-	Legacy    bool        `json:"legacy"`
+	IDs       map[string]bool `json:"-"`
+	Targets   []aclTarget     `json:"targets"`
+	Roles     []aclRole       `json:"roles"`
+	Enabled   bool            `json:"enabled"`
+	Supported bool            `json:"supported"`
+	Legacy    bool            `json:"legacy"`
 }
 
 func loadACLRoles(ctx context.Context, run clusterConfigCommand) (aclRolesState, error) {
@@ -105,6 +107,37 @@ func loadACLRoles(ctx context.Context, run clusterConfigCommand) (aclRolesState,
 		state.Targets = append(state.Targets, target)
 	}
 	sort.Slice(state.Targets, func(i, j int) bool { return state.Targets[i].ID < state.Targets[j].ID })
+	state.IDs = make(map[string]bool)
+	decoder := xml.NewDecoder(strings.NewReader(string(data)))
+	depth, configurationDepth := 0, 0
+	for {
+		token, err := decoder.Token()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return state, err
+		}
+		switch element := token.(type) {
+		case xml.StartElement:
+			depth++
+			if element.Name.Local == "configuration" {
+				configurationDepth = depth
+			}
+			if configurationDepth > 0 && depth > configurationDepth {
+				for _, attr := range element.Attr {
+					if attr.Name.Local == "id" {
+						state.IDs[attr.Value] = true
+					}
+				}
+			}
+		case xml.EndElement:
+			if depth == configurationDepth {
+				configurationDepth = 0
+			}
+			depth--
+		}
+	}
 	state.Legacy = strings.HasPrefix(cib.Schema, "pacemaker-1.")
 	for _, set := range cib.Configuration.Properties {
 		for _, p := range set.Pairs {

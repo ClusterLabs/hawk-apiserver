@@ -2,8 +2,17 @@ package api
 
 import "net/http"
 
-// The overview is native; Create and Edit retain the existing Ruby forms.
+// The overview and creation form are native; Edit retains the Ruby form.
 func UsersHandler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path == "/cib/live/users/new" || r.URL.Path == "/cib/live/users/new/" {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			w.Header().Set("Allow", "GET, HEAD")
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		renderTemplate(w, "user_new", map[string]any{"Title": "Create ACL Target"})
+		return
+	}
 	if r.URL.Path != "/cib/live/users" && r.URL.Path != "/cib/live/users/" || r.Method == http.MethodPost {
 		if Routehandler != nil {
 			Routehandler.ServeHTTP(w, r)
