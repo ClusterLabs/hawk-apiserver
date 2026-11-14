@@ -238,6 +238,12 @@ func main() {
 	mux.HandleFunc("/cib/live/clones/new/", authMiddleware(api.CloneNewHandler))
 	mux.HandleFunc("/cib/live/nodes", authMiddleware(api.NodesEditHandler))
 	mux.HandleFunc("/cib/live/nodes/", authMiddleware(api.NodesEditHandler))
+	mux.HandleFunc("/cib/live/config", authMiddleware(api.ConfigShowHandler))
+	mux.HandleFunc("/cib/live/config/", authMiddleware(api.ConfigShowHandler))
+	mux.HandleFunc("/cib/live/config.xml", authMiddleware(api.ConfigShowHandler))
+	mux.HandleFunc("/cib/live/graph", authMiddleware(api.GraphHandler))
+	mux.HandleFunc("/cib/live/graph/", authMiddleware(api.GraphHandler))
+	mux.HandleFunc("/cib/live/graph.svg", authMiddleware(api.GraphHandler))
 	mux.HandleFunc("/cib/live/config/edit", authMiddleware(api.ConfigEditHandler))
 	mux.HandleFunc("/cib/live/config/edit/", authMiddleware(api.ConfigEditHandler))
 
