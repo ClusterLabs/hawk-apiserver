@@ -1,0 +1,7 @@
+.user-editor > fieldset { min-width: 0; border: 0; padding: 0; margin: 0; background: transparent; }
+.user-editor [hidden] { display: none !important; }
+.user-editor .form-group { margin-bottom: 15px; }
+.user-editor .control-label { font-weight: normal; white-space: nowrap; }
+.user-editor input.form-control { height: 34px; }
+.user-editor select[multiple] { height: auto; }
+@media (min-width: 768px) { .user-editor .control-label { text-align: right; padding-top: 7px; } }
