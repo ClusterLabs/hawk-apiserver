@@ -1,0 +1,19 @@
+{{ define "content" }}
+<link rel="stylesheet" href="/static/css/primitive_edit.css">
+<link rel="stylesheet" href="/static/css/config_edit.css">
+<link rel="stylesheet" href="/static/css/roles.css">
+<script src="/static/js/classes/XAlert.js" defer></script>
+<script src="/static/js/classes/DeletePopup.js" defer></script>
+<script src="/static/js/classes/ConfigTable.js" defer></script>
+<script src="/static/js/classes/ACLOverview.js" defer></script>
+<script src="/static/js/users.js" defer></script>
+<div class="edit-layout roles-page">
+ <div class="edit-left config-edit">
+  <div id="roles-notifications" role="status" aria-live="polite"></div>
+  <div id="roles-acl-warning" class="alert alert-warning alert-dismissible" role="alert" hidden><button type="button" class="close" aria-label="Close"><span aria-hidden="true">&times;</span></button><a href="/cib/live/crm_config/edit">To enable ACLs, set "enable-acl" in the Cluster Configuration ('Configuration &gt; Cluster Configuration')</a></div>
+  <div class="row"><h1><i class="fa fa-user" aria-hidden="true"></i> Targets <small>Access Control Lists</small><span class="pull-right"><a href="/cib/live/users/new" class="btn btn-default" id="create-user"><i class="fa fa-plus"></i> Create</a></span></h1></div>
+  <div class="panel panel-default roles-panel"><div class="config-table-error alert alert-danger" role="alert" hidden></div><table class="table table-striped users" aria-label="Targets" data-config-table="users"></table></div>
+ </div>
+ <aside class="edit-right"><h3>ACL Target</h3><p>Access control lists (ACLs) consist of an ordered set of access rules. Those can be combined into specific roles (for individual tasks like monitoring the cluster). Afterwards, assign users to a role that matches their tasks.</p><ul><li>ACLs are an optional feature.</li><li>If ACLs are not enabled, <code>root</code> and all users of the <code>haclient</code> group have full read/write access to the cluster configuration.</li><li>Even if ACLs are enabled and configured, both <code>root</code> and the default CRM owner <code>hacluster</code> always have full access to the cluster configuration.</li></ul><h4>Create User/ACL Target</h4><p><strong>ACL Target ID:</strong> Define a unique ID.</p><p><strong>Roles:</strong> Select one or multiple roles to assign to the user.</p></aside>
+</div>
+{{ end }}

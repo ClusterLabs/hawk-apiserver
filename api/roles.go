@@ -22,15 +22,25 @@ type aclRole struct {
 	ID    string        `json:"id"`
 	Rules []aclRoleRule `json:"rules"`
 }
+type aclTarget struct {
+	ID         string   `xml:"id,attr" json:"id"`
+	Roles      []string `xml:"-" json:"roles"`
+	References []struct {
+		XMLName xml.Name
+		ID      string `xml:"id,attr"`
+	} `xml:",any" json:"-"`
+}
+
 type aclRolesState struct {
-	Roles     []aclRole `json:"roles"`
-	Enabled   bool      `json:"enabled"`
-	Supported bool      `json:"supported"`
-	Legacy    bool      `json:"legacy"`
+	Targets   []aclTarget `json:"targets"`
+	Roles     []aclRole   `json:"roles"`
+	Enabled   bool        `json:"enabled"`
+	Supported bool        `json:"supported"`
+	Legacy    bool        `json:"legacy"`
 }
 
 func loadACLRoles(ctx context.Context, run clusterConfigCommand) (aclRolesState, error) {
-	state := aclRolesState{Roles: []aclRole{}}
+	state := aclRolesState{Roles: []aclRole{}, Targets: []aclTarget{}}
 	features, err := run(ctx, "pacemakerd", []string{"-F"}, "")
 	if err != nil {
 		return state, err
@@ -61,6 +71,8 @@ func loadACLRoles(ctx context.Context, run clusterConfigCommand) (aclRolesState,
 	var cib struct {
 		Schema        string `xml:"validate-with,attr"`
 		Configuration struct {
+			Targets    []aclTarget `xml:"acls>acl_target"`
+			Users      []aclTarget `xml:"acls>acl_user"`
 			Properties []struct {
 				Pairs []Nvpair `xml:"nvpair"`
 			} `xml:"crm_config>cluster_property_set"`
@@ -82,6 +94,17 @@ func loadACLRoles(ctx context.Context, run clusterConfigCommand) (aclRolesState,
 	if err := xml.Unmarshal(data, &cib); err != nil {
 		return state, err
 	}
+	for _, target := range append(cib.Configuration.Targets, cib.Configuration.Users...) {
+		target.Roles = []string{}
+		for _, ref := range target.References {
+			if ref.XMLName.Local == "role" || ref.XMLName.Local == "role_ref" {
+				target.Roles = append(target.Roles, ref.ID)
+			}
+		}
+		target.References = nil
+		state.Targets = append(state.Targets, target)
+	}
+	sort.Slice(state.Targets, func(i, j int) bool { return state.Targets[i].ID < state.Targets[j].ID })
 	state.Legacy = strings.HasPrefix(cib.Schema, "pacemaker-1.")
 	for _, set := range cib.Configuration.Properties {
 		for _, p := range set.Pairs {
@@ -163,6 +186,13 @@ func RoleDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	deleteACLRole(w, r, runClusterConfigCommand)
 }
 func deleteACLRole(w http.ResponseWriter, r *http.Request, run clusterConfigCommand) {
+	deleteACLRecord(w, r, run, false)
+}
+func deleteACLRecord(w http.ResponseWriter, r *http.Request, run clusterConfigCommand, target bool) {
+	label, missing, success := "role", "The role does not exist", "Role deleted successfully"
+	if target {
+		label, missing, success = "ACL target", "The ACL target does not exist", "ACL target deleted successfully"
+	}
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", "POST")
 		http.Error(w, "Method not allowed", 405)
@@ -173,7 +203,7 @@ func deleteACLRole(w http.ResponseWriter, r *http.Request, run clusterConfigComm
 		ID string `json:"id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil || request.ID == "" {
-		http.Error(w, "Invalid role ID", 400)
+		http.Error(w, "Invalid "+label+" ID", 400)
 		return
 	}
 	state, err := loadACLRoles(r.Context(), run)
@@ -195,9 +225,18 @@ func deleteACLRole(w http.ResponseWriter, r *http.Request, run clusterConfigComm
 			break
 		}
 	}
+	if target {
+		exists = false
+		for _, item := range state.Targets {
+			if item.ID == request.ID {
+				exists = true
+				break
+			}
+		}
+	}
 	if !exists {
 		w.WriteHeader(404)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "The role does not exist"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": missing})
 		return
 	}
 	if _, err := run(r.Context(), "crm", []string{"--force", "configure", "delete", request.ID}, ""); err != nil {
@@ -205,5 +244,5 @@ func deleteACLRole(w http.ResponseWriter, r *http.Request, run clusterConfigComm
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": fmt.Sprintf("Error deleting %s: %s", request.ID, err)})
 		return
 	}
-	_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "message": "Role deleted successfully"})
+	_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "message": success})
 }
