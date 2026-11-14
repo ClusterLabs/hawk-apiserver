@@ -8,19 +8,31 @@
 <script src="/static/js/classes/Input.js"></script>
 <script src="/static/js/classes/XKvGroupBase.js"></script>
 <script src="/static/js/classes/XKvGroup.js"></script>
+<script src="/static/js/classes/XInputsKvGroup.js"></script>
 <script src="/static/js/classes/Popup.js"></script>
 <script src="/static/js/classes/AlertAttributes.js"></script>
 <script src="/static/js/classes/AlertRecipientPopup.js"></script>
 <script src="/static/js/classes/Alert.js"></script>
+<script src="/static/js/classes/XAlert.js" defer></script>
+{{ if .Editing }}
+<script src="/static/js/classes/ConfigTable.js" defer></script>
+<script src="/static/js/classes/RenamePopup.js" defer></script>
+<script src="/static/js/classes/DeletePopup.js" defer></script>
+<link rel="stylesheet" href="/static/css/config_edit.css">
+{{ end }}
 <script src="/static/js/alert_new.js" defer></script>
 <div class="edit-layout">
   <div class="edit-left">
-    <h2><i class="far fa-copy" aria-hidden="true"></i> Create Alert</h2>
-    <form id="alert-create-form" class="primitive-create-panel">
+    <h2><i class="far fa-copy" aria-hidden="true"></i> {{ if .Editing }}Edit Alert{{ else }}Create Alert{{ end }}
+      {{ if .Editing }}<span class="pull-right btn-group"><a class="btn btn-white" href="/cib/live/alerts/new"><i class="fa fa-plus"></i> Create</a><button type="button" class="btn btn-white" name="rename" id="rename-alert" disabled><i class="fa fa-font"></i> Rename</button><button type="button" class="btn btn-white" name="delete" id="delete-alert" disabled><i class="fa fa-trash"></i> Delete</button></span>{{ end }}</h2>
+    <div id="alert-notifications" role="status" aria-live="polite"></div>
+    <form id="alert-create-form" class="primitive-create-panel" {{ if .Editing }}data-editing="true" data-alert-id="{{ .AlertID }}"{{ end }}>
+      <p id="alert-loading" class="text-muted" role="status" {{ if not .Editing }}hidden{{ end }}>Loading alert…</p>
       <div id="alert-error" class="alert alert-danger" role="alert" hidden></div>
+      <fieldset id="alert-form-fields" {{ if .Editing }}disabled hidden{{ end }}>
       <div class="form-section">
         <div class="kvsection-row kvsection-row-thin"><label for="input-alert-id">Alert ID</label>
-          <input id="input-alert-id" name="alert[id]" class="form-control alert-control" required></div>
+          <input id="input-alert-id" name="alert[id]" class="form-control alert-control" required {{ if .Editing }}readonly value="{{ .AlertID }}"{{ end }}></div>
         <div class="kvsection-row kvsection-row-thin"><label for="input-alert-path">Path</label>
           <input id="input-alert-path" name="alert[path]" class="form-control alert-control" required></div>
       </div>
@@ -34,9 +46,11 @@
           <x-kvgroup id="kvgroup-meta_attributes" name="meta_attributes" resource-id=""
             field-prefix="alert[meta]" options-api="/api/cib/alert/meta-attributes/fetch"></x-kvgroup>
         </details>
-        <div class="alert-actions"><button id="create-alert-button" name="submit" class="btn btn-success" type="submit" disabled>Create</button>
-          <a class="btn btn-white" href="/cib/live/resources/types">Back</a></div>
+        <div class="alert-actions"><button id="create-alert-button" name="submit" class="btn btn-success" type="submit" disabled>{{ if .Editing }}Apply{{ else }}Create{{ end }}</button>
+          {{ if .Editing }}<button class="btn btn-white revert" name="revert" id="revert-alert" type="button" disabled>Revert</button>{{ end }}
+          {{ if .Editing }}<a class="btn btn-white back" href="/cib/live/config/edit#alerts">Back</a>{{ else }}<a class="btn btn-white back" href="/cib/live/resources/types">Back</a>{{ end }}</div>
       </div>
+      </fieldset>
     </form>
   </div>
   <aside class="edit-right" aria-label="Alert help">

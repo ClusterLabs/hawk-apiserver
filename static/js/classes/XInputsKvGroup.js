@@ -41,6 +41,8 @@ class XInputsKvGroup extends XKvGroupBase {
 
     // Button
     const addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.title = "Add Attribute";
     addBtn.className = "btn btn-default";
     addBtn.onclick = () => this.#onCreateOption();
 
@@ -52,10 +54,21 @@ class XInputsKvGroup extends XKvGroupBase {
 
     controlWrap.appendChild(addBtn);
     this.#container.appendChild(this.#inputRow);
+    const prefix = this.getAttribute("field-prefix");
+    if (prefix) this.#inputObj.getHTML().name = `temp_${prefix}`;
+    this.#inputObj.getHTML().setAttribute("aria-label", "Instance attribute name");
+    this.#inputObj.getHTML().addEventListener("keydown", event => {
+      if (event.key === "Enter") { event.preventDefault(); this.#onCreateOption(); }
+    });
 
     // Fetch data
     this.loaded = this.#init()
-      .then(() => true)
+      .then(() => {
+        const values = JSON.parse(this.getAttribute("initial-values") || "{}");
+        for (const [name, value] of Object.entries(values))
+          this.#createInput(name, "", "", "", "", false, "", "", value);
+        return true;
+      })
       .catch(err => { console.error("Failed to init x-kvgroup:", err); return false; })
       .finally(() => this.#readyResolve());
   }
@@ -86,6 +99,7 @@ class XInputsKvGroup extends XKvGroupBase {
     const cibID = "";
     const cibValue = "";
     const name = this.#inputObj.getFrontendValue();
+    if (!name.trim()) return;
 
     if (this.#createInput(name, "", "", "", "", false, cibID, cibValue, ""))
       this.#inputObj.clearFrontendValue();
@@ -103,9 +117,13 @@ class XInputsKvGroup extends XKvGroupBase {
     const input = new Input(divContainer, controlWrap, name, defaultValue,
         required, cibID, cibValue, frontendValue, false);
 
-    const initial = frontendValue || cibValue || defaultValue || "";
+    const prefix = this.getAttribute("field-prefix");
+    if (prefix) input.getHTML().name = `${prefix}[${name}]`;
+    input.getHTML().setAttribute("aria-label", name);
 
     const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.title = "Remove Attribute";
     removeBtn.innerHTML = '<i class="fas fa-minus"></i>';
     removeBtn.className = "btn btn-default";
     removeBtn.onclick = () => {
@@ -118,10 +136,16 @@ class XInputsKvGroup extends XKvGroupBase {
     const fieldLongdesc = document.getElementById('field-longdesc');
     divContainer.addEventListener("mouseenter", () => {
       if (!fieldShortdesc || !fieldLongdesc) return;
-      fieldShortdesc.innerHTML = `<code>${name}</code>`;
-      fieldLongdesc.innerHTML = longdesc  || "";
+      const heading = document.createElement("code");
+      heading.textContent = name;
+      fieldShortdesc.replaceChildren(heading);
+      fieldLongdesc.textContent = longdesc || "";
       if (defaultValue) {
-        fieldLongdesc.innerHTML += `<em> Default: <code>${defaultValue}</code></em>`;
+        const note = document.createElement("em");
+        const value = document.createElement("code");
+        value.textContent = defaultValue;
+        note.append(" Default: ", value);
+        fieldLongdesc.append(note);
       }
     });
 

@@ -22,8 +22,8 @@ class AlertRecipientPopup extends Popup {
         meta.setAttribute("initial-values", JSON.stringify(recipient.meta));
         form.querySelector(".recipient-meta").append(meta);
         this._appendModalContentChild(form);
-        meta.loaded.then(ready => {
-            if (ready === true) form.querySelector("[type=submit]").disabled = false;
+        Promise.all([meta.loaded, params.loaded]).then(ready => {
+            if (ready.every(value => value === true)) form.querySelector("[type=submit]").disabled = false;
         });
         form.addEventListener("submit", event => {
             event.preventDefault();
