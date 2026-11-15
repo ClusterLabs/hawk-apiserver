@@ -54,6 +54,18 @@ func createACLTarget(w http.ResponseWriter, r *http.Request, run clusterConfigCo
 var aclTargetID = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
 func aclTargetCreateCommand(target aclTarget, state aclRolesState) (string, error) {
+	command, err := aclTargetCommand(target, state)
+	if err != nil {
+		return "", err
+	}
+	if state.IDs[target.ID] {
+		return "", fmt.Errorf("The ID %q is already in use", target.ID)
+	}
+	return command, nil
+}
+
+// Ruby uses the same role-assignment syntax for creation and updating.
+func aclTargetCommand(target aclTarget, state aclRolesState) (string, error) {
 	if strings.TrimSpace(target.ID) == "" {
 		return "", fmt.Errorf("ACL target ID is required")
 	}
@@ -62,9 +74,6 @@ func aclTargetCreateCommand(target aclTarget, state aclRolesState) (string, erro
 	}
 	if len(target.Roles) == 0 {
 		return "", fmt.Errorf("At least one role is required")
-	}
-	if state.IDs[target.ID] {
-		return "", fmt.Errorf("The ID %q is already in use", target.ID)
 	}
 	available := make(map[string]bool)
 	for _, role := range state.Roles {
