@@ -10,17 +10,23 @@
 <script src="/static/js/classes/XKvGroupBase.js"></script>
 <script src="/static/js/classes/XKvGroup.js"></script>
 <script src="/static/js/classes/Group.js"></script>
+{{ if .Editing }}
+<script src="/static/js/classes/ConfigTable.js" defer></script>
+<script src="/static/js/classes/RenamePopup.js" defer></script>
+<script src="/static/js/classes/DeletePopup.js" defer></script>
+<link rel="stylesheet" href="/static/css/config_edit.css">
+{{ end }}
 <script src="/static/js/group_new.js" defer></script>
 
 <div class="edit-layout">
   <div class="edit-left">
     <x-alert id="group-alert" visible="false"></x-alert>
-    <h2><i class="fas fa-users" aria-hidden="true"></i> Create Group</h2>
-    <form id="group-create-form" class="primitive-create-panel">
+    <h2><i class="fas fa-users" aria-hidden="true"></i> {{ if .Editing }}Edit Group <span class="pull-right btn-group"><a href="/cib/live/groups/new" class="btn btn-white"><i class="fa fa-plus"></i> Create</a><button type="button" name="rename" id="rename-group" class="btn btn-white" disabled><i class="fa fa-font"></i> Rename</button><button type="button" name="delete" id="delete-group" class="btn btn-white" disabled><i class="fa fa-trash"></i> Delete</button></span>{{ else }}Create Group{{ end }}</h2>
+    <form id="group-create-form" class="primitive-create-panel" {{ if .Editing }}data-editing="true" data-group-id="{{ .GroupID }}"{{ end }}>
       <div class="form-section">
         <div class="kvsection-row kvsection-row-thin">
           <label for="input-group-id">Group ID</label>
-          <input id="input-group-id" class="form-control group-control" name="group[id]" type="text" required>
+          <input id="input-group-id" class="form-control group-control" name="group[id]" type="text" required {{ if .Editing }}readonly value="{{ .GroupID }}"{{ end }}>
         </div>
         <div class="kvsection-row kvsection-row-thin group-children-row">
           <label id="group-children-label">Children</label>
@@ -28,6 +34,7 @@
             <li class="list-group-item">Loading…</li>
           </ul>
         </div>
+        {{ if .Editing }}<div class="group-create-child"><a class="btn btn-default" href="/cib/live/primitives/new?parent={{ .GroupID }}" title="Create Child"><i class="fa fa-plus"></i></a></div>{{ end }}
       </div>
       <div class="accordion">
         <details id="details-meta_attributes" open>
@@ -35,12 +42,13 @@
           <x-kvgroup id="kvgroup-meta_attributes" name="meta_attributes" resource-id=""
             field-prefix="group[meta]" light-dom
             options-api="/api/cib/group/meta-attributes/fetch"
-            initial-values='{"target-role":"Stopped"}'>
+            initial-values='{{ if .Editing }}{}{{ else }}{"target-role":"Stopped"}{{ end }}' >
           </x-kvgroup>
         </details>
         <div class="group-actions">
-          <button id="create-group-button" name="submit" class="btn btn-success" type="submit" disabled>Create</button>
-          <a class="btn btn-white" href="/cib/live/resources/types">Back</a>
+          <button id="create-group-button" name="submit" class="btn btn-success" type="submit" disabled>{{ if .Editing }}Apply{{ else }}Create{{ end }}</button>
+          {{ if .Editing }}<button type="button" name="revert" id="revert-group" class="btn btn-white revert" disabled>Revert</button>{{ end }}
+          {{ if .Editing }}<a class="btn btn-white back" href="/cib/live/config/edit">Back</a>{{ else }}<a class="btn btn-white back" href="/cib/live/resources/types">Back</a>{{ end }}
         </div>
       </div>
     </form>

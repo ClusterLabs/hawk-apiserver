@@ -11,7 +11,7 @@ class ResourceDetailsPopup extends Popup {
         header.className = "modal-header";
         header.innerHTML = `
         <h4>
-            <i class='fa fa-search'></i>${name}<div class='pull-right text-muted small text-uppercase'>primitive</div>
+            <i class='fa fa-search'></i>${name}<div class='pull-right text-muted small text-uppercase'>${cibResource.ObjectType || 'primitive'}</div>
         </h4>`;
 
         this._appendModalContentChild(header);
@@ -23,7 +23,7 @@ class ResourceDetailsPopup extends Popup {
         modalBody.innerHTML = `
         <div class="panel">
             <div class="row">
-                <div class="col-md-5"><label>Agent</label></div>
+                <div class="col-md-5"><label>${cibResource.ObjectType === 'group' ? 'Type' : 'Agent'}</label></div>
                 <div class="col-md-7">${agent}</div>
             </div>
         </div>`;

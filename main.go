@@ -229,7 +229,7 @@ func main() {
 	mux.HandleFunc("/api/cib/tag/objects/fetch", authMiddleware(api.FetchTagObjects))
 	mux.HandleFunc("/cib/live/groups/new", authMiddleware(api.GroupNewHandler))
 	mux.HandleFunc("/cib/live/groups/new/", authMiddleware(api.GroupNewHandler))
-	mux.HandleFunc("/cib/live/groups/", authMiddleware(api.GroupRubyHandler))
+	mux.HandleFunc("/cib/live/groups/", authMiddleware(api.GroupEditHandler))
 	mux.HandleFunc("/cib/live/primitives", authMiddleware(api.ResourceEditHandler))
 	mux.HandleFunc("/cib/live/primitives/", authMiddleware(api.ResourceEditHandler))
 	mux.HandleFunc("/cib/live/clones", authMiddleware(api.CloneEditHandler))
@@ -273,6 +273,8 @@ func main() {
 	// resource = primitive or clone
 	mux.HandleFunc("/api/cib/primitive/create", authMiddleware(api.PrimitiveCreateHandler))
 	mux.HandleFunc("/api/cib/group/create", authMiddleware(api.GroupCreateHandler))
+	mux.HandleFunc("/api/cib/group/fetch", authMiddleware(api.GroupFetchHandler))
+	mux.HandleFunc("/api/cib/group/update", authMiddleware(api.GroupUpdateHandler))
 	mux.HandleFunc("/api/cib/group/children/fetch", authMiddleware(api.FetchGroupChildren))
 	mux.HandleFunc("/api/cib/group/meta-attributes/fetch", authMiddleware(api.FetchGroupMetaAttributes))
 	mux.HandleFunc("/api/cib/clone/create", authMiddleware(api.CloneCreateHandler))
