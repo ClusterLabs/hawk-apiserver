@@ -7,7 +7,14 @@ class Order {
     }
 
     async create() {
-        const response = await fetch("/api/cib/order/create", {
+        const result = await this.save("create");
+        window.location.href = result.redirect;
+    }
+
+    async update() { return this.save("update"); }
+
+    async save(operation) {
+        const response = await fetch(`/api/cib/order/${operation}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -17,9 +24,9 @@ class Order {
                 resources: this.resources.getValues(),
             }),
         });
-        if (!response.ok) throw new Error(await response.text() || "Unable to create constraint.");
+        if (!response.ok) throw new Error(await response.text() || "Unable to save constraint.");
         const result = await response.json();
-        if (result.status !== "ok") throw new Error(result.error || "Unable to create constraint.");
-        window.location.href = result.redirect;
+        if (result.status !== "ok") throw new Error(result.error || "Unable to save constraint.");
+        return result;
     }
 }
