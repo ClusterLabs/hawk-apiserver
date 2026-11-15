@@ -3,13 +3,24 @@
 <link rel="stylesheet" href="/static/css/colocation_new.css">
 <script src="/static/js/classes/ConstraintResources.js"></script>
 <script src="/static/js/classes/Order.js"></script>
+<script src="/static/js/classes/XAlert.js" defer></script>
+{{ if .Editing }}
+<script src="/static/js/classes/ConfigTable.js" defer></script>
+<script src="/static/js/classes/Input.js" defer></script>
+<script src="/static/js/classes/RenamePopup.js" defer></script>
+<script src="/static/js/classes/DeletePopup.js" defer></script>
+<script src="/static/js/XCSS.js"></script>
+<link rel="stylesheet" href="/static/css/common.css">
+<link rel="stylesheet" href="/static/css/config_edit.css">
+{{ end }}
 <script src="/static/js/order_new.js" defer></script>
 <div class="edit-layout">
   <div class="edit-left">
-    <h2><i class="fa fa-sort-amount-down" aria-hidden="true"></i> Create Order</h2>
-    <form id="order-create-form" class="primitive-create-panel">
+    <h2><i class="fa fa-sort-amount-down" aria-hidden="true"></i> {{ if .Editing }}Edit Order <span class="pull-right btn-group"><a class="btn btn-white" href="/cib/live/orders/new"><i class="fa fa-plus"></i> Create</a><button class="btn btn-white" type="button" id="rename-order" name="rename" disabled><i class="fa fa-font"></i> Rename</button><button class="btn btn-white" type="button" id="delete-order" name="delete" disabled><i class="fa fa-trash"></i> Delete</button></span>{{ else }}Create Order{{ end }}</h2>
+    <div id="order-notifications" role="status" aria-live="polite"></div>
+    <form id="order-create-form" class="primitive-create-panel" {{ if .Editing }}data-editing="true" data-order-id="{{ .OrderID }}"{{ end }}>
       <div id="order-error" class="alert alert-danger" role="alert" hidden></div>
-      <div class="colocation-row" data-help="id"><label for="order_id">Constraint ID</label><input id="order_id" name="order[id]" class="form-control" required></div>
+      <div class="colocation-row" data-help="id"><label for="order_id">Constraint ID</label><input id="order_id" name="order[id]" class="form-control" required {{ if .Editing }}readonly value="{{ .OrderID }}"{{ end }}></div>
       <div class="colocation-row" data-help="score"><label for="order_score">Kind</label>
         <div class="colocation-input-group colocation-score">
           <button id="order_score_btn" class="btn btn-default" type="button" aria-label="Kind presets" aria-haspopup="true" aria-expanded="false"><span class="caret"></span></button>
@@ -19,7 +30,7 @@
       </div>
       <div class="colocation-row"><label for="order_score_symmetrical">Symmetrical</label><select id="order_score_symmetrical" name="order[symmetrical]" class="form-control"><option value="true">Yes</option><option value="false">No</option></select></div>
       <fieldset><legend>Resources</legend><div id="order-resources"></div></fieldset>
-      <div class="colocation-actions"><button id="create-order-button" type="submit" name="submit" class="btn btn-success" disabled>Create</button><a id="order-back" href="/cib/live/constraints/types" class="btn btn-white">Back</a></div>
+      <div class="colocation-actions"><button id="create-order-button" type="submit" name="submit" class="btn btn-success" disabled>{{ if .Editing }}Apply{{ else }}Create{{ end }}</button>{{ if .Editing }}<button type="button" id="revert-order" name="revert" class="btn btn-white revert" disabled>Revert</button>{{ end }}<a id="order-back" href="{{ if .Editing }}/cib/live/config/edit#constraints{{ else }}/cib/live/constraints/types{{ end }}" class="btn btn-white">Back</a></div>
     </form>
   </div>
   <aside class="edit-right" aria-label="Order help">
