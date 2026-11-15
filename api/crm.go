@@ -22,6 +22,7 @@ type CrmStatus struct {
 	Nodes     []CrmNode  `xml:"nodes>node"`
 	Resources []CrmRsc   `xml:"resources>resource"`
 	Clones    []CrmClone `xml:"resources>clone"`
+	Groups    []CrmGroup `xml:"resources>group"`
 }
 
 type CrmNode struct {
@@ -56,6 +57,14 @@ type CrmRsc struct {
 	FailureIgnored bool         `xml:"failure_ignored,attr"`
 	NodesRunningOn int          `xml:"nodes_running_on,attr"`
 	Nodes          []CrmRscNode `xml:"node"`
+}
+
+type CrmGroup struct {
+	ID          string   `xml:"id,attr"`
+	Maintenance bool     `xml:"maintenance,attr"`
+	Managed     bool     `xml:"managed,attr"`
+	Disabled    bool     `xml:"disabled,attr"`
+	Resources   []CrmRsc `xml:"resource"`
 }
 
 type CrmClone struct {
@@ -348,6 +357,10 @@ func PrimitiveCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	if !regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_.:-]*$`).MatchString(frontendPrimitive.ID) || frontendPrimitive.Class == "" || frontendPrimitive.Type == "" || (frontendPrimitive.Class == "ocf" && frontendPrimitive.Provider == "") {
 		http.Error(w, "A valid Resource ID, Class and Type are required; OCF agents also require a Provider", http.StatusBadRequest)
+		return
+	}
+	if frontendPrimitive.Parent != "" {
+		createPrimitiveInGroup(w, r, frontendPrimitive, runClusterConfigCommand)
 		return
 	}
 	crmExecute(w, primitiveCreateArgs(frontendPrimitive), fmt.Sprintf("Created %s", frontendPrimitive.ID))

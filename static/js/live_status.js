@@ -137,7 +137,7 @@ function toggleResourceDetails(toggleLink) {
 }
 
 function generateResourceBtnGroup(role, targetRole, isClone, name, type, active
-    , isMaintenance, isManaged, nodeNames, constraintsExist, cibResource
+    , isMaintenance, isManaged, nodeNames, constraintsExist, cibResource, objectType = "primitive"
 ) {
     const resourceEvents = [];
     for(const event of cibResource.Events ?? []) {
@@ -200,7 +200,7 @@ function generateResourceBtnGroup(role, targetRole, isClone, name, type, active
     <li role="separator" class="divider"></li>
     <li>
         <a
-            href="/cib/live/${isClone ? 'clones' : 'primitives' }/${name}/edit" class="edit"
+            href="/cib/live/${objectType === 'group' ? 'groups' : isClone ? 'clones' : 'primitives'}/${name}/edit" class="edit"
         >
         <i class="fa fa-fw fa-pencil"></i> Edit
         </a>
@@ -375,7 +375,7 @@ function generateNodeBtnGroup(nodeID, nodeName, crmResources, crmClones, cibReso
     return btnGroup;
 }
 
-function generateResourceRow(role, targetRole, name, location, type, active, maintenance, managed, nodeNames, cibResource, isClone, cloneResourceID, expanded) {
+function generateResourceRow(role, targetRole, name, location, type, active, maintenance, managed, nodeNames, cibResource, isClone, cloneResourceID, expanded, groupMembers = null, cibResources = []) {
 
     const circleIcon = document.createElement("i");
     circleIcon.title = role;
@@ -418,10 +418,19 @@ function generateResourceRow(role, targetRole, name, location, type, active, mai
     }
 
     const btnGroup = generateResourceBtnGroup(role, targetRole, isClone, name, type, active
-        , isMaintenance, !isUnmanaged, nodeNames, constraintsExist, cibResource);
+        , isMaintenance, !isUnmanaged, nodeNames, constraintsExist, cibResource, groupMembers ? "group" : "primitive");
     const detailRowID = String(++resourceDetailRowID);
     let detailRowContent;
-    if (isClone) {
+    if (groupMembers) {
+        const memberRows = groupMembers.map(member => {
+            const memberCib = getCibResource(member.ID, cibResources);
+            return generateResourceRow(member.Role, member.TargetRole || targetRole, member.ID,
+                (member.Nodes || []).map(node => node.Name).join(", "), member.ResourceAgent,
+                member.Active, isMaintenance || member.Maintenance, !isUnmanaged && member.Managed,
+                nodeNames, memberCib, false, "", false).topRow.outerHTML;
+        }).join("");
+        detailRowContent = `<td colspan="6"><table class="table table-bordered table-striped table-hover resource-detail-table"><tbody>${memberRows}</tbody></table></td>`;
+    } else if (isClone) {
         const btnGroupSub = generateResourceBtnGroup(role
             , targetRole
             , false
@@ -468,6 +477,9 @@ function generateResourceRow(role, targetRole, name, location, type, active, mai
         ? "glyphicon glyphicon-minus icon-minus"
         : "glyphicon glyphicon-plus icon-plus";
 
+    const typeCell = groupMembers
+        ? `Group (${groupMembers.length})`
+        : `<a onclick='new RAInfoPopup("${isClone ? cloneResourceID : name}", "${type}")' data-toggle="modal" data-target="#modal-lg">${type}</a>${isClone ? ' (Clone)' : ''}`;
     const topRow = `
     <tr class="resource-row" data-resource-id="${name}" data-detail-row-id="${detailRowID}">
         <td class="detail">
@@ -484,14 +496,7 @@ function generateResourceRow(role, targetRole, name, location, type, active, mai
         <td style="text-align: center;">${name}</td>
         <td style="text-align: center;">${location}</td>
         <td style="text-align: center;">
-            <a
-                onclick='new RAInfoPopup("${isClone ? cloneResourceID : name}", "${type}")'
-                data-toggle="modal"
-                data-target="#modal-lg"
-            >
-                ${type}
-            </a>
-            ${isClone ? '(Clone)' : ''}</td>
+${typeCell}</td>
         <td style="text-align: center;">${btnGroup.outerHTML}</td>
     </tr>
     `;
@@ -503,7 +508,7 @@ function generateResourceRow(role, targetRole, name, location, type, active, mai
     };
 }
 
-function populateResourcesTab(crmResources, clones, nodeNames, cibResources){
+function populateResourcesTab(crmResources, clones, nodeNames, cibResources, groups = []){
     let resCount = 0
     const body = document.getElementById("resources-tbody");
     const expandedResourceIDs = getExpandedResourceIDs(body);
@@ -533,13 +538,23 @@ function populateResourcesTab(crmResources, clones, nodeNames, cibResources){
         });
     }
 
+    for (const group of groups || []) {
+        const members = group.Resources || [];
+        const active = members.some(member => member.Active);
+        const metadata = getCibResource(group.ID, cibResources);
+        const targetRole = (metadata.MetaAttributes || []).find(pair => pair.name === "target-role")?.value || (group.Disabled ? "Stopped" : "");
+        resourceRows.push({ name: group.ID, isClone: false, cloneResources: [], groupMembers: members,
+            resource: { ID: group.ID, ResourceAgent: "Group", Role: active ? "Started" : "Stopped",
+                TargetRole: targetRole, Active: active, Maintenance: group.Maintenance,
+                Managed: group.Managed, Nodes: members.flatMap(member => member.Nodes || []) } });
+    }
     resourceRows.sort((a, b) => a.name.localeCompare(b.name));
-    for (const { name, resource, isClone, cloneResources } of resourceRows) {
+    for (const { name, resource, isClone, cloneResources, groupMembers } of resourceRows) {
         if (!resource) continue;
         const { ID, ResourceAgent, Role, Active, Maintenance, Managed, Nodes } = resource;
 
         let location = [];
-        let resourceTargetRole = "";
+        let resourceTargetRole = resource.TargetRole || "";
         if (isClone) {
             for (const cloneResource of cloneResources) {
                 let bold = false;
@@ -568,9 +583,9 @@ function populateResourcesTab(crmResources, clones, nodeNames, cibResources){
 
         const cibResource = getCibResource(ID, cibResources);
 
-        const rendered = generateResourceRow(Role, resourceTargetRole, name, location.join(", "), ResourceAgent,
+        const rendered = generateResourceRow(Role, resourceTargetRole, name, [...new Set(location)].join(", "), ResourceAgent,
             Active, Maintenance, Managed, nodeNames, cibResource, isClone, cloneResources[0]?.ID || "",
-            expandedResourceIDs.has(name));
+            expandedResourceIDs.has(name), groupMembers, cibResources);
         const existingRow = existingRows.get(rendered.resourceID);
         const existingDetailRow = existingRow?.nextElementSibling?.classList.contains("detail-view")
             ? existingRow.nextElementSibling
@@ -727,7 +742,7 @@ async function updateClusterStatus() {
         headers: { 'Content-Type': 'application/json' }
     });
     if (!res2.ok) throw new Error(`HTTP error: ${res2.status}`);
-    const { XMLName, Nodes, Resources, Clones } = await res2.json();
+    const { XMLName, Nodes, Resources, Clones, Groups } = await res2.json();
     const nodeNames = Nodes.map(node => node.Name); // nodeNames are for ResourceMigrationPopup
 
     // 3. 'cibadmin -Ql' --> resources
@@ -759,14 +774,14 @@ async function updateClusterStatus() {
     if (!res3.ok) throw new Error(`HTTP error: ${res3.status}`);
     const CibResources = await res3.json();
 
-    populateResourcesTab(Resources, Clones, nodeNames, CibResources);
+    populateResourcesTab(Resources, Clones, nodeNames, CibResources, Groups);
 
     const fenceHistories = await Promise.all(Nodes.map(node => getFenceHistory(node.Name)));
     Nodes.forEach((node, index) => {
         node.fenceHistory = fenceHistories[index];
     });
 
-    populateNodesTab(Nodes, Resources, Clones, CibResources);
+    populateNodesTab(Nodes, [...(Resources || []), ...(Groups || []).flatMap(group => group.Resources || [])], Clones, CibResources);
 }
 
 

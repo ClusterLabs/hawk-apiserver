@@ -45,6 +45,7 @@ class Primitive {
 
         const primitive = {
             id: newID,
+            parent: window.resourceData?.Parent || "",
             class: className,
             provider: providerName,
             type: typeName,
@@ -75,7 +76,7 @@ class Primitive {
             .then(status => {
                 console.log("Create status:", status);
                 if (status.error || status.status !== "ok") throw new Error(status.error || "Unable to create primitive.");
-                window.location.href = `/cib/live/primitives/${encodeURIComponent(newID)}/edit?flash=created`;
+                window.location.href = status.redirect || `/cib/live/primitives/${encodeURIComponent(newID)}/edit?flash=created`;
             });
     }
 }

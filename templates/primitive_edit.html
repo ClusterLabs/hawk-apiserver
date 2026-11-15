@@ -11,7 +11,8 @@
   window.resourceData = {
     ResourceID: "{{ .ResourceID }}",
     ResourceAgent: "{{ .ResourceAgent }}",
-    CreateMode: {{ if .CreateMode }}true{{ else }}false{{ end }}
+    CreateMode: {{ if .CreateMode }}true{{ else }}false{{ end }},
+    Parent: "{{ .Parent }}"
   };
 </script>
 <script src="/static/js/XCSS.js"></script>

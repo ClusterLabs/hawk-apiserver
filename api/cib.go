@@ -190,11 +190,12 @@ func GetClusterDetails() (ClusterDetails, int, error) {
 }
 
 type Configuration struct {
-	CrmConfig   CrmConfig   `xml:"crm_config"`
-	Nodes       []Node      `xml:"nodes>node"`
-	Constraints Constraints `xml:"constraints"`
-	Primitives  []Primitive `xml:"resources>primitive"`
-	Clones      []Clone     `xml:"resources>clone"`
+	CrmConfig   CrmConfig       `xml:"crm_config"`
+	Nodes       []Node          `xml:"nodes>node"`
+	Constraints Constraints     `xml:"constraints"`
+	Primitives  []Primitive     `xml:"resources>primitive"`
+	Clones      []Clone         `xml:"resources>clone"`
+	Groups      []ResourceGroup `xml:"resources>group"`
 }
 
 type CrmConfig struct {
@@ -246,6 +247,7 @@ type Node struct {
 }
 
 type Primitive struct {
+	Parent             string            `xml:"-" json:"parent,omitempty"`
 	XMLName            xml.Name          `xml:"primitive"` // w/o it, marshalled xml would be 'Primitive' (not 'primitive')
 	ID                 string            `xml:"id,attr" json:"id"`
 	Class              string            `xml:"class,attr" json:"class"`
@@ -255,6 +257,12 @@ type Primitive struct {
 	InstanceAttributes InstanceAttribute `xml:"instance_attributes" json:"instance_attributes"`
 	Operations         []Operation       `xml:"operations>op" json:"operations"`
 	Utilizations       []Nvpair          `xml:"utilization>nvpair" json:"utilizations"`
+}
+
+type ResourceGroup struct {
+	ID             string        `xml:"id,attr"`
+	Primitives     []Primitive   `xml:"primitive"`
+	MetaAttributes MetaAttribute `xml:"meta_attributes"`
 }
 
 type Clone struct {
@@ -334,6 +342,8 @@ type LRMOp struct {
 }
 
 type ResourceRow struct {
+	ObjectType         string
+	Children           []string
 	ID                 string
 	Class              string
 	Provider           string
@@ -404,19 +414,21 @@ func GetCIBResources() ([]ResourceRow, error) {
 		return nil, err
 	}
 
-	resourceCount := len(cib.Configuration.Primitives)
-	for _, clone := range cib.Configuration.Clones {
-		resourceCount += len(clone.Primitives)
-	}
+	return cibResourceRows(cib), nil
+}
 
-	resources := make([]Primitive, 0, resourceCount)
-	resources = append(resources, cib.Configuration.Primitives...)
-	// it's not the clone itself, but the pritimitive that clone
+func cibResourceRows(cib CIB) []ResourceRow {
+	resources := append([]Primitive{}, cib.Configuration.Primitives...)
 	for _, clone := range cib.Configuration.Clones {
 		resources = append(resources, clone.Primitives...)
 	}
-
-	rows := make([]ResourceRow, 0, resourceCount)
+	groups := map[string]ResourceGroup{}
+	for _, group := range cib.Configuration.Groups {
+		groups[group.ID] = group
+		resources = append(resources, Primitive{ID: group.ID, MetaAttributes: group.MetaAttributes})
+		resources = append(resources, group.Primitives...)
+	}
+	rows := make([]ResourceRow, 0, len(resources))
 	for _, resource := range resources {
 		status := "Unknown"
 		role := "Unknown"
@@ -443,7 +455,17 @@ func GetCIBResources() ([]ResourceRow, error) {
 		constraints := getResourceConstraints(resource.ID, cib.Configuration)
 		node := getResourceRunningNode(resource.ID, cib.Status.NodeStates)
 		events := getResourceEvents(resource.ID, cib.Status.NodeStates)
+		objectType := "primitive"
+		var children []string
+		if group, ok := groups[resource.ID]; ok {
+			objectType = "group"
+			for _, child := range group.Primitives {
+				children = append(children, child.ID)
+			}
+		}
 		rows = append(rows, ResourceRow{
+			ObjectType:         objectType,
+			Children:           children,
 			ID:                 resource.ID,
 			Class:              resource.Class,
 			Provider:           resource.Provider,
@@ -459,7 +481,7 @@ func GetCIBResources() ([]ResourceRow, error) {
 		})
 	}
 
-	return rows, nil
+	return rows
 }
 
 func GetCIBNodes() ([]Node, error) {
@@ -634,7 +656,7 @@ func PrimitiveNewHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	renderTemplate(w, "primitive_edit", map[string]any{"Title": "Create Primitive", "CreateMode": true, "ResourceID": "", "ResourceAgent": "", "Class": "ocf", "Provider": "", "Type": ""})
+	renderTemplate(w, "primitive_edit", map[string]any{"Title": "Create Primitive", "CreateMode": true, "ResourceID": "", "ResourceAgent": "", "Class": "ocf", "Provider": "", "Type": "", "Parent": r.URL.Query().Get("parent")})
 }
 
 func ResourceEditHandler(w http.ResponseWriter, r *http.Request) {
