@@ -167,6 +167,15 @@ func loadACLRoles(ctx context.Context, run clusterConfigCommand) (aclRolesState,
 	return state, nil
 }
 func RolesHandler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path == "/cib/live/roles/new" || r.URL.Path == "/cib/live/roles/new/" {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			w.Header().Set("Allow", "GET, HEAD")
+			http.Error(w, "Method not allowed", 405)
+			return
+		}
+		renderTemplate(w, "role_edit", map[string]any{"Title": "Create Role", "Creating": true})
+		return
+	}
 	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 	if len(parts) == 5 && parts[0] == "cib" && parts[1] == "live" && parts[2] == "roles" && parts[4] == "edit" {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {

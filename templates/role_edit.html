@@ -11,14 +11,14 @@
  <div class="edit-left">
   <div id="role-notifications" role="status" aria-live="polite"></div>
   <div id="roles-acl-warning" class="alert alert-warning alert-dismissible" role="alert" hidden><button type="button" class="close" aria-label="Close"><span aria-hidden="true">&times;</span></button><a href="/cib/live/crm_config/edit">To enable ACLs, set "enable-acl" in the Cluster Configuration ('Configuration &gt; Cluster Configuration')</a></div>
-  <h1><i class="fa fa-users" aria-hidden="true"></i> Edit Role <span class="pull-right"><button type="button" id="delete-role" class="btn btn-default" disabled><i class="fa fa-trash"></i> Delete</button></span></h1>
+  <h1><i class="fa fa-users" aria-hidden="true"></i> {{ if .Creating }}Create Role{{ else }}Edit Role{{ end }} {{ if not .Creating }}<span class="pull-right"><button type="button" id="delete-role" class="btn btn-default" disabled><i class="fa fa-trash"></i> Delete</button></span>{{ end }}</h1>
   <div class="panel panel-default"><div class="panel-body">
-   <form class="form-horizontal role-editor" id="edit_role" data-role-id="{{ .RoleID }}" aria-busy="true">
+   <form class="form-horizontal role-editor" id="{{ if .Creating }}new_role{{ else }}edit_role{{ end }}" {{ if .Creating }}data-create-mode="true"{{ else }}data-role-id="{{ .RoleID }}"{{ end }} aria-busy="true">
     <p id="role-loading" class="text-muted" role="status">Loading role…</p>
     <fieldset id="role-fields" disabled hidden>
-     <div class="form-group"><label class="col-sm-5 control-label" for="role_id">Role ID</label><div class="col-sm-7"><input class="form-control" id="role_id" name="role[id]" readonly value="{{ .RoleID }}"></div></div>
+     <div class="form-group"><label class="col-sm-5 control-label" for="role_id">Role ID</label><div class="col-sm-7"><input class="form-control" id="role_id" name="role[id]" required {{ if .Creating }}pattern="[a-zA-Z0-9_.-]+"{{ else }}readonly value="{{ .RoleID }}"{{ end }}></div></div>
      <div id="rules"></div>
-     <div class="form-group"><div class="col-sm-7 col-sm-offset-5"><div class="btn-group"><button type="submit" class="btn btn-primary submit" name="submit">Apply</button><button type="button" class="btn btn-default cancel revert" name="revert">Revert</button><a href="/cib/live/roles" class="btn btn-default back">Back</a></div></div></div>
+     <div class="form-group"><div class="col-sm-7 col-sm-offset-5"><div class="btn-group"><button type="submit" class="btn btn-primary submit" name="submit">{{ if .Creating }}Create{{ else }}Apply{{ end }}</button>{{ if not .Creating }}<button type="button" class="btn btn-default cancel revert" name="revert">Revert</button>{{ end }}<a href="/cib/live/roles" class="btn btn-default back">Back</a></div></div></div>
     </fieldset>
    </form>
   </div></div>
