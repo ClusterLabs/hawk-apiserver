@@ -69,11 +69,14 @@ func serveRoleEdit(w http.ResponseWriter, r *http.Request, run clusterConfigComm
 	_ = json.NewEncoder(w).Encode(map[string]any{"role": role, "enabled": state.Enabled, "legacy": state.Legacy})
 }
 
-var aclRoleID = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_.:-]*$`)
+var aclRoleID = regexp.MustCompile(`^[a-zA-Z0-9_.-]+$`)
 
 // Build crmsh input, never a shell command. Reject line breaks so a field cannot
 // introduce another configure statement. crmsh accepts either quote style.
 func roleUpdateCommand(role aclRole) (string, error) {
+	if strings.TrimSpace(role.ID) == "" {
+		return "", fmt.Errorf("ID is required")
+	}
 	if !aclRoleID.MatchString(role.ID) {
 		return "", fmt.Errorf("Invalid role ID")
 	}

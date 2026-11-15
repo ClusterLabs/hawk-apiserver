@@ -3,6 +3,7 @@
 class RoleEditor {
     constructor(form) {
         this.form = form;
+        this.creating = form.dataset.createMode === "true";
         this.id = form.dataset.roleId;
         this.rules = form.querySelector("#rules");
         this.fields = form.querySelector("#role-fields");
@@ -10,10 +11,10 @@ class RoleEditor {
         this.warning = document.getElementById("roles-acl-warning");
         this.warning.querySelector(".close").addEventListener("click", () => { this.warning.hidden = true; });
         form.addEventListener("submit", event => { event.preventDefault(); this.save(); });
-        form.querySelector('[name="revert"]').addEventListener("click", () => {
+        form.querySelector('[name="revert"]')?.addEventListener("click", () => {
             if (this.dirty) this.confirmDiscard(() => this.load()); else this.load();
         });
-        this.remove.addEventListener("click", () => new DeletePopup(this.id, () => this.delete()));
+        this.remove?.addEventListener("click", () => new DeletePopup(this.id, () => this.delete()));
         form.addEventListener("input", () => { this.dirty = true; });
         form.querySelector("a.back").addEventListener("click", event => {
             if (!this.dirty) return;
@@ -45,18 +46,19 @@ class RoleEditor {
 
     busy(value) {
         this.fields.disabled = value;
-        this.remove.disabled = value;
+        if (this.remove) this.remove.disabled = value;
         this.form.setAttribute("aria-busy", String(value));
     }
 
     async load() {
         this.busy(true);
         try {
-            const data = await configJSON(`/api/cib/acl/role?id=${encodeURIComponent(this.id)}`);
+            const data = await configJSON(this.creating ? "/api/cib/acl/roles" : `/api/cib/acl/role?id=${encodeURIComponent(this.id)}`);
+            if (this.creating && !data.supported) throw new Error("ACL is not supported by the cluster");
             this.legacy = data.legacy;
             this.warning.hidden = data.enabled;
             this.rules.replaceChildren();
-            for (const rule of data.role.rules) this.addRule(rule);
+            for (const rule of this.creating ? [{ right: "read" }] : data.role.rules) this.addRule(rule);
             this.dirty = false;
             this.fields.hidden = false;
             this.busy(false);
@@ -125,7 +127,7 @@ class RoleEditor {
     }
 
     async save() {
-        if (this.fields.disabled) return;
+        if (this.fields.disabled || !this.form.reportValidity()) return;
         const rules = Array.from(this.rules.children, fieldset => {
             const rule = { attribute: fieldset.dataset.attribute };
             fieldset.querySelectorAll("[data-field]").forEach(input => { rule[input.dataset.field] = input.value; });
@@ -133,12 +135,15 @@ class RoleEditor {
         });
         this.busy(true);
         try {
-            const data = await configJSON("/api/cib/acl/role", {
+            const data = await configJSON(this.creating ? "/api/cib/acl/roles/create" : "/api/cib/acl/role", {
                 method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: this.id, rules }),
+                body: JSON.stringify({ id: this.creating ? this.form.querySelector("#role_id").value : this.id, rules }),
             });
             this.dirty = false;
-            this.notify(data.message);
+            if (this.creating) {
+                sessionStorage.setItem("rolesFlash", data.message);
+                window.location.href = "/cib/live/roles";
+            } else this.notify(data.message);
         } catch (error) { this.notify(error.message, true); }
         finally { this.busy(false); }
     }
