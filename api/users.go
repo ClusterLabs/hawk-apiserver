@@ -1,8 +1,11 @@
 package api
 
-import "net/http"
+import (
+	"net/http"
+	"strings"
+)
 
-// The overview and creation form are native; Edit retains the Ruby form.
+// Serve the ACL target overview and shared Create/Edit form.
 func UsersHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/cib/live/users/new" || r.URL.Path == "/cib/live/users/new/" {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
@@ -11,6 +14,16 @@ func UsersHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		renderTemplate(w, "user_new", map[string]any{"Title": "Create ACL Target"})
+		return
+	}
+	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if len(parts) == 5 && parts[0] == "cib" && parts[1] == "live" && parts[2] == "users" && parts[4] == "edit" {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			w.Header().Set("Allow", "GET, HEAD")
+			http.Error(w, "Method not allowed", 405)
+			return
+		}
+		renderTemplate(w, "user_new", map[string]any{"Title": "Edit ACL Target", "Editing": true, "TargetID": parts[3]})
 		return
 	}
 	if r.URL.Path != "/cib/live/users" && r.URL.Path != "/cib/live/users/" || r.Method == http.MethodPost {
