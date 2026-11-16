@@ -78,7 +78,11 @@ func wizardCategories(data []byte) ([]wizardCategory, error) {
 				paragraphs = append(paragraphs, strings.ReplaceAll(paragraph, "\n", " "))
 			}
 		}
-		groups[category] = append(groups[category], wizardLink{Name: summary.Name, Title: strings.TrimSpace(*summary.Shortdesc), Href: "/cib/live/wizards/" + url.PathEscape(summary.Name), Paragraphs: paragraphs})
+		title := strings.TrimSpace(*summary.Shortdesc)
+		if summary.Name == "libvirt" {
+			title = legacyLibvirtConfig.Title
+		}
+		groups[category] = append(groups[category], wizardLink{Name: summary.Name, Title: title, Href: "/cib/live/wizards/" + url.PathEscape(summary.Name), Paragraphs: paragraphs})
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, err
@@ -121,6 +125,16 @@ func wizardCategories(data []byte) ([]wizardCategory, error) {
 		}
 		items := groups[name]
 		sort.SliceStable(items, func(i, j int) bool { return items[i].Name < items[j].Name })
+		// Keep the bundled replacement immediately below the legacy libvirt wizard.
+		for j, item := range items {
+			if item.Name == "libvirt" {
+				modern := wizardLink{Name: "fence-virsh", Title: fenceVirshConfig.Title, Href: "/cib/live/wizards/fence-virsh", Paragraphs: []string{"Fence a libvirt guest using fence_virsh over SSH. Configure the hypervisor address, SSH user, and guest domain name or UUID."}}
+				items = append(items, wizardLink{})
+				copy(items[j+2:], items[j+1:])
+				items[j+1] = modern
+				break
+			}
+		}
 		for j := range items {
 			items[j].HelpID = fmt.Sprintf("wizard-help-%d-%d", i, j)
 		}

@@ -72,3 +72,21 @@ func TestWizardsHandler(t *testing.T) {
 	require.Equal(t, 500, response.Code)
 	require.Contains(t, response.Body.String(), "Unable to load wizards")
 }
+
+func TestFenceVirshFollowsLegacyLibvirt(t *testing.T) {
+	categories, err := wizardCategories([]byte(`{"name":"vmware","category":"stonith","shortdesc":"VMware"}
+{"name":"libvirt","category":"stonith","shortdesc":"STONITH for libvirt (kvm / Xen)"}
+{"name":"sbd","category":"stonith","shortdesc":"SBD"}`))
+	require.NoError(t, err)
+	require.Len(t, categories, 1)
+	items := categories[0].Wizards
+	require.Len(t, items, 4)
+	require.Equal(t, "libvirt", items[0].Name)
+	require.Equal(t, "Deprecated: STONITH for libvirt (kvm / Xen)", items[0].Title)
+	require.Equal(t, "fence-virsh", items[1].Name)
+	require.Equal(t, "Fencing for libvirt (fence_virsh)", items[1].Title)
+	require.Equal(t, "/cib/live/wizards/libvirt", items[0].Href)
+	require.Equal(t, "/cib/live/wizards/fence-virsh", items[1].Href)
+	require.NotEqual(t, items[0].HelpID, items[1].HelpID)
+	require.Equal(t, "sbd", items[2].Name)
+}
