@@ -252,6 +252,10 @@ func main() {
 	mux.HandleFunc("/cib/live/config/edit", authMiddleware(api.ConfigEditHandler))
 	mux.HandleFunc("/cib/live/config/edit/", authMiddleware(api.ConfigEditHandler))
 
+	mux.HandleFunc("/cib/live/profile", authMiddleware(api.ProfileHandler))
+	mux.HandleFunc("/cib/live/profile/edit", authMiddleware(api.ProfileHandler))
+	mux.HandleFunc("/cib/live/profile/edit/", authMiddleware(api.ProfileHandler))
+
 	mux.HandleFunc("/cib/live/crm_config/edit", authMiddleware(api.ClusterConfigHandler))
 	mux.HandleFunc("/cib/live/crm_config/edit/", authMiddleware(api.ClusterConfigHandler))
 	mux.HandleFunc("/api/cib/cluster/config/options", authMiddleware(api.ClusterConfigOptionsHandler))

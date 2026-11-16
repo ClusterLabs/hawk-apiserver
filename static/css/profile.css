@@ -1,0 +1,6 @@
+.profile-page .edit-left { padding: 30px; }
+.profile-page h1 { font-size: 20px; margin: 10px 0 20px; }
+.profile-page .panel-body { overflow: inherit; }
+.profile-page .control-label { font-weight: normal; }
+.profile-page .form-control { height: 34px; }
+.profile-page .btn-group .btn { margin-left: 0; }
