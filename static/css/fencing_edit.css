@@ -1,0 +1,7 @@
+.fencing-actions { margin-top: 20px; }
+.fencing-level .panel-heading { display: flex; gap: 6px; align-items: center; }
+.fencing-level .panel-heading .close { margin-left: auto; }
+.fencing-field { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; }
+.fencing-field label { width: 90px; flex-shrink: 0; }
+.fencing-field .form-control { min-width: 0; }
+.fencing-field select { width: 125px; flex-shrink: 0; }

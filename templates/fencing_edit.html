@@ -1,0 +1,29 @@
+{{ define "content" }}
+<link rel="stylesheet" href="/static/css/primitive_edit.css">
+<link rel="stylesheet" href="/static/css/fencing_edit.css">
+<link rel="stylesheet" href="/static/css/config_edit.css">
+<script src="/static/js/classes/XAlert.js" defer></script>
+<script src="/static/js/classes/DeletePopup.js" defer></script>
+<script src="/static/js/fencing_edit.js" defer></script>
+<div class="edit-layout">
+  <div class="edit-left">
+    <h1><i class="fa fa-plug" aria-hidden="true"></i> Edit Fencing Topology</h1>
+    <div id="fencing-notifications" role="status" aria-live="polite"></div>
+    <form id="fencing-editor" aria-busy="true">
+      <ul id="fencing-levels" class="list-unstyled"></ul>
+      <datalist id="fencing-devices"></datalist>
+      <button id="fencing-add" type="button" class="btn btn-info" disabled><i class="fa fa-plus" aria-hidden="true"></i> Add Level</button>
+      <div class="panel panel-default fencing-actions"><div class="panel-body">
+        <button id="fencing-apply" type="submit" class="btn btn-primary" disabled>Apply</button>
+        <a href="/cib/live/config/edit#fencing" class="btn btn-default">Back</a>
+      </div></div>
+    </form>
+  </div>
+  <aside class="edit-right" aria-label="Fencing topology help">
+    <h4>Fencing Topology</h4>
+    <p>Define which fencing devices are used for each target. Targets can be node names, patterns, or node attribute/value pairs.</p>
+    <p>Index specifies a fencing level from 1 to 9. Lower indices are attempted first. Devices within a level are used in the listed order; all must succeed for that level to succeed.</p>
+    <p>Enter device resource IDs separated by commas or spaces. Moving a row changes its display order, not its index.</p>
+  </aside>
+</div>
+{{ end }}
