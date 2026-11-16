@@ -1,0 +1,83 @@
+# Adapted from crmsh's libvirt wizard (Copyright (C) 2015 Kristoffer Gronlund).
+# License: GNU General Public License (GPL).
+version: 2.2
+shortdesc: Fencing for libvirt (fence_virsh)
+longdesc: >
+  Uses fence_virsh to fence a guest node managed by libvirt.
+  Create a separate resource for each guest node in the cluster.
+
+  The cluster nodes must be able to log in to the hypervisor over SSH.
+  virsh must be installed on the hypervisor, and the SSH user must have
+  permission to manage the guest. Use the libvirt domain name or UUID,
+  which may differ from the cluster node name.
+
+  Note that the recommended fencing mechanism is SBD whenever
+  a shared storage device (like a SAN) is available.
+category: Stonith
+parameters:
+  - name: id
+    shortdesc: Resource ID (Name)
+    example: stonith-libvirt
+    required: true
+    type: resource
+  - name: target
+    shortdesc: Node to Manage With STONITH Device
+    longdesc: The cluster node name. The device will not run on its target node.
+    example: node1
+    required: true
+    type: string
+  - name: ip
+    shortdesc: Hypervisor IP address or hostname
+    longdesc: Address of the libvirt hypervisor to connect to over SSH.
+    example: 192.168.122.1
+    required: true
+    type: string
+  - name: username
+    shortdesc: SSH login name on the hypervisor
+    value: root
+    required: true
+    type: string
+  - name: plug
+    shortdesc: Libvirt domain name or UUID
+    longdesc: >
+      The domain name or UUID shown by virsh list --all on the hypervisor.
+      The cluster node name is mapped to this domain using pcmk_host_map.
+    example: guest-node1
+    required: true
+    type: string
+  - name: identity_file
+    shortdesc: Identity file (private key) for SSH
+    longdesc: >
+      Path to the SSH private key on every cluster node that may run the device.
+      Leave unset to use the SSH client's default identity files.
+    example: /root/.ssh/id_ed25519
+    advanced: true
+    required: false
+    type: string
+  - name: ipport
+    shortdesc: SSH port on the hypervisor
+    example: '22'
+    advanced: true
+    required: false
+    type: integer
+  - name: install
+    shortdesc: Enable to Install Required Packages
+    type: boolean
+    required: false
+    value: false
+actions:
+  - install: fence-agents-virsh
+    nodes: all
+    when: install
+  - cib: |
+      primitive {{id}}-{{target}} stonith:fence_virsh
+        params
+          ip="{{ip}}"
+          username="{{username}}"
+          plug="{{plug}}"
+          pcmk_host_map="{{target}}:{{plug}}"
+          pcmk_host_check="static-list"
+          {{#identity_file}}identity_file="{{identity_file}}"{{/identity_file}}
+          {{#ipport}}ipport="{{ipport}}"{{/ipport}}
+        op start timeout=60s
+      location l-{{id}}-{{target}} {{id}}-{{target}} -inf: {{target}}

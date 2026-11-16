@@ -87,7 +87,7 @@ func resourceWizardScriptCommand(ctx context.Context, name, operation string, pa
 }
 
 func nestedWizardScriptCommand(ctx context.Context, name, operation string, params any) (*exec.Cmd, error) {
-	if name != "mailto" && name != "virtual-ip" && name != "database" && name != "db2" && name != "db2-hadr" && name != "oracle" && name != "drbd" && name != "filesystem" && name != "gfs2" && name != "lvm-drbd" && name != "raid-lvm" && name != "exportfs" && name != "nfsserver" && name != "nfsserver-lvm-drbd" && name != "sap-as" && name != "sap-ci" && name != "sap-db" && name != "sap-simple-stack" && name != "sap-simple-stack-plus" && name != "apache" && name != "haproxy" && name != "nginx" && name != "sbd" && name != "cryptctl" {
+	if name != "mailto" && name != "virtual-ip" && name != "database" && name != "db2" && name != "db2-hadr" && name != "oracle" && name != "drbd" && name != "filesystem" && name != "gfs2" && name != "lvm-drbd" && name != "raid-lvm" && name != "exportfs" && name != "nfsserver" && name != "nfsserver-lvm-drbd" && name != "sap-as" && name != "sap-ci" && name != "sap-db" && name != "sap-simple-stack" && name != "sap-simple-stack-plus" && name != "apache" && name != "haproxy" && name != "nginx" && name != "sbd" && name != "cryptctl" && name != "libvirt" {
 		return nil, fmt.Errorf("Invalid resource wizard")
 	}
 	if operation != "show" && operation != "verify" && operation != "run" {
@@ -121,6 +121,10 @@ func runNestedWizardCommand(ctx context.Context, name, operation string, params 
 	if err != nil {
 		return nil, err
 	}
+	return runWizardProcess(cmd)
+}
+
+func runWizardProcess(cmd *exec.Cmd) ([]byte, error) {
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	out, err := cmd.Output()

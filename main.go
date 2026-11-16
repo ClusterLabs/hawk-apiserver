@@ -130,6 +130,10 @@ func main() {
 	// Register BOTH /cib/live/foo and /cib/live/foo/ to avoid conflicts with Ruby
 	mux.HandleFunc("/cib/live/wizards/cryptctl", authMiddleware(api.CryptctlWizardHandler))
 	mux.HandleFunc("/cib/live/wizards/cryptctl/", authMiddleware(api.CryptctlWizardHandler))
+	mux.HandleFunc("/cib/live/wizards/fence-virsh", authMiddleware(api.FenceVirshWizardHandler))
+	mux.HandleFunc("/cib/live/wizards/fence-virsh/", authMiddleware(api.FenceVirshWizardHandler))
+	mux.HandleFunc("/cib/live/wizards/libvirt", authMiddleware(api.LibvirtWizardHandler))
+	mux.HandleFunc("/cib/live/wizards/libvirt/", authMiddleware(api.LibvirtWizardHandler))
 	mux.HandleFunc("/cib/live/wizards/sbd", authMiddleware(api.SBDWizardHandler))
 	mux.HandleFunc("/cib/live/wizards/sbd/", authMiddleware(api.SBDWizardHandler))
 	mux.HandleFunc("/cib/live/wizards/nginx", authMiddleware(api.NginxWizardHandler))
