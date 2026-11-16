@@ -23,6 +23,7 @@ type wizardSummary struct {
 	Longdesc  json.RawMessage `json:"longdesc"`
 }
 type wizardLink struct {
+	Disabled   bool
 	Name       string
 	Title      string
 	Href       string
@@ -81,8 +82,14 @@ func wizardCategories(data []byte) ([]wizardCategory, error) {
 		title := strings.TrimSpace(*summary.Shortdesc)
 		if summary.Name == "libvirt" {
 			title = legacyLibvirtConfig.Title
+			paragraphs = append([]string{"This legacy wizard requires the obsolete external/libvirt agent and is disabled. Use Fencing for libvirt (fence_virsh) instead."}, paragraphs...)
 		}
-		groups[category] = append(groups[category], wizardLink{Name: summary.Name, Title: title, Href: "/cib/live/wizards/" + url.PathEscape(summary.Name), Paragraphs: paragraphs})
+		disabled := summary.Name == "vmware" || summary.Name == "libvirt"
+		if summary.Name == "vmware" {
+			title = deprecatedVMwareTitle
+			paragraphs = append([]string{"This legacy wizard requires the obsolete external/vcenter agent and is disabled. Use Fencing using vCenter REST API instead."}, paragraphs...)
+		}
+		groups[category] = append(groups[category], wizardLink{Name: summary.Name, Title: title, Href: "/cib/live/wizards/" + url.PathEscape(summary.Name), Paragraphs: paragraphs, Disabled: disabled})
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, err
@@ -125,16 +132,17 @@ func wizardCategories(data []byte) ([]wizardCategory, error) {
 		}
 		items := groups[name]
 		sort.SliceStable(items, func(i, j int) bool { return items[i].Name < items[j].Name })
-		// Keep the bundled replacement immediately below the legacy libvirt wizard.
-		for j, item := range items {
-			if item.Name == "libvirt" {
-				modern := wizardLink{Name: "fence-virsh", Title: fenceVirshConfig.Title, Href: "/cib/live/wizards/fence-virsh", Paragraphs: []string{"Fence a libvirt guest using fence_virsh over SSH. Configure the hypervisor address, SSH user, and guest domain name or UUID."}}
-				items = append(items, wizardLink{})
-				copy(items[j+2:], items[j+1:])
-				items[j+1] = modern
-				break
+		expanded := make([]wizardLink, 0, len(items)+2)
+		for _, item := range items {
+			expanded = append(expanded, item)
+			switch item.Name {
+			case "libvirt":
+				expanded = append(expanded, wizardLink{Name: "fence-virsh", Title: fenceVirshConfig.Title, Href: "/cib/live/wizards/fence-virsh", Paragraphs: []string{"Fence a libvirt guest using fence_virsh over SSH. Configure the hypervisor address, SSH user, and guest domain name or UUID."}})
+			case "vmware":
+				expanded = append(expanded, wizardLink{Name: vmwareRESTConfig.Name, Title: vmwareRESTConfig.Title, Href: "/cib/live/wizards/fence-vmware-rest", Paragraphs: []string{"Fence VMware virtual machines through the vCenter REST API using fence_vmware_rest. Requires vCenter; standalone ESXi hosts are not supported."}})
 			}
 		}
+		items = expanded
 		for j := range items {
 			items[j].HelpID = fmt.Sprintf("wizard-help-%d-%d", i, j)
 		}

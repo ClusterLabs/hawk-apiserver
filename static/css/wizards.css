@@ -6,3 +6,8 @@
 .wizard-list .wizard-link:hover, .wizard-list .wizard-link:focus { background: linear-gradient(to bottom right, #fff, #e0e0e0); }
 .wizard-link > i { margin-left: auto; padding-left: 15px; }
 .wizard-link:hover > i, .wizard-link:focus > i { color: #00c081; }
+
+.wizard-list .wizard-link.disabled,
+.wizard-list .wizard-link.disabled:hover,
+.wizard-list .wizard-link.disabled:focus { color: #999; cursor: not-allowed; background: #f5f5f5; }
+.wizard-link.disabled > i { color: #999; }

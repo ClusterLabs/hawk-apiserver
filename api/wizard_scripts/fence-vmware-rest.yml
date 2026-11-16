@@ -1,0 +1,77 @@
+# License: GNU General Public License (GPL).
+version: 2.2
+category: Stonith
+shortdesc: Fencing using vCenter REST API
+longdesc: |
+  Fencing for VMware virtual machines managed by vCenter using fence_vmware_rest.
+  This wizard requires a vCenter server with the VMware REST API; a standalone
+  ESXi host is not supported by this agent.
+
+  Configure one resource for each cluster node. Use the exact, unique virtual
+  machine name in vCenter inventory and credentials with permission to query
+  the VM and manage its power state.
+
+  The fence-agents-vmware-rest package must be installed on all cluster nodes.
+  HTTPS is used with certificate verification; the vCenter certificate must be
+  trusted by the cluster nodes.
+
+  SBD remains the recommended fencing mechanism when suitable shared storage
+  is available.
+parameters:
+  - name: id
+    type: resource
+    shortdesc: Base Resource ID
+    value: vcenter-fencing
+    required: true
+  - name: node_name
+    type: string
+    shortdesc: Name of node to fence
+    required: true
+  - name: machine_name
+    type: string
+    shortdesc: Name of machine in vCenter inventory
+    longdesc: Exact, unique VM name in the vCenter inventory, which may differ from its cluster node name.
+    required: true
+  - name: server
+    type: string
+    shortdesc: vCenter server address
+    longdesc: IP address or hostname of the vCenter server, without a URL scheme or path.
+    example: vcenter.example.com
+    required: true
+  - name: username
+    type: string
+    shortdesc: vCenter login name
+    example: administrator@vsphere.local
+    required: true
+  - name: password
+    type: string
+    shortdesc: vCenter login password
+    required: true
+  - name: ipport
+    type: integer
+    shortdesc: vCenter HTTPS port
+    example: '443'
+    advanced: true
+    required: false
+  - name: api_path
+    type: string
+    shortdesc: Path of the vCenter REST API
+    example: /rest
+    advanced: true
+    required: false
+actions:
+  - cib: |
+      primitive {{id}}-{{node_name}} stonith:fence_vmware_rest
+        params
+          ip="{{server}}"
+          username="{{username}}"
+          password="{{password}}"
+          plug="{{machine_name}}"
+          pcmk_host_map="{{node_name}}:{{machine_name}}"
+          pcmk_host_check="static-list"
+          ssl_secure="true"
+          ipport="{{#ipport}}{{ipport}}{{/ipport}}{{^ipport}}443{{/ipport}}"
+          {{#api_path}}api_path="{{api_path}}"{{/api_path}}
+        op monitor interval=60s
+      location loc-{{id}}-{{node_name}} {{id}}-{{node_name}} -inf: {{node_name}}
+      property fencing-enabled=true

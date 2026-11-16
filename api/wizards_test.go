@@ -80,13 +80,34 @@ func TestFenceVirshFollowsLegacyLibvirt(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, categories, 1)
 	items := categories[0].Wizards
-	require.Len(t, items, 4)
+	require.Len(t, items, 5)
 	require.Equal(t, "libvirt", items[0].Name)
+	require.True(t, items[0].Disabled)
 	require.Equal(t, "Deprecated: STONITH for libvirt (kvm / Xen)", items[0].Title)
 	require.Equal(t, "fence-virsh", items[1].Name)
+	require.False(t, items[1].Disabled)
 	require.Equal(t, "Fencing for libvirt (fence_virsh)", items[1].Title)
 	require.Equal(t, "/cib/live/wizards/libvirt", items[0].Href)
 	require.Equal(t, "/cib/live/wizards/fence-virsh", items[1].Href)
 	require.NotEqual(t, items[0].HelpID, items[1].HelpID)
 	require.Equal(t, "sbd", items[2].Name)
+}
+
+func TestDeprecatedVMwareDisabledAndRESTListed(t *testing.T) {
+	categories, err := wizardCategories([]byte(`{"name":"vmware","category":"stonith","shortdesc":"Fencing using vCenter / ESX Server"}`))
+	require.NoError(t, err)
+	require.Len(t, categories, 1)
+	items := categories[0].Wizards
+	require.Len(t, items, 2)
+	require.True(t, items[0].Disabled)
+	require.Equal(t, deprecatedVMwareTitle, items[0].Title)
+	require.Equal(t, "fence-vmware-rest", items[1].Name)
+	require.False(t, items[1].Disabled)
+	tmpl, err := template.ParseFiles("../templates/wizards.html")
+	require.NoError(t, err)
+	var body bytes.Buffer
+	require.NoError(t, tmpl.ExecuteTemplate(&body, "content", map[string]any{"Categories": categories}))
+	require.Contains(t, body.String(), `aria-disabled="true"`)
+	require.NotContains(t, body.String(), `href="/cib/live/wizards/vmware"`)
+	require.Contains(t, body.String(), `href="/cib/live/wizards/fence-vmware-rest"`)
 }
