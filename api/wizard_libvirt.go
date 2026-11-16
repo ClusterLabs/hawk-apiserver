@@ -6,9 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -82,21 +80,9 @@ func libvirtScriptCommand(ctx context.Context, operation string, params db2Param
 }
 
 func runLibvirtCommand(ctx context.Context, operation string, params db2Params) ([]byte, error) {
-	// Override only this invocation's script lookup. Do not change the installed
-	// crmsh wizard or global configuration, including on older distributions.
-	directory, err := os.MkdirTemp("", "hawk-libvirt-")
-	if err != nil {
-		return nil, err
-	}
-	defer os.RemoveAll(directory)
-	if err := os.WriteFile(filepath.Join(directory, "libvirt.yml"), libvirtWizardScript, 0600); err != nil {
-		return nil, err
-	}
-	cmd, err := libvirtScriptCommand(ctx, operation, params, directory)
-	if err != nil {
-		return nil, err
-	}
-	return runWizardProcess(cmd)
+	return runBundledWizard("libvirt", libvirtWizardScript, func(directory string) (*exec.Cmd, error) {
+		return libvirtScriptCommand(ctx, operation, params, directory)
+	})
 }
 
 func FenceVirshWizardHandler(w http.ResponseWriter, r *http.Request) {

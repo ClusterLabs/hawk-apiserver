@@ -16,7 +16,7 @@
         </span>
         <ul class="nav nav-pills nav-stacked wizard-list collapse" id="{{ .ID }}" hidden>
           {{ range .Wizards }}
-          <li><a href="{{ .Href }}" class="wizard-link" aria-describedby="{{ .HelpID }}" data-wizard-help="{{ .HelpID }}"><span>{{ .Title }}</span><i class="fa fa-circle-plus" aria-hidden="true"></i></a></li>
+          <li>{{ if .Disabled }}<span class="wizard-link disabled" role="link" aria-disabled="true" tabindex="0" aria-describedby="{{ .HelpID }}" data-wizard-help="{{ .HelpID }}"><span>{{ .Title }}</span><i class="fa fa-circle-plus" aria-hidden="true"></i></span>{{ else }}<a href="{{ .Href }}" class="wizard-link" aria-describedby="{{ .HelpID }}" data-wizard-help="{{ .HelpID }}"><span>{{ .Title }}</span><i class="fa fa-circle-plus" aria-hidden="true"></i></a>{{ end }}</li>
           {{ end }}
         </ul>
       </li>
