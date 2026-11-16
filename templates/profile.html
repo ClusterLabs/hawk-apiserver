@@ -1,0 +1,20 @@
+{{ define "content" }}
+<link rel="stylesheet" href="/static/css/primitive_edit.css">
+<link rel="stylesheet" href="/static/css/profile.css">
+<script src="/static/js/classes/XAlert.js" defer></script>
+<script src="/static/js/profile.js" defer></script>
+<div class="edit-layout profile-page">
+ <div class="edit-left">
+  {{ if .Message }}<x-alert type="success" message="{{ .Message }}"></x-alert>{{ end }}
+  <h1><i class="fa fa-home page" aria-hidden="true"></i> Preferences</h1>
+  <div class="panel panel-default"><div class="panel-body">
+   <form class="form-horizontal edit_profile" id="edit_profile" action="/cib/live/profile" method="post">
+    <input type="hidden" name="_method" value="put">
+    <div class="form-group"><label class="col-sm-5 control-label" for="profile_language">Language</label><div class="col-sm-7"><select class="form-control" id="profile_language" name="profile[language]" disabled aria-describedby="profile-language-help"><option value="en-US" selected>English</option></select><p class="help-block" id="profile-language-help">Language selection will be available in a future release.</p></div></div>
+    <div class="form-group"><label class="col-sm-5 control-label" for="profile_stonithwarning">Display warning if FENCING is disabled</label><div class="col-sm-7"><select class="form-control" id="profile_stonithwarning" name="profile[stonithwarning]"><option value="true" {{ if .Warning }}selected{{ end }}>Yes</option><option value="false" {{ if not .Warning }}selected{{ end }}>No</option></select></div></div>
+    <div class="form-group"><div class="col-sm-7 col-sm-offset-5"><div class="btn-group"><button class="btn btn-primary submit" type="submit" name="submit">Apply</button><button class="btn btn-default cancel revert" type="submit" name="revert" formnovalidate>Revert</button></div></div></div>
+   </form>
+  </div></div>
+ </div>
+</div>
+{{ end }}

@@ -40,8 +40,11 @@ function setClusterStatusBar(divID, summary, status) {
         switch (status) {
             case CLUSTER_STATUS_ONLINE:
                 break;
-            case CLUSTER_STATUS_UNCLEAN:
             case CLUSTER_STATUS_NOFENCING:
+                if (document.cookie.split(";").some(cookie => cookie.trim() === "stonithwarning=false")) break;
+                statusLabel.className = "alert alert-warning";
+                break;
+            case CLUSTER_STATUS_UNCLEAN:
                 statusLabel.className = "alert alert-warning";
                 break;
             case CLUSTER_STATUS_NOQUORUM:
