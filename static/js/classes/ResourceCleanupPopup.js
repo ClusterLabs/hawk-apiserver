@@ -65,7 +65,7 @@ class ResourceCleanupPopup extends Popup {
 
   #migrate() {
     const Destination = this.#selectEl.value;
-    fetch(this.#api, {
+    statusFetch(this.#api, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ResourceID: this.#resourceID, Destination})

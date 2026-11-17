@@ -1,6 +1,6 @@
 async function updateClusterStatusIndicator() {
 
-  const statusRes = await fetch("/api/cib/cluster/details/fetch", {
+  const statusRes = await statusFetch("/api/cib/cluster/details/fetch", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ host: window.location.hostname }),
@@ -12,5 +12,7 @@ async function updateClusterStatusIndicator() {
   setClusterStatusIndicator(data.summary, data.status);
 }
 
-updateClusterStatusIndicator(); // call it once to initialize
-pollClusterStatus(updateClusterStatusIndicator);
+if (!window.batchConfig) {
+  updateClusterStatusIndicator();
+  pollClusterStatus(updateClusterStatusIndicator);
+}

@@ -120,6 +120,10 @@ func GetClusterDetails() (ClusterDetails, int, error) {
 		return ClusterDetails{}, pacemakerRC, err
 	}
 
+	return clusterDetailsFromCIB(cib), 0, nil
+}
+
+func clusterDetailsFromCIB(cib CIB) ClusterDetails {
 	version := ""
 	stack := ""
 	fencingEnabled := ""
@@ -186,7 +190,7 @@ func GetClusterDetails() (ClusterDetails, int, error) {
 		ClusterName:    clusterName,
 	}
 
-	return result, 0, nil
+	return result
 }
 
 type Configuration struct {
@@ -1262,6 +1266,7 @@ func ResourceRenameHandler(w http.ResponseWriter, r *http.Request) {
 // This function does the magic routing between Go and Ruby
 func LiveStatusHandler(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, "live_status", map[string]any{
-		"Title": "Cluster Live Status",
+		"Title":        "Cluster Live Status",
+		"BatchApplied": r.URL.Query().Get("batch_applied") == "true",
 	})
 }

@@ -1,0 +1,25 @@
+.batch-control-bar { display: flex; align-items: center; justify-content: space-between; min-height: 40px; line-height: 33px; padding: 0 20px; background: #d35400; font-family: inherit; font-size: 14px; }
+.batch-control-bar strong { color: #f1c40f; line-height: 40px; }
+.batch-control-bar a, .batch-control-bar .btn { color: #fff; }
+.batch-control-bar .btn,
+.batch-control-bar .btn:hover,
+.batch-control-bar .btn:focus,
+.batch-control-bar .btn:active { background: transparent; border: 1px solid transparent; border-radius: 0; box-shadow: none; font-family: inherit; font-size: 14px; font-weight: 400; text-decoration: none; }
+.batch-navbar-on { display: inline-block; padding: 15px; color: #00c081; }
+.batch-dialog .modal-content { width: min(1000px, 95vw); max-height: 90vh; display: flex; flex-direction: column; }
+.batch-dialog .modal-body { overflow: auto; }
+.batch-dialog pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.batch-dialog .batch-events { margin-top: 15px; }
+.batch-dialog .batch-events button { padding: 0 6px; }
+.batch-dialog img { max-width: 100%; }
+
+.batch-show-dialog .modal-content { width: min(900px, calc(100vw - 30px)); padding: 0; }
+.batch-show-dialog .modal-header h3 { margin: 0; font-size: 18px; font-weight: 500; line-height: 1.42857143; }
+.batch-show-dialog .modal-header small { font-size: 12px; font-weight: 400; }
+.batch-show-dialog .modal-body { padding: 15px; }
+.batch-show-dialog .batch-events { margin-top: 0; }
+.batch-show-dialog .btn-toolbar .btn { margin-left: 0; }
+.batch-show-dialog .batch-report { max-height: 600px; overflow: auto; }
+.batch-show-dialog .batch-report-view { padding: 4px; }
+.batch-show-dialog .batch-report-view img { max-width: none; }
+.batch-show-dialog [hidden] { display: none !important; }
