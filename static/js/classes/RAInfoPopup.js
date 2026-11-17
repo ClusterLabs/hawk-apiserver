@@ -91,7 +91,7 @@ class RAInfoPopup extends Popup {
     tbody.appendChild( this.#makeHeaderRow("Name", "Timeout", "Interval", "Depth") );
     table.appendChild(tbody);
 
-    fetch('/api/cib/resource/operations/fetch', {
+    statusFetch('/api/cib/resource/operations/fetch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({resourceID: this.#resourceID, resourceAgent: this.#resourceAgent})
@@ -159,7 +159,7 @@ class RAInfoPopup extends Popup {
     tbody.appendChild(this.#makeHeaderRow("Name", "Shortdesc", "Longdesc", "Options"));
     table.appendChild(tbody);
 
-    fetch('/api/cib/resource/params/fetch', {
+    statusFetch('/api/cib/resource/params/fetch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({resourceID: this.#resourceID, resourceAgent: this.#resourceAgent})

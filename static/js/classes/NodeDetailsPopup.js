@@ -87,7 +87,7 @@ class NodeDetailsPopup extends Popup {
   }
 
   async #makeKvTable(desc, api) {
-    const res = await fetch(api, {
+    const res = await statusFetch(api, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({CibObject: this.#name})

@@ -2,13 +2,15 @@ class ConfirmActionPopup extends Popup {
   #arg;
   #api;
   #errMessage;
+  #onConfirm;
 
-  constructor(arg, api, message, errMessage) {
+  constructor(arg, api, message, errMessage, onConfirm = null) {
     super();
 
     this.#arg = arg;
     this.#api = api;
     this.#errMessage = errMessage;
+    this.#onConfirm = onConfirm;
 
     // Header
     const header = document.createElement("div");
@@ -60,7 +62,13 @@ class ConfirmActionPopup extends Popup {
   }
 
   #execute() {
-    fetch(this.#api, {
+    if (this.#onConfirm) {
+      this.close();
+      this.#onConfirm();
+      return;
+    }
+
+    statusFetch(this.#api, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(this.#arg)
@@ -172,7 +180,9 @@ class NodeStandbyOnOffPopup extends ConfirmActionPopup {
 class NodeFencePopup extends ConfirmActionPopup {
   constructor(name) {
     const api = `/api/cib/node/fence`;
-    const message = `This will attempt to immediately fence node <strong>${name}</strong>. Do you want to continue?`;
+    const message = window.batchConfig
+      ? `Inject an unclean-node event for <strong>${name}</strong> into the simulator? No physical fencing action will run.`
+      : `This will attempt to immediately fence node <strong>${name}</strong>. Do you want to continue?`;
     const errMessage = `Node fencing failed:`;
     super(name, api, message, errMessage);
   }

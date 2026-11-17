@@ -7,15 +7,18 @@
 <script src="/static/js/classes/ResourceMigrationPopup.js"></script>
 <script src="/static/js/classes/RecentEventsPopup.js"></script>
 <script src="/static/js/classes/RAInfoPopup.js"></script>
+{{ if .BatchMode }}<link rel="stylesheet" href="/static/css/highlight.css"><script src="/static/js/vendor/highlight.js" defer></script><script src="/static/js/batch.js" defer></script>{{ end }}
 <script src="/static/js/live_status.js" defer></script>
 
 <div class="edit-root">
   <x-alert id="status-alert" visible="false"></x-alert>
+  {{ if .BatchApplied }}<x-alert type="success" message="Applied configuration successfully"></x-alert>{{ end }}
+  {{ if .BatchMode }}<div id="batch-notifications" role="status" aria-live="polite"></div>{{ end }}
 
   <h1><i class="fa fa-heartbeat page"></i> Status <small id="cluster-name"></small></h1>
 
   <div id="cib-live-cluster-status-alarm" class="cluster-status-alarm hidden">
-    <a href="/cib/live/crm_config/edit"></a>
+    <a href="{{ if .BatchMode }}{{ .CIBBase }}{{ else }}/cib/live{{ end }}/crm_config/edit"></a>
   </div>
 
   <div class="panel panel-default with-nav-tabs status-panel">

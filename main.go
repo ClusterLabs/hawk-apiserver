@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/ClusterLabs/hawk-apiserver/api"
@@ -29,6 +30,17 @@ each time inside /cib/live/primitives/{primitive-id}/edit page.
 Thought it's stressfull, but it happens only in one page right now (as of 18.12.2025)
 and in future, Go should do all the auth routines. (#TODO)
 */
+// Preserve the selected CIB when checking the Ruby session. Ruby also uses
+// this context for the shadow editors that remain behind the reverse proxy.
+func rubyAuthURL(r *http.Request) string {
+	batchRequest := r.URL.Path == "/cib/hacluster" || strings.HasPrefix(r.URL.Path, "/cib/hacluster/") || strings.HasPrefix(r.URL.Path, "/api/batch/hacluster/")
+	metadata := r.URL.Path == "/api/cib/resource/params/fetch" || r.URL.Path == "/api/cib/resource/operations/fetch"
+	if batchRequest || (metadata && r.URL.Query().Get("cib_id") == "hacluster") {
+		return "http://localhost/internal/auth?cib_id=hacluster"
+	}
+	return "http://localhost/internal/auth"
+}
+
 func authViaRuby(r *http.Request) (ok bool, user string, err error) {
 	tr := &http.Transport{
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
@@ -42,7 +54,7 @@ func authViaRuby(r *http.Request) (ok bool, user string, err error) {
 	}
 
 	// URL host is dummy; DialContext ignores it and uses the unix socket.
-	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, "http://localhost/internal/auth", nil)
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, rubyAuthURL(r), nil)
 	if err != nil {
 		return false, "", err
 	}
@@ -127,6 +139,15 @@ func main() {
 		}
 		routehandler.ServeHTTP(w, r) // if not exactly "/cib/live/" --> Ruby fallback
 	})
+	mux.HandleFunc("/cib/hacluster", authMiddleware(api.BatchHandler))
+	mux.HandleFunc("/cib/hacluster/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/cib/hacluster/" {
+			authMiddleware(api.BatchHandler)(w, r)
+			return
+		}
+		routehandler.ServeHTTP(w, r)
+	})
+	mux.HandleFunc("/api/batch/hacluster/", authMiddleware(api.BatchAPIHandler))
 	// Register BOTH /cib/live/foo and /cib/live/foo/ to avoid conflicts with Ruby
 	mux.HandleFunc("/cib/live/wizards/cryptctl", authMiddleware(api.CryptctlWizardHandler))
 	mux.HandleFunc("/cib/live/wizards/cryptctl/", authMiddleware(api.CryptctlWizardHandler))

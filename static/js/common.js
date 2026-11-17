@@ -1,3 +1,13 @@
+// The status page and its popups use the same components for live and batch
+// mode. Only request execution and editor URLs depend on the selected CIB.
+function statusCIBBase() {
+    return window.batchConfig?.base || "/cib/live";
+}
+
+function statusFetch(url, options) {
+    return window.hawkBatch ? window.hawkBatch.fetch(url, options) : fetch(url, options);
+}
+
 // Options let dashboard tabs own their epoch and cancel their polling loop.
 // Existing callers retain the sessionStorage epoch and local monitor endpoint.
 async function pollClusterStatus(callback, options = {}) {

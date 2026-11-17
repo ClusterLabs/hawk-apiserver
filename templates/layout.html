@@ -1,3 +1,4 @@
+{{ $cibBase := "/cib/live" }}{{ if .CIBBase }}{{ $cibBase = .CIBBase }}{{ end }}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,6 +18,7 @@
   <script src="/static/js/classes/ClusterDetailsPopup.js"></script>
   <script src="/static/js/constants.js"></script>
   <script src="/static/js/common.js" defer></script>
+  {{ if .BatchMode }}<script>window.batchConfig = {{ .BatchConfig }};</script>{{ end }}
   <script src="/static/js/classes/layout.js" defer></script>
 </head>
 <body>
@@ -38,13 +40,13 @@
       <div class="navbar-right">
         <ul class="navbar-nav">
           <li>
-            <a class="simulator" title="Batch Configuration Changes" href="/cib/hacluster?init_cib=true">
+            {{ if .BatchMode }}<span class="simulator batch-navbar-on" title="Batch Configuration Changes"><span class="hidden-xs">Batch</span> <i class="fas fa-toggle-on"></i></span>{{ else }}<a class="simulator" title="Batch Configuration Changes" href="/cib/hacluster?init_cib=true">
               <span class="hidden-xs">Batch</span>
               <i class="fas fa-toggle-off"></i>
-            </a>
+            </a>{{ end }}
           </li>
           <li>
-            <a class="profile" title="hacluster" href="/cib/live/profile/edit">
+            <a class="profile" title="hacluster" href="{{ $cibBase }}/profile/edit">
               <span class="hidden-xs">hacluster</span>
             <i class="fas fa-user"></i></a>
           </li>
@@ -64,6 +66,10 @@
       </div>
     </header>
 
+    {{ if .BatchMode }}
+    <link rel="stylesheet" href="/static/css/batch.css">
+    <div class="batch-control-bar"><a href="#" id="batch-help"><strong class="text-uppercase"><i class="fa fa-warning"></i> Batch Mode Active</strong></a><div class="pull-right"><button class="btn btn-link" id="btn-show-batch"><i class="fa fa-cog"></i> Show</button><a class="btn" id="btn-discard-batch" href="/cib/live"><i class="fa fa-trash"></i> Discard</a><button class="btn btn-link" id="btn-apply-batch"><i class="fa fa-check"></i> Apply</button></div></div>
+    {{ end }}
     <div class="body">
       <aside id="sidebar">
         <ul class="panel-group" id="accordion">
@@ -72,8 +78,8 @@
               <i class="fas fa-desktop"></i> Monitoring
             </a>
             <ul class="collapse-menu collapse in" id="monitoringMenu">
-              <li><a href="/cib/live">Status</a></li>
-              <li><a href="/dashboard">Dashboard</a></li>
+              <li><a href="{{ $cibBase }}">Status</a></li>
+              {{ if not .BatchMode }}<li><a href="/dashboard">Dashboard</a></li>{{ end }}
             </ul>
           </li>
 
@@ -82,8 +88,8 @@
               <i class="fas fa-wrench"></i> Troubleshooting
             </a>
             <ul class="collapse-menu collapse" id="troubleshootMenu">
-              <li><a href="/reports">History</a></li>
-              <li><a href="/cib/live/commands">Command Log</a></li>
+              {{ if not .BatchMode }}<li><a href="/reports">History</a></li>{{ end }}
+              <li><a href="{{ $cibBase }}/commands">Command Log</a></li>
             </ul>
           </li>
 
@@ -92,14 +98,14 @@
               <i class="fas fa-cog"></i> Configuration
             </a>
             <ul class="collapse-menu collapse" id="configurationMenu">
-              <li><a href="/cib/live/resources/types">Add Resource</a></li>
-              <li><a href="/cib/live/constraints/types">Add Constraint</a></li>
-              <li><a href="/cib/live/wizards">Wizards</a></li>
-              <li><a href="/cib/live/config/edit">Edit Configuration</a></li>
-              <li><a href="/cib/live/crm_config/edit">Cluster Configuration</a></li>
+              <li><a href="{{ $cibBase }}/resources/types">Add Resource</a></li>
+              <li><a href="{{ $cibBase }}/constraints/types">Add Constraint</a></li>
+              <li><a href="{{ $cibBase }}/wizards">Wizards</a></li>
+              <li><a href="{{ $cibBase }}/config/edit">Edit Configuration</a></li>
+              <li><a href="{{ $cibBase }}/crm_config/edit">Cluster Configuration</a></li>
               <li class="sub-heading">Access Control</li>
-              <li class="submenu"><a href="/cib/live/roles">Roles</a></li>
-              <li class="submenu"><a href="/cib/live/users">Targets</a></li>
+              <li class="submenu"><a href="{{ $cibBase }}/roles">Roles</a></li>
+              <li class="submenu"><a href="{{ $cibBase }}/users">Targets</a></li>
             </ul>
           </li>
         </ul>

@@ -39,7 +39,7 @@ class ClusterDetailsPopup extends Popup {
 
   async #fetchData() {
     try {
-      const res = await fetch("/api/cib/cluster/details/fetch", {
+      const res = await statusFetch("/api/cib/cluster/details/fetch", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ host: window.location.hostname})

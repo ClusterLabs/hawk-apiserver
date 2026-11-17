@@ -200,7 +200,7 @@ function generateResourceBtnGroup(role, targetRole, isClone, name, type, active
     <li role="separator" class="divider"></li>
     <li>
         <a
-            href="/cib/live/${objectType === 'group' ? 'groups' : isClone ? 'clones' : 'primitives'}/${name}/edit" class="edit"
+            href="${statusCIBBase()}/${objectType === 'group' ? 'groups' : isClone ? 'clones' : 'primitives'}/${name}/edit" class="edit"
         >
         <i class="fa fa-fw fa-pencil"></i> Edit
         </a>
@@ -325,7 +325,7 @@ function generateNodeBtnGroup(nodeID, nodeName, crmResources, crmClones, cibReso
     <li role="separator" class="divider"></li>
     <li>
         <a
-            href="/cib/live/nodes/${nodeID}/edit"
+            href="${statusCIBBase()}/nodes/${nodeID}/edit"
             class="edit"
         >
             <i class="fa fa-fw fa-pencil"></i> Edit
@@ -706,7 +706,7 @@ function populateNodesTab(nodes, crmResources, crmClones, cibResources){
 }
 
 async function getFenceHistory(nodeName) {
-    const res = await fetch("/api/cib/node/fence/history/fetch", {
+    const res = await statusFetch("/api/cib/node/fence/history/fetch", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(nodeName)
@@ -718,7 +718,7 @@ async function getFenceHistory(nodeName) {
 async function updateClusterStatus() {
 
     // 1.
-    const res1 = await fetch("/api/cib/cluster/details/fetch", {
+    const res1 = await statusFetch("/api/cib/cluster/details/fetch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ host: window.location.hostname }),
@@ -737,7 +737,7 @@ async function updateClusterStatus() {
     // TODO?: /api/crm/status/fetch returns the plain 'crm status --as-xml' (in a structure)
     // and we process the WHOLE xml here in JS, I think it's better to
     // prepare data in the backend.
-    const res2 = await fetch("/api/crm/status/fetch", {
+    const res2 = await statusFetch("/api/crm/status/fetch", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
     });
@@ -767,7 +767,7 @@ async function updateClusterStatus() {
      * So, all the status fields (but constraints) come from `crm status`.
      * Constraints come separatelly from `cibadmin -Ql`.
      */
-    const res3 = await fetch("/api/cib/resources/fetch", {
+    const res3 = await statusFetch("/api/cib/resources/fetch", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
     });
@@ -786,5 +786,13 @@ async function updateClusterStatus() {
 
 
 restoreActiveStatusTab();
-updateClusterStatus();  // call it once to initialize
-pollClusterStatus(updateClusterStatus);
+if (window.hawkBatch) window.hawkBatch.start();
+else {
+    updateClusterStatus();
+    pollClusterStatus(updateClusterStatus);
+}
+const liveURL = new URL(window.location.href);
+if (liveURL.searchParams.has("batch_applied")) {
+    liveURL.searchParams.delete("batch_applied");
+    history.replaceState({}, "", liveURL);
+}
