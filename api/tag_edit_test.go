@@ -105,3 +105,73 @@ func TestTagEditPage(t *testing.T) {
 	TagEditHandler(w, httptest.NewRequest("POST", "/cib/live/tags/database/edit", nil))
 	require.Equal(t, 405, w.Code)
 }
+
+func TestBatchTagEditPage(t *testing.T) {
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(".."))
+	t.Cleanup(func() { _ = os.Chdir(cwd) })
+	for _, suffix := range []string{"", "/"} {
+		response := httptest.NewRecorder()
+		TagEditHandler(response, httptest.NewRequest("GET", batchBase+"/tags/database/edit"+suffix+"?flash=created", nil))
+		require.Equal(t, 200, response.Code)
+		html := response.Body.String()
+		for _, text := range []string{"Edit Tag", `data-editing="true"`, `data-tag-id="database"`, `readonly value="database"`, `data-api-base="/api/batch/hacluster/tag"`, `data-rename-api="/api/batch/hacluster/tag/rename"`, `data-delete-api="/api/batch/hacluster/tag/delete"`, `href="/cib/hacluster/config/edit#tags"`, `id="btn-show-batch"`} {
+			require.Contains(t, html, text)
+		}
+		require.NotContains(t, html, `href="/cib/live/`)
+	}
+}
+
+func TestBatchTagEditOperationsStayScoped(t *testing.T) {
+	backend, calls := batchTestBackend(t)
+	original := backend.run
+	backend.run = func(ctx context.Context, live bool, name string, args []string, input string) ([]byte, error) {
+		out, err := original(ctx, live, name, args, input)
+		if name == "cibadmin" && len(args) == 1 {
+			return []byte(tagEditFixture), nil
+		}
+		return out, err
+	}
+	response := batchTestRequest(backend, "GET", "tag/fetch?id=database", "")
+	require.Equal(t, 200, response.Code)
+	require.Contains(t, response.Body.String(), `"refs":["r1"]`)
+	require.Len(t, *calls, 1)
+	require.False(t, (*calls)[0].live)
+	*calls = nil
+	response = batchTestRequest(backend, "POST", "tag/update", `{"id":"database","refs":["r2","loc1"]}`)
+	require.Equal(t, 200, response.Code, response.Body.String())
+	require.Len(t, *calls, 2)
+	require.Equal(t, []string{"-p", "--replace"}, (*calls)[1].args)
+	require.Contains(t, (*calls)[1].input, `description="Database &amp; app"`)
+	require.Contains(t, (*calls)[1].input, `<obj_ref id="loc1">`)
+	for _, call := range *calls {
+		require.False(t, call.live)
+	}
+	for _, tt := range []struct {
+		operation, body string
+		args            []string
+	}{
+		{"tag/rename", `{"oldID":"database","newID":"renamed"}`, []string{"-D", "plain", "configure", "rename", "database", "renamed"}},
+		{"tag/delete", `"database"`, []string{"--force", "configure", "delete", "database"}},
+	} {
+		*calls = nil
+		response = batchTestRequest(backend, "POST", tt.operation, tt.body)
+		require.Equal(t, 200, response.Code, response.Body.String())
+		require.Len(t, *calls, 2)
+		require.Equal(t, tt.args, (*calls)[1].args)
+		for _, call := range *calls {
+			require.False(t, call.live)
+		}
+	}
+	for _, tt := range []struct{ operation, body string }{
+		{"tag/delete", `"r1"`}, {"tag/rename", `{"oldID":"r1","newID":"renamed"}`}, {"tag/rename", `{"oldID":"database","newID":""}`},
+	} {
+		*calls = nil
+		response = batchTestRequest(backend, "POST", tt.operation, tt.body)
+		require.GreaterOrEqual(t, response.Code, 400)
+		for _, call := range *calls {
+			require.Equal(t, "cibadmin", call.name)
+		}
+	}
+}

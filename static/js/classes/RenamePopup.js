@@ -2,11 +2,13 @@ class RenamePopup extends Popup {
     #resourceID;
     #newID;
     #okBtn;
+    #api;
 
-    constructor(resourceID) {
+    constructor(resourceID, api = "/api/cib/resource/rename") {
         super();
 
         this.#resourceID = resourceID;
+        this.#api = api;
 
         // Header (no |x|-close button)
         const header = document.createElement("div");
@@ -85,7 +87,7 @@ class RenamePopup extends Popup {
 
         this.#okBtn.disabled = true;
 
-        fetch('/api/cib/resource/rename', {
+        fetch(this.#api, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ oldID, newID })

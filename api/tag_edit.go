@@ -29,7 +29,7 @@ func (tag tagElement) id() string {
 
 func TagEditHandler(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-	if len(parts) != 5 || parts[0] != "cib" || parts[1] != "live" || parts[2] != "tags" || parts[4] != "edit" {
+	if len(parts) != 5 || parts[0] != "cib" || (parts[1] != "live" && parts[1] != batchID) || parts[2] != "tags" || parts[4] != "edit" {
 		TagRubyHandler(w, r)
 		return
 	}
@@ -38,7 +38,16 @@ func TagEditHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
-	renderTemplate(w, "tag_new", map[string]any{"Title": "Edit Tag", "Editing": true, "TagID": parts[3]})
+	data := map[string]any{"Title": "Edit Tag", "Editing": true, "TagID": parts[3]}
+	if parts[1] == batchID {
+		data["CIBBase"] = batchBase
+		data["BatchMode"] = true
+		data["BatchConfig"] = map[string]string{"base": batchBase, "api": batchAPI, "id": batchID}
+		data["TagAPI"] = batchAPI + "/tag"
+		data["RenameAPI"] = batchAPI + "/tag/rename"
+		data["DeleteAPI"] = batchAPI + "/tag/delete"
+	}
+	renderTemplate(w, "tag_new", data)
 }
 
 func loadTag(ctx context.Context, id string, run clusterConfigCommand) (tagElement, []string, error) {
@@ -104,6 +113,10 @@ func updateTag(w http.ResponseWriter, r *http.Request, run clusterConfigCommand)
 		http.Error(w, "Invalid request", 400)
 		return
 	}
+	saveTagUpdate(w, r, request, run)
+}
+
+func saveTagUpdate(w http.ResponseWriter, r *http.Request, request tagCreate, run clusterConfigCommand) {
 	if _, err := tagCreateArgs(request); err != nil {
 		http.Error(w, err.Error(), 400)
 		return
@@ -140,4 +153,26 @@ func updateTag(w http.ResponseWriter, r *http.Request, run clusterConfigCommand)
 	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "message": "Tag updated successfully"})
+}
+
+// Rename and delete only an existing tag in the caller's selected CIB.
+func tagAction(ctx context.Context, id, newID string, run clusterConfigCommand) (int, error) {
+	if !groupID.MatchString(id) || (newID != "" && (!groupID.MatchString(newID) || newID == id)) {
+		return 400, fmt.Errorf("Invalid tag ID")
+	}
+	tag, _, err := loadTag(ctx, id, run)
+	if err != nil {
+		return 500, err
+	}
+	if tag.id() == "" {
+		return 404, fmt.Errorf("The tag does not exist")
+	}
+	args := []string{"--force", "configure", "delete", id}
+	if newID != "" {
+		args = []string{"-D", "plain", "configure", "rename", id, newID}
+	}
+	if _, err := run(ctx, "crm", args, ""); err != nil {
+		return 500, fmt.Errorf("%s", tagCreateError(id, err))
+	}
+	return 200, nil
 }

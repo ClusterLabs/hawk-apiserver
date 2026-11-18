@@ -59,7 +59,12 @@ func tagObjectsFromXML(data []byte) ([]string, error) {
 }
 
 func TagNewHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/cib/live/tags/new" && r.URL.Path != "/cib/live/tags/new/" {
+	base := "/cib/live"
+	switch r.URL.Path {
+	case "/cib/live/tags/new", "/cib/live/tags/new/":
+	case batchBase + "/tags/new", batchBase + "/tags/new/":
+		base = batchBase
+	default:
 		http.NotFound(w, r)
 		return
 	}
@@ -68,7 +73,13 @@ func TagNewHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
-	renderTemplate(w, "tag_new", map[string]any{"Title": "Create Tag"})
+	data := map[string]any{"Title": "Create Tag", "CIBBase": base}
+	if base == batchBase {
+		data["BatchMode"] = true
+		data["BatchConfig"] = map[string]string{"base": batchBase, "api": batchAPI, "id": batchID}
+		data["TagAPI"] = batchAPI + "/tag"
+	}
+	renderTemplate(w, "tag_new", data)
 }
 
 func FetchTagObjects(w http.ResponseWriter, r *http.Request) {
@@ -117,6 +128,11 @@ func createTag(w http.ResponseWriter, r *http.Request, read func() (CIB, int, er
 		http.Error(w, "Invalid request", 400)
 		return
 	}
+	saveTag(w, r, tag, read, run, "/cib/live")
+}
+
+// Live and shadow callers share reference validation and the crmsh command.
+func saveTag(w http.ResponseWriter, r *http.Request, tag tagCreate, read func() (CIB, int, error), run func(context.Context, ...string) error, base string) {
 	args, err := tagCreateArgs(tag)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
@@ -142,7 +158,7 @@ func createTag(w http.ResponseWriter, r *http.Request, read func() (CIB, int, er
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "redirect": "/cib/live/tags/" + url.PathEscape(tag.ID) + "/edit?flash=created"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "redirect": base + "/tags/" + url.PathEscape(tag.ID) + "/edit?flash=created"})
 }
 
 // Present crmsh failures as form errors, without terminal formatting or process status.
