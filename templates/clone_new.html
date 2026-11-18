@@ -1,10 +1,12 @@
 
 {{ define "content" }}
+{{ $cibBase := "/cib/live" }}{{ if .CIBBase }}{{ $cibBase = .CIBBase }}{{ end }}
 <link rel="stylesheet" href="/static/css/primitive_edit.css">
 <link rel="stylesheet" href="/static/css/common.css">
 <script>
   window.resourceData = {
-    CloneID: "{{ .CloneID }}"
+    CloneID: "{{ .CloneID }}",
+    CreateAPI: "{{ .CreateAPI }}"
   };
 </script>
 <script src="/static/js/XCSS.js"></script>
@@ -18,10 +20,17 @@
 <script src="/static/js/classes/XKvGroupBase.js"></script>
 <script src="/static/js/classes/XKvGroup.js"></script>
 <script src="/static/js/classes/Clone.js"></script>
+{{ if .BatchMode }}
+<script src="/static/js/classes/ConfirmActionPopup.js"></script>
+<link rel="stylesheet" href="/static/css/highlight.css">
+<script src="/static/js/vendor/highlight.js" defer></script>
+<script src="/static/js/batch.js" defer></script>
+{{ end }}
 <script src="/static/js/clone_new.js" defer></script>
 
 <div class="edit-layout">
   <div class="edit-left">
+    {{ if .BatchMode }}<div id="batch-notifications" role="status" aria-live="polite"></div>{{ end }}
 
     {{ if .AlertMessage }}
       <x-alert
@@ -55,8 +64,7 @@
         label="Child Resource"
         description=""
         value="{{ .ChildResource }}"
-        options-api="/api/cib/clone/child-resources/fetch"
-        onchange="changeClass()"
+        options-api="{{ if .ChildrenAPI }}{{ .ChildrenAPI }}{{ else }}/api/cib/clone/child-resources/fetch{{ end }}"
         disabled="false">
       </x-select>
     </div>
@@ -79,7 +87,7 @@
       <div style="margin-top: 20px; text-align: center;">
         <button id="apply-create-button" name="submit" class="btn btn-success" onclick="clickCreateButton()">Create</button>
         <!-- I would rather expect `onclick="history.back()"` however old hawk forwards to /cib/live/config/edit -->
-        <a class="btn btn-white" href="/cib/live/config/edit">Back</a>
+        <a class="btn btn-white" href="{{ $cibBase }}/config/edit">Back</a>
       </div>
 
     </div>

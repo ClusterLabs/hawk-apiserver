@@ -9,7 +9,7 @@ class Clone {
     }
 
     async create() {
-        const newID = this.#cloneIDInput.value;
+        const newID = this.#cloneIDInput.value.trim();
 
         const childResourceName = this.#childResourceSelect.value || "";
         const metaAttrs = this.#metaKVGroup.getFrontendKValues();
@@ -30,7 +30,7 @@ class Clone {
             },
         };
 
-        return fetch("/api/cib/clone/create", {
+        return fetch(window.resourceData?.CreateAPI || "/api/cib/clone/create", {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(clone)
@@ -44,7 +44,8 @@ class Clone {
             })
             .then(status => {
                 console.log("Create status:", status);
-                window.location.href = `/cib/live/clones/${newID}/edit?flash=created`;
+                if (status.status !== "ok") throw new Error(status.error || "Unable to create clone.");
+                window.location.href = status.redirect || `${statusCIBBase()}/clones/${encodeURIComponent(newID)}/edit?flash=created`;
             });
     }
 }

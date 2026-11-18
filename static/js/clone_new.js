@@ -88,3 +88,9 @@ input.addEventListener("mouseenter", () => {
     fieldShortdesc.textContent = "Clone ID";
     fieldLongdesc.textContent = "Unique identifier for the clone resource. May not contain spaces.";
 });
+
+// Keep the shared sidebar and batch controls in the selected CIB context.
+document.getElementById("monitoringMenu").classList.remove("in");
+document.getElementById("configurationMenu").classList.add("in");
+document.querySelector(`a[href="${statusCIBBase()}/resources/types"]`)?.setAttribute("aria-current", "page");
+if (window.hawkBatch) window.hawkBatch.start();
