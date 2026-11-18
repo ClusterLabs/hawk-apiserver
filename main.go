@@ -262,6 +262,8 @@ func main() {
 	mux.HandleFunc("/api/cib/tag/fetch", authMiddleware(api.TagFetchHandler))
 	mux.HandleFunc("/api/cib/tag/update", authMiddleware(api.TagUpdateHandler))
 	mux.HandleFunc("/api/cib/tag/objects/fetch", authMiddleware(api.FetchTagObjects))
+	mux.HandleFunc("/cib/hacluster/groups/new", authMiddleware(api.GroupNewHandler))
+	mux.HandleFunc("/cib/hacluster/groups/new/", authMiddleware(api.GroupNewHandler))
 	mux.HandleFunc("/cib/live/groups/new", authMiddleware(api.GroupNewHandler))
 	mux.HandleFunc("/cib/live/groups/new/", authMiddleware(api.GroupNewHandler))
 	mux.HandleFunc("/cib/live/groups/", authMiddleware(api.GroupEditHandler))

@@ -1,4 +1,6 @@
 {{ define "content" }}
+{{ $cibBase := "/cib/live" }}{{ if .CIBBase }}{{ $cibBase = .CIBBase }}{{ end }}
+{{ $groupAPI := "/api/cib/group" }}{{ if .GroupAPI }}{{ $groupAPI = .GroupAPI }}{{ end }}
 <link rel="stylesheet" href="/static/css/primitive_edit.css">
 <link rel="stylesheet" href="/static/css/common.css">
 <link rel="stylesheet" href="/static/css/group_new.css">
@@ -16,13 +18,20 @@
 <script src="/static/js/classes/DeletePopup.js" defer></script>
 <link rel="stylesheet" href="/static/css/config_edit.css">
 {{ end }}
+{{ if .BatchMode }}
+<script src="/static/js/classes/ConfirmActionPopup.js"></script>
+<link rel="stylesheet" href="/static/css/highlight.css">
+<script src="/static/js/vendor/highlight.js" defer></script>
+<script src="/static/js/batch.js" defer></script>
+{{ end }}
 <script src="/static/js/group_new.js" defer></script>
 
 <div class="edit-layout">
   <div class="edit-left">
+    {{ if .BatchMode }}<div id="batch-notifications" role="status" aria-live="polite"></div>{{ end }}
     <x-alert id="group-alert" visible="false"></x-alert>
-    <h2><i class="fas fa-users" aria-hidden="true"></i> {{ if .Editing }}Edit Group <span class="pull-right btn-group"><a href="/cib/live/groups/new" class="btn btn-white"><i class="fa fa-plus"></i> Create</a><button type="button" name="rename" id="rename-group" class="btn btn-white" disabled><i class="fa fa-font"></i> Rename</button><button type="button" name="delete" id="delete-group" class="btn btn-white" disabled><i class="fa fa-trash"></i> Delete</button></span>{{ else }}Create Group{{ end }}</h2>
-    <form id="group-create-form" class="primitive-create-panel" {{ if .Editing }}data-editing="true" data-group-id="{{ .GroupID }}"{{ end }}>
+    <h2><i class="fas fa-users" aria-hidden="true"></i> {{ if .Editing }}Edit Group <span class="pull-right btn-group"><a href="{{ $cibBase }}/groups/new" class="btn btn-white"><i class="fa fa-plus"></i> Create</a><button type="button" name="rename" id="rename-group" class="btn btn-white" disabled><i class="fa fa-font"></i> Rename</button><button type="button" name="delete" id="delete-group" class="btn btn-white" disabled><i class="fa fa-trash"></i> Delete</button></span>{{ else }}Create Group{{ end }}</h2>
+    <form id="group-create-form" data-api-base="{{ $groupAPI }}" data-children-api="{{ $groupAPI }}/children{{ if not .BatchMode }}/fetch{{ end }}" class="primitive-create-panel" {{ if .Editing }}data-editing="true" data-group-id="{{ .GroupID }}"{{ end }}>
       <div class="form-section">
         <div class="kvsection-row kvsection-row-thin">
           <label for="input-group-id">Group ID</label>
@@ -34,7 +43,7 @@
             <li class="list-group-item">Loading…</li>
           </ul>
         </div>
-        {{ if .Editing }}<div class="group-create-child"><a class="btn btn-default" href="/cib/live/primitives/new?parent={{ .GroupID }}" title="Create Child"><i class="fa fa-plus"></i></a></div>{{ end }}
+        {{ if .Editing }}<div class="group-create-child"><a class="btn btn-default" href="{{ $cibBase }}/primitives/new?parent={{ .GroupID }}" title="Create Child"><i class="fa fa-plus"></i></a></div>{{ end }}
       </div>
       <div class="accordion">
         <details id="details-meta_attributes" open>
@@ -48,7 +57,7 @@
         <div class="group-actions">
           <button id="create-group-button" name="submit" class="btn btn-success" type="submit" disabled>{{ if .Editing }}Apply{{ else }}Create{{ end }}</button>
           {{ if .Editing }}<button type="button" name="revert" id="revert-group" class="btn btn-white revert" disabled>Revert</button>{{ end }}
-          {{ if .Editing }}<a class="btn btn-white back" href="/cib/live/config/edit">Back</a>{{ else }}<a class="btn btn-white back" href="/cib/live/resources/types">Back</a>{{ end }}
+          {{ if .Editing }}<a class="btn btn-white back" href="{{ $cibBase }}/config/edit">Back</a>{{ else }}<a class="btn btn-white back" href="{{ $cibBase }}/resources/types">Back</a>{{ end }}
         </div>
       </div>
     </form>

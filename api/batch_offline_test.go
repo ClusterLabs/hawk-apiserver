@@ -187,6 +187,22 @@ func TestBatchShadowStartStopStatus(t *testing.T) {
 		}
 		require.True(t, found)
 	}
+	response = batchTestRequest(backend, "POST", "group/create", `{"id":"hawk-group-proof","children":["hawk-color-proof"],"meta":{"target-role":"Stopped"}}`)
+	require.Equal(t, 200, response.Code, response.Body.String())
+	response = batchTestRequest(backend, "POST", "group/children", `{}`)
+	require.Equal(t, 200, response.Code)
+	require.NotContains(t, response.Body.String(), "hawk-color-proof", "Grouped primitives are no longer available children")
+	cib, _, err := backend.readCIB(ctx, false)
+	require.NoError(t, err)
+	foundGroup := false
+	for _, group := range cib.Configuration.Groups {
+		if group.ID == "hawk-group-proof" {
+			foundGroup = true
+			require.Len(t, group.Primitives, 1)
+			require.Equal(t, "hawk-color-proof", group.Primitives[0].ID)
+		}
+	}
+	require.True(t, foundGroup)
 	unchanged, err := os.ReadFile(baseline)
 	require.NoError(t, err)
 	require.Equal(t, original, unchanged)

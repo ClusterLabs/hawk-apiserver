@@ -40,7 +40,12 @@ func groupMetaOptions() []SelectOption {
 }
 
 func GroupNewHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/cib/live/groups/new" && r.URL.Path != "/cib/live/groups/new/" {
+	base := "/cib/live"
+	switch r.URL.Path {
+	case "/cib/live/groups/new", "/cib/live/groups/new/":
+	case batchBase + "/groups/new", batchBase + "/groups/new/":
+		base = batchBase
+	default:
 		http.NotFound(w, r)
 		return
 	}
@@ -49,7 +54,13 @@ func GroupNewHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	renderTemplate(w, "group_new", map[string]any{"Title": "Create Group"})
+	data := map[string]any{"Title": "Create Group", "CIBBase": base}
+	if base == batchBase {
+		data["BatchMode"] = true
+		data["BatchConfig"] = map[string]string{"base": batchBase, "api": batchAPI, "id": batchID}
+		data["GroupAPI"] = batchAPI + "/group"
+	}
+	renderTemplate(w, "group_new", data)
 }
 
 func groupFetchMethod(w http.ResponseWriter, r *http.Request) bool {
@@ -188,6 +199,13 @@ func createGroup(w http.ResponseWriter, r *http.Request,
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
+	saveGroup(w, r, group, readCIB, run, "/cib/live")
+}
+
+// Both forms use the same validation, membership checks, command construction,
+// and post-create role action. Batch callers supply shadow-scoped commands.
+func saveGroup(w http.ResponseWriter, r *http.Request, group groupCreate,
+	readCIB func() (CIB, int, error), run func(context.Context, ...string) error, base string) {
 	if err := validateGroup(group); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -223,6 +241,6 @@ func createGroup(w http.ResponseWriter, r *http.Request,
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]string{
 		"status": "ok", "message": "Group created successfully",
-		"redirect": "/cib/live/groups/" + url.PathEscape(group.ID) + "/edit?flash=created",
+		"redirect": base + "/groups/" + url.PathEscape(group.ID) + "/edit?flash=created",
 	})
 }
