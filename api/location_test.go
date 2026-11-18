@@ -164,3 +164,60 @@ func TestBatchLocationOptionsAndCreationStayScoped(t *testing.T) {
 	require.Len(t, *calls, 1)
 	require.Equal(t, "cibadmin", (*calls)[0].name)
 }
+
+func TestBatchLocationEditTemplate(t *testing.T) {
+	tmpl, err := template.ParseFiles("../templates/layout.html", "../templates/location_new.html")
+	require.NoError(t, err)
+	var body strings.Builder
+	require.NoError(t, tmpl.ExecuteTemplate(&body, "layout.html", map[string]any{
+		"Title": "Edit Location Constraint", "EditMode": true, "LocationID": "location1", "CIBBase": batchBase, "BatchMode": true, "LocationAPI": batchAPI + "/location",
+		"BatchConfig": map[string]string{"base": batchBase, "api": batchAPI, "id": batchID},
+	}))
+	html := body.String()
+	for _, text := range []string{`data-location-id="location1"`, `data-api-base="/api/batch/hacluster/location"`, `readonly`, `>Apply</button>`, `id="revert-location-button"`, `href="/cib/hacluster/config/edit#constraints"`, `id="btn-show-batch"`} {
+		require.Contains(t, html, text)
+	}
+	require.NotContains(t, html, `href="/cib/live/`)
+}
+
+func TestBatchLocationFetchAndUpdateStayScoped(t *testing.T) {
+	backend, calls := batchTestBackend(t)
+	original := backend.run
+	locationXML := `<rsc_location id="location1" rsc="r1" node="shadow-node" score="100"/>`
+	backend.run = func(ctx context.Context, live bool, name string, args []string, input string) ([]byte, error) {
+		out, err := original(ctx, live, name, args, input)
+		if name == "cibadmin" && len(args) > 1 {
+			return []byte(locationXML), nil
+		}
+		return out, err
+	}
+	response := batchTestRequest(backend, "POST", "location/fetch?id=location1", `{}`)
+	require.Equal(t, 200, response.Code, response.Body.String())
+	var data locationCreate
+	require.NoError(t, json.Unmarshal(response.Body.Bytes(), &data))
+	require.Equal(t, "100", data.Rules[0].Score)
+	require.Equal(t, "shadow-node", data.Rules[0].Expressions[0].Value)
+	require.False(t, (*calls)[0].live)
+	for _, body := range []string{
+		`{"id":"location1","resources":["r1"],"rules":[{"score":"200","expressions":[{"attribute":"#uname","operation":"eq","value":"shadow-node2"}]}]}`,
+		`{"id":"location1","resources":["r1"],"discovery":"always","rules":[{"score":"100","operator":"or","expressions":[{"attribute":"rack","operation":"eq","value":"a","type":"string","kind":"attr-val"},{"attribute":"disk","operation":"defined","kind":"attr-def"}]}]}`,
+	} {
+		*calls = nil
+		response = batchTestRequest(backend, "POST", "location/update", body)
+		require.Equal(t, 200, response.Code, response.Body.String())
+		require.Contains(t, response.Body.String(), "/cib/hacluster/locations/location1/edit?flash=updated")
+		require.Len(t, *calls, 3)
+		require.Equal(t, []string{"-F", "configure", "load", "update", "-"}, (*calls)[2].args)
+		require.Contains(t, (*calls)[2].input, `"location" "location1" "r1"`)
+		for _, call := range *calls {
+			require.False(t, call.live)
+		}
+	}
+	locationXML = `<rsc_location id="location1" rsc="r1"><rule score="100"><date_expression operation="in_range"/></rule></rsc_location>`
+	*calls = nil
+	response = batchTestRequest(backend, "POST", "location/update", `{"id":"location1","resources":["r1"],"rules":[{"score":"200","expressions":[{"attribute":"#uname","operation":"eq","value":"shadow-node"}]}]}`)
+	require.Equal(t, 409, response.Code)
+	require.Contains(t, response.Body.String(), "too complex")
+	require.Len(t, *calls, 1)
+	require.Equal(t, "cibadmin", (*calls)[0].name)
+}

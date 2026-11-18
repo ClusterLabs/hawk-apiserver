@@ -235,6 +235,7 @@ func main() {
 	mux.HandleFunc("/cib/hacluster/locations/new/", authMiddleware(api.LocationNewHandler))
 	mux.HandleFunc("/cib/live/locations/new", authMiddleware(api.LocationNewHandler))
 	mux.HandleFunc("/cib/live/locations/new/", authMiddleware(api.LocationNewHandler))
+	mux.HandleFunc("/cib/hacluster/locations/", authMiddleware(api.LocationRubyHandler))
 	mux.HandleFunc("/cib/live/locations/", authMiddleware(api.LocationRubyHandler))
 	mux.HandleFunc("/api/cib/location/options/fetch", authMiddleware(api.FetchLocationOptions))
 	mux.HandleFunc("/api/cib/location/fetch", authMiddleware(api.FetchLocation))

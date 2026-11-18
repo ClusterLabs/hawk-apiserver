@@ -39,7 +39,7 @@ async function initializeLocationForm() {
         for (const id of options.resources) document.getElementById("location_resources").add(new Option(id, id));
         for (const name of options.nodes) document.getElementById("simple-node").add(new Option(name, name));
         if (locationID) {
-            const response = await fetch(`${locationForm.dataset.apiBase || "/api/cib/location"}/fetch?id=${encodeURIComponent(locationID)}`, { method: "POST" });
+            const response = await fetch(`${locationForm.dataset.apiBase || "/api/cib/location"}/fetch?id=${encodeURIComponent(locationID)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
             if (!response.ok) throw new Error(await response.text());
             const location = await response.json();
             document.getElementById("input-location-id").value = location.id;
