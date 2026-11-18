@@ -255,6 +255,8 @@ func main() {
 	mux.HandleFunc("/api/cib/alert/fetch", authMiddleware(api.AlertFetchHandler))
 	mux.HandleFunc("/api/cib/alert/update", authMiddleware(api.AlertUpdateHandler))
 	mux.HandleFunc("/api/cib/alert/meta-attributes/fetch", authMiddleware(api.FetchAlertMetaAttributes))
+	mux.HandleFunc("/cib/hacluster/tags/new", authMiddleware(api.TagNewHandler))
+	mux.HandleFunc("/cib/hacluster/tags/new/", authMiddleware(api.TagNewHandler))
 	mux.HandleFunc("/cib/live/tags/new", authMiddleware(api.TagNewHandler))
 	mux.HandleFunc("/cib/live/tags/new/", authMiddleware(api.TagNewHandler))
 	mux.HandleFunc("/cib/live/tags/", authMiddleware(api.TagEditHandler))

@@ -60,8 +60,13 @@ class TagForm {
         this.busy(true);
         this.list.setAttribute("aria-busy", "true");
         try {
-            const url = this.editing ? `/api/cib/tag/fetch?id=${encodeURIComponent(this.id)}` : "/api/cib/tag/objects/fetch";
-            const response = await fetch(url, { method: this.editing ? "GET" : "POST", cache: "no-store" });
+            const url = this.editing ? `/api/cib/tag/fetch?id=${encodeURIComponent(this.id)}` : this.form.dataset.objectsApi || "/api/cib/tag/objects/fetch";
+            const options = { method: this.editing ? "GET" : "POST", cache: "no-store" };
+            if (!this.editing) {
+                options.headers = { "Content-Type": "application/json" };
+                options.body = "{}";
+            }
+            const response = await fetch(url, options);
             if (!response.ok) throw new Error(await response.text() || "Unable to load tag.");
             const data = await response.json();
             const objects = this.editing ? data.objects : data;
@@ -138,4 +143,6 @@ class TagForm {
 new TagForm(document.getElementById("tag-create-form"));
 document.getElementById("monitoringMenu").classList.remove("in");
 document.getElementById("configurationMenu").classList.add("in");
-document.querySelector('a[href="/cib/live/resources/types"]').setAttribute("aria-current", "page");
+document.querySelector(`a[href="${statusCIBBase()}/resources/types"]`).setAttribute("aria-current", "page");
+
+if (window.hawkBatch) window.hawkBatch.start();

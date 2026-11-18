@@ -63,3 +63,55 @@ func TestTagCreateError(t *testing.T) {
 	require.Equal(t, `The ID "tag123" is already in use`, tagCreateError("tag123", errors.New("\x1b[31mERROR\x1b[0m: Cannot create tag with ID 'tag123': Found existing tag with same ID: exit status 1")))
 	require.Equal(t, "Cannot create tag", tagCreateError("tag123", errors.New("\x1b[31mERROR\x1b[0m: Cannot create tag: exit status 1")))
 }
+
+func TestBatchTagForm(t *testing.T) {
+	tmpl, err := template.ParseFiles("../templates/layout.html", "../templates/tag_new.html")
+	require.NoError(t, err)
+	var body strings.Builder
+	require.NoError(t, tmpl.ExecuteTemplate(&body, "layout.html", map[string]any{
+		"Title": "Create Tag", "CIBBase": batchBase, "BatchMode": true, "TagAPI": batchAPI + "/tag",
+		"BatchConfig": map[string]string{"base": batchBase, "api": batchAPI, "id": batchID},
+	}))
+	html := body.String()
+	require.Contains(t, html, `data-api-base="/api/batch/hacluster/tag"`)
+	require.Contains(t, html, `data-objects-api="/api/batch/hacluster/tag/objects"`)
+	require.Contains(t, html, `href="/cib/hacluster/resources/types"`)
+	require.Contains(t, html, `id="btn-show-batch"`)
+	require.Contains(t, html, `/static/js/batch.js`)
+	require.NotContains(t, html, `href="/cib/live/`)
+}
+
+func TestBatchTagObjectsAndCreationStayScoped(t *testing.T) {
+	backend, calls := batchTestBackend(t)
+	original := backend.run
+	fixture := `<cib><configuration><resources><clone id="cl"><group id="g"><primitive id="nested"/></group></clone><primitive id="r1"/></resources><constraints><rsc_location id="loc1"/></constraints></configuration></cib>`
+	backend.run = func(ctx context.Context, live bool, name string, args []string, input string) ([]byte, error) {
+		out, err := original(ctx, live, name, args, input)
+		if name == "cibadmin" {
+			return []byte(fixture), nil
+		}
+		return out, err
+	}
+	response := batchTestRequest(backend, "POST", "tag/objects", `{}`)
+	require.Equal(t, 200, response.Code)
+	require.JSONEq(t, `["cl","g","loc1","nested","r1"]`, response.Body.String())
+	require.Equal(t, []batchTestCall{{false, "cibadmin", []string{"-Ql"}, ""}}, *calls)
+	*calls = nil
+	response = batchTestRequest(backend, "POST", "tag/create", `{"id":"batch-tag","refs":["nested","loc1"]}`)
+	require.Equal(t, 200, response.Code, response.Body.String())
+	require.Contains(t, response.Body.String(), "/cib/hacluster/tags/batch-tag/edit?flash=created")
+	require.Len(t, *calls, 2)
+	require.Equal(t, []string{"configure", "tag", "batch-tag", "nested", "loc1"}, (*calls)[1].args)
+	for _, call := range *calls {
+		require.False(t, call.live)
+	}
+	*calls = nil
+	response = batchTestRequest(backend, "POST", "tag/create", `{"id":"batch-tag","refs":["missing"]}`)
+	require.Equal(t, 409, response.Code)
+	require.Len(t, *calls, 1)
+	require.Equal(t, "cibadmin", (*calls)[0].name)
+	*calls = nil
+	response = batchTestRequest(backend, "POST", "tag/create", `{"id":"batch-tag","refs":[]}`)
+	require.Equal(t, 400, response.Code)
+	require.Empty(t, *calls)
+}

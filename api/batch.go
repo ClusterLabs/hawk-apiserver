@@ -158,6 +158,10 @@ func (b *batchBackend) readCIB(ctx context.Context, live bool) (CIB, []byte, err
 	if err := xml.Unmarshal(out, &cib); err != nil {
 		return cib, nil, err
 	}
+	cib.TagObjects, err = tagObjectsFromXML(out)
+	if err != nil {
+		return cib, nil, err
+	}
 	return cib, out, nil
 }
 func (b *batchBackend) state(ctx context.Context) (batchState, error) {
@@ -244,7 +248,7 @@ func batchJSON(w http.ResponseWriter, value any) {
 
 func (b *batchBackend) api(w http.ResponseWriter, r *http.Request) {
 	operation := strings.TrimPrefix(r.URL.Path, batchAPI+"/")
-	methods := map[string]string{"state": "GET", "details": "GET", "review": "GET", "result": "GET", "simulate": "POST", "action": "POST", "apply": "POST", "discard": "POST", "primitive/create": "POST", "group/children": "POST", "group/create": "POST", "clone/children": "POST", "clone/create": "POST"}
+	methods := map[string]string{"state": "GET", "details": "GET", "review": "GET", "result": "GET", "simulate": "POST", "action": "POST", "apply": "POST", "discard": "POST", "primitive/create": "POST", "group/children": "POST", "group/create": "POST", "clone/children": "POST", "clone/create": "POST", "tag/objects": "POST", "tag/create": "POST"}
 	method, ok := methods[operation]
 	if !ok {
 		http.NotFound(w, r)
@@ -319,6 +323,29 @@ func (b *batchBackend) api(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		batchJSON(w, map[string]bool{"success": true})
+	case "tag/objects":
+		var input struct{}
+		if !readBatchJSON(w, r, &input) {
+			return
+		}
+		cib, _, err := b.readCIB(ctx, false)
+		if err != nil {
+			batchError(w, 500, err)
+			return
+		}
+		batchJSON(w, cib.TagObjects)
+	case "tag/create":
+		var tag tagCreate
+		if !readBatchJSON(w, r, &tag) {
+			return
+		}
+		saveTag(w, r, tag, func() (CIB, int, error) {
+			cib, _, err := b.readCIB(ctx, false)
+			return cib, 0, err
+		}, func(ctx context.Context, args ...string) error {
+			_, err := b.run(ctx, false, "crm", args, "")
+			return err
+		}, batchBase)
 	case "clone/children":
 		var input struct{}
 		if !readBatchJSON(w, r, &input) {

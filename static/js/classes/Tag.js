@@ -19,7 +19,7 @@ class Tag {
             refs: Array.from(this.objectsList.querySelectorAll('input[name="tag[refs][]"]:checked'))
                 .map(input => input.value),
         };
-        const response = await fetch(`/api/cib/tag/${operation}`, {
+        const response = await fetch(`${document.getElementById("tag-create-form")?.dataset.apiBase || "/api/cib/tag"}/${operation}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(tag),
