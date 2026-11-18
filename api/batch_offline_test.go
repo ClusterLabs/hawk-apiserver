@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -274,6 +275,26 @@ func TestBatchShadowStartStopStatus(t *testing.T) {
 	require.Equal(t, 200, response.Code, response.Body.String())
 	response = batchTestRequest(backend, "GET", "alert/fetch?id=hawk-alert-renamed", "")
 	require.Equal(t, 404, response.Code)
+	response = batchTestRequest(backend, "POST", "location/options", `{}`)
+	require.Equal(t, 200, response.Code)
+	var options struct {
+		Resources []string `json:"resources"`
+		Nodes     []string `json:"nodes"`
+	}
+	require.NoError(t, json.Unmarshal(response.Body.Bytes(), &options))
+	require.Contains(t, options.Resources, "hawk-clone-proof")
+	require.NotContains(t, options.Resources, "hawk-color-proof")
+	require.NotEmpty(t, options.Nodes)
+	locationPayload := fmt.Sprintf(`{"id":"hawk-location-proof","resources":["hawk-clone-proof"],"rules":[{"score":"100","expressions":[{"attribute":"#uname","operation":"eq","value":%q,"kind":"uname"}]}]}`, options.Nodes[0])
+	response = batchTestRequest(backend, "POST", "location/create", locationPayload)
+	require.Equal(t, 200, response.Code, response.Body.String())
+	response = batchTestRequest(backend, "POST", "location/create", `{"id":"hawk-location-rule-proof","resources":["hawk-clone-proof"],"discovery":"always","rules":[{"score":"100","operator":"and","expressions":[{"attribute":"rack","operation":"eq","value":"a","type":"string","kind":"attr-val"}]}]}`)
+	require.Equal(t, 200, response.Code, response.Body.String())
+	_, raw, err = backend.readCIB(ctx, false)
+	require.NoError(t, err)
+	require.Contains(t, string(raw), `id="hawk-location-proof"`)
+	require.Contains(t, string(raw), `id="hawk-location-rule-proof"`)
+	require.Contains(t, string(raw), `attribute="rack"`)
 	unchanged, err := os.ReadFile(baseline)
 	require.NoError(t, err)
 	require.Equal(t, original, unchanged)

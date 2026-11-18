@@ -1,14 +1,24 @@
 {{ define "content" }}
+{{ $cibBase := "/cib/live" }}{{ if .CIBBase }}{{ $cibBase = .CIBBase }}{{ end }}
+{{ $locationAPI := "/api/cib/location" }}{{ if .LocationAPI }}{{ $locationAPI = .LocationAPI }}{{ end }}
 <link rel="stylesheet" href="/static/css/primitive_edit.css">
 <link rel="stylesheet" href="/static/css/common.css">
 <link rel="stylesheet" href="/static/css/location_new.css">
 <script src="/static/js/classes/LocationRules.js"></script>
 <script src="/static/js/classes/Location.js"></script>
+{{ if .BatchMode }}
+<script src="/static/js/classes/XAlert.js"></script>
+<script src="/static/js/classes/ConfirmActionPopup.js"></script>
+<link rel="stylesheet" href="/static/css/highlight.css">
+<script src="/static/js/vendor/highlight.js" defer></script>
+<script src="/static/js/batch.js" defer></script>
+{{ end }}
 <script src="/static/js/location_new.js" defer></script>
 <div class="edit-layout">
   <div class="edit-left">
+    {{ if .BatchMode }}<div id="batch-notifications" role="status" aria-live="polite"></div>{{ end }}
     <h2><i class="fas fa-globe" aria-hidden="true"></i> {{ if .EditMode }}Edit{{ else }}Create{{ end }} Location</h2>
-    <form id="location-create-form" class="primitive-create-panel" data-location-id="{{ .LocationID }}">
+    <form id="location-create-form" data-api-base="{{ $locationAPI }}" data-options-api="{{ $locationAPI }}/options{{ if not .BatchMode }}/fetch{{ end }}" class="primitive-create-panel" data-location-id="{{ .LocationID }}">
       <div id="location-error" class="alert alert-danger" role="alert" hidden></div>
       <div class="kvsection-row kvsection-row-thin"><label for="input-location-id">Constraint ID</label>
         <input id="input-location-id" name="location[id]" class="form-control location-control" {{ if .EditMode }}readonly{{ end }} required></div>
@@ -40,7 +50,7 @@
       </div>
       <div class="location-actions"><button id="create-location-button" name="submit" type="submit" class="btn btn-success" disabled>{{ if .EditMode }}Apply{{ else }}Create{{ end }}</button>
         {{ if .EditMode }}<button id="revert-location-button" type="button" class="btn btn-default">Revert</button>{{ end }}
-        <a href="{{ if .EditMode }}/cib/live/config/edit#constraints{{ else }}/cib/live/constraints/types{{ end }}" class="btn btn-white">Back</a></div>
+        <a href="{{ $cibBase }}/{{ if .EditMode }}config/edit#constraints{{ else }}constraints/types{{ end }}" class="btn btn-white">Back</a></div>
     </form>
   </div>
   <aside class="edit-right" aria-label="Location help">

@@ -59,7 +59,12 @@ func locationResourcesFromXML(data []byte) ([]string, error) {
 }
 
 func LocationNewHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/cib/live/locations/new" && r.URL.Path != "/cib/live/locations/new/" {
+	base := "/cib/live"
+	switch r.URL.Path {
+	case "/cib/live/locations/new", "/cib/live/locations/new/":
+	case batchBase + "/locations/new", batchBase + "/locations/new/":
+		base = batchBase
+	default:
 		http.NotFound(w, r)
 		return
 	}
@@ -68,7 +73,13 @@ func LocationNewHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
-	renderTemplate(w, "location_new", map[string]any{"Title": "Create Location Constraint"})
+	data := map[string]any{"Title": "Create Location Constraint", "CIBBase": base}
+	if base == batchBase {
+		data["BatchMode"] = true
+		data["BatchConfig"] = map[string]string{"base": batchBase, "api": batchAPI, "id": batchID}
+		data["LocationAPI"] = batchAPI + "/location"
+	}
+	renderTemplate(w, "location_new", data)
 }
 func FetchLocationOptions(w http.ResponseWriter, r *http.Request) {
 	if !groupFetchMethod(w, r) {
@@ -79,12 +90,16 @@ func FetchLocationOptions(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unable to read cluster: "+err.Error(), 500)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(locationOptions(cib))
+}
+
+func locationOptions(cib CIB) map[string]any {
 	nodes := []string{}
 	for _, node := range cib.Configuration.Nodes {
 		nodes = append(nodes, node.Uname)
 	}
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]any{"resources": cib.LocationResources, "nodes": nodes})
+	return map[string]any{"resources": cib.LocationResources, "nodes": nodes}
 }
 
 func simpleLocation(rules []locationRule) bool {
@@ -202,6 +217,10 @@ func createLocation(w http.ResponseWriter, r *http.Request, read func() (CIB, in
 		http.Error(w, "Invalid request", 400)
 		return
 	}
+	saveLocation(w, r, location, read, run, "/cib/live")
+}
+
+func saveLocation(w http.ResponseWriter, r *http.Request, location locationCreate, read func() (CIB, int, error), run func(context.Context, ...string) error, base string) {
 	args, err := locationCreateArgs(location)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
@@ -227,7 +246,7 @@ func createLocation(w http.ResponseWriter, r *http.Request, read func() (CIB, in
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "redirect": "/cib/live/locations/" + url.PathEscape(location.ID) + "/edit?flash=created"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "redirect": base + "/locations/" + url.PathEscape(location.ID) + "/edit?flash=created"})
 }
 func LocationRubyHandler(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")

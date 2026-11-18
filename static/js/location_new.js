@@ -1,4 +1,5 @@
-const locationID = document.getElementById("location-create-form").dataset.locationId;
+const locationForm = document.getElementById("location-create-form");
+const locationID = locationForm.dataset.locationId;
 let locationReady = false;
 let creatingLocation = false;
 const rules = new LocationRules(document.getElementById("location-rules"));
@@ -32,13 +33,13 @@ function clickCreateButton(event) {
 
 async function initializeLocationForm() {
     try {
-        const response = await fetch("/api/cib/location/options/fetch", { method: "POST" });
+        const response = await fetch(locationForm.dataset.optionsApi || "/api/cib/location/options/fetch", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
         if (!response.ok) throw new Error(await response.text() || "Unable to load cluster options.");
         const options = await response.json();
         for (const id of options.resources) document.getElementById("location_resources").add(new Option(id, id));
         for (const name of options.nodes) document.getElementById("simple-node").add(new Option(name, name));
         if (locationID) {
-            const response = await fetch("/api/cib/location/fetch?id=" + encodeURIComponent(locationID), { method: "POST" });
+            const response = await fetch(`${locationForm.dataset.apiBase || "/api/cib/location"}/fetch?id=${encodeURIComponent(locationID)}`, { method: "POST" });
             if (!response.ok) throw new Error(await response.text());
             const location = await response.json();
             document.getElementById("input-location-id").value = location.id;
@@ -95,7 +96,7 @@ document.querySelectorAll("[data-location-tab]").forEach(tab => tab.addEventList
 }));
 document.getElementById("monitoringMenu").classList.remove("in");
 document.getElementById("configurationMenu").classList.add("in");
-document.querySelector('a[href="/cib/live/constraints/types"]').setAttribute("aria-current", "page");
+document.querySelector(`a[href="${statusCIBBase()}/constraints/types"]`).setAttribute("aria-current", "page");
 initializeLocationForm();
 
 const locationHelp = {
@@ -132,3 +133,5 @@ document.getElementById("location-create-form").addEventListener("mouseover", sh
 document.getElementById("location-create-form").addEventListener("focusin", showLocationHelp);
 
 document.getElementById("revert-location-button")?.addEventListener("click", () => window.location.reload());
+
+if (window.hawkBatch) window.hawkBatch.start();

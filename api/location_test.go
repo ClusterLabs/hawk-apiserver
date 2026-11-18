@@ -109,3 +109,58 @@ func TestLocationEditTemplate(t *testing.T) {
 	LocationRubyHandler(response, httptest.NewRequest("POST", "/cib/live/locations/location1/edit", nil))
 	require.Equal(t, 405, response.Code)
 }
+
+func TestBatchLocationForm(t *testing.T) {
+	tmpl, err := template.ParseFiles("../templates/layout.html", "../templates/location_new.html")
+	require.NoError(t, err)
+	var body strings.Builder
+	require.NoError(t, tmpl.ExecuteTemplate(&body, "layout.html", map[string]any{
+		"Title": "Create Location Constraint", "CIBBase": batchBase, "BatchMode": true, "LocationAPI": batchAPI + "/location",
+		"BatchConfig": map[string]string{"base": batchBase, "api": batchAPI, "id": batchID},
+	}))
+	html := body.String()
+	for _, text := range []string{`data-api-base="/api/batch/hacluster/location"`, `data-options-api="/api/batch/hacluster/location/options"`, `href="/cib/hacluster/constraints/types"`, `id="btn-show-batch"`, `data-location-tab="locsimple"`, `data-location-tab="locadvanced"`, `LocationRules.js`} {
+		require.Contains(t, html, text)
+	}
+	require.NotContains(t, html, `href="/cib/live/`)
+}
+
+func TestBatchLocationOptionsAndCreationStayScoped(t *testing.T) {
+	backend, calls := batchTestBackend(t)
+	original := backend.run
+	fixture := strings.Replace(groupEditFixture, "<configuration>", `<configuration><nodes><node id="1" uname="shadow-node"/></nodes>`, 1)
+	backend.run = func(ctx context.Context, live bool, name string, args []string, input string) ([]byte, error) {
+		out, err := original(ctx, live, name, args, input)
+		if name == "cibadmin" {
+			return []byte(fixture), nil
+		}
+		return out, err
+	}
+	response := batchTestRequest(backend, "POST", "location/options", `{}`)
+	require.Equal(t, 200, response.Code)
+	require.JSONEq(t, `{"resources":["clone","free2","free10","g","master","other"],"nodes":["shadow-node"]}`, response.Body.String())
+	require.Equal(t, []batchTestCall{{false, "cibadmin", []string{"-Ql"}, ""}}, *calls)
+	for _, tt := range []struct {
+		body string
+		args []string
+	}{
+		{`{"id":"prefer-group","resources":["g"],"rules":[{"score":"100","expressions":[{"attribute":"#uname","operation":"eq","value":"shadow-node","kind":"uname"}]}]}`, []string{"configure", "location", "prefer-group", "g", "100:", "shadow-node"}},
+		{`{"id":"avoid-rack","resources":["free2","free10"],"discovery":"never","rules":[{"score":"-INFINITY","role":"Started","operator":"and","expressions":[{"attribute":"rack","operation":"eq","value":"a","type":"string","kind":"attr-val"}]}]}`, []string{"configure", "location", "avoid-rack", "{", "free2", "free10", "}", "resource-discovery=never", "rule", "$role=Started", "-INFINITY:", "rack", "string:eq", "a"}},
+	} {
+		*calls = nil
+		response = batchTestRequest(backend, "POST", "location/create", tt.body)
+		require.Equal(t, 200, response.Code, response.Body.String())
+		require.Contains(t, response.Body.String(), "/cib/hacluster/locations/")
+		require.Contains(t, response.Body.String(), "/edit?flash=created")
+		require.Len(t, *calls, 2)
+		require.Equal(t, tt.args, (*calls)[1].args)
+		for _, call := range *calls {
+			require.False(t, call.live)
+		}
+	}
+	*calls = nil
+	response = batchTestRequest(backend, "POST", "location/create", `{"id":"invalid-resource","resources":["a"],"rules":[{"score":"100","expressions":[{"attribute":"#uname","operation":"eq","value":"shadow-node"}]}]}`)
+	require.Equal(t, 409, response.Code)
+	require.Len(t, *calls, 1)
+	require.Equal(t, "cibadmin", (*calls)[0].name)
+}
