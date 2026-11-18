@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"github.com/stretchr/testify/require"
 	"html/template"
 	"net/http"
@@ -74,4 +75,65 @@ func TestPrimitiveCreateMonitorDepthFollowsOperationAttributes(t *testing.T) {
 		"op", "monitor", "interval=13s", "timeout=9s", "depth=0",
 		"meta", "target-role=Started",
 	}, primitiveCreateArgs(primitive))
+}
+
+func TestBatchPrimitiveNewForm(t *testing.T) {
+	tmpl, err := template.ParseFiles("../templates/layout.html", "../templates/primitive_edit.html")
+	require.NoError(t, err)
+	var body bytes.Buffer
+	require.NoError(t, tmpl.ExecuteTemplate(&body, "layout.html", map[string]any{
+		"CreateMode": true, "Class": "ocf", "CIBBase": batchBase, "BatchMode": true,
+		"CreateAPI": batchAPI + "/primitive/create", "Parent": "parent-group",
+		"BatchConfig": map[string]string{"base": batchBase, "api": batchAPI, "id": batchID},
+	}))
+	html := body.String()
+	require.Contains(t, html, "Create Primitive")
+	require.Contains(t, strings.ReplaceAll(html, `\/`, `/`), batchAPI+"/primitive/create")
+	require.Contains(t, html, `href="/cib/hacluster/resources/types"`)
+	require.NotContains(t, html, `href="/cib/live/`)
+	require.Contains(t, html, `id="btn-show-batch"`)
+	require.Contains(t, html, `/static/js/batch.js`)
+	require.Contains(t, html, `Parent: "parent-group"`)
+}
+
+func TestBatchPrimitiveCreateUsesShadow(t *testing.T) {
+	backend, calls := batchTestBackend(t)
+	body := `{"id":"batch-dummy","class":"ocf","provider":"pacemaker","type":"Dummy","instance_attributes":{"nvpair":[{"name":"state","value":"/tmp/a b"}]},"meta_attributes":{"nvpair":[{"name":"target-role","value":"Stopped"}]},"operations":[{"name":"monitor","interval":"10s","timeout":"20s"}],"utilizations":[{"name":"cpu","value":"2"}]}`
+	response := batchTestRequest(backend, http.MethodPost, "primitive/create", body)
+	require.Equal(t, http.StatusOK, response.Code, response.Body.String())
+	require.Len(t, *calls, 1)
+	require.False(t, (*calls)[0].live)
+	require.Equal(t, "crm", (*calls)[0].name)
+	require.Equal(t, []string{"configure", "primitive", "batch-dummy", "ocf:pacemaker:Dummy", "params", "state=/tmp/a b", "op", "monitor", "interval=10s", "timeout=20s", "meta", "target-role=Stopped", "utilization", "cpu=2"}, (*calls)[0].args)
+	require.Contains(t, response.Body.String(), "/cib/hacluster/primitives/batch-dummy/edit?flash=created")
+	*calls = nil
+	for _, body := range []string{`{}`, `{"id":"bad id","class":"ocf","provider":"pacemaker","type":"Dummy"}`} {
+		response = batchTestRequest(backend, http.MethodPost, "primitive/create", body)
+		require.Equal(t, http.StatusBadRequest, response.Code)
+		require.Empty(t, *calls)
+	}
+	backend.exists = func() (bool, error) { return false, nil }
+	response = batchTestRequest(backend, http.MethodPost, "primitive/create", body)
+	require.Equal(t, http.StatusConflict, response.Code)
+	require.Empty(t, *calls)
+}
+
+func TestBatchPrimitiveParentStaysInShadow(t *testing.T) {
+	backend, calls := batchTestBackend(t)
+	original := backend.run
+	backend.run = func(ctx context.Context, live bool, name string, args []string, input string) ([]byte, error) {
+		out, err := original(ctx, live, name, args, input)
+		if name == "cibadmin" {
+			return []byte(groupEditFixture), nil
+		}
+		return out, err
+	}
+	response := batchTestRequest(backend, http.MethodPost, "primitive/create", `{"id":"new-child","parent":"g","class":"ocf","provider":"pacemaker","type":"Dummy"}`)
+	require.Equal(t, http.StatusOK, response.Code, response.Body.String())
+	require.Contains(t, response.Body.String(), "/cib/hacluster/groups/g/edit?flash=child-created")
+	for _, call := range *calls {
+		require.False(t, call.live)
+	}
+	require.Equal(t, []string{"-F", "configure", "load", "update", "-"}, (*calls)[len(*calls)-1].args)
+	require.Contains(t, (*calls)[len(*calls)-1].input, "'group' 'g' 'a' 'b' 'new-child'")
 }

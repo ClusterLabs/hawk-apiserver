@@ -272,7 +272,7 @@ func persistGroupEdit(ctx context.Context, request groupCreate, state groupEditS
 		}
 		tokens[i] = "'" + strings.ReplaceAll(token, "'", "'\"'\"'") + "'"
 	}
-	_, err := run(ctx, "crm", []string{"-F", "configure", "load", "update", "/dev/stdin"}, strings.Join(tokens, " ")+"\n")
+	_, err := run(ctx, "crm", []string{"-F", "configure", "load", "update", "-"}, strings.Join(tokens, " ")+"\n")
 	return err
 }
 func GroupUpdateHandler(w http.ResponseWriter, r *http.Request) {
@@ -329,7 +329,11 @@ func updateGroupEdit(w http.ResponseWriter, r *http.Request, run clusterConfigCo
 
 // Match PrimitivesController#create with a parent: create the primitive, then
 // append it to the group's current members. Do not apply group role actions here.
-func createPrimitiveInGroup(w http.ResponseWriter, r *http.Request, primitive Primitive, run clusterConfigCommand) {
+func createPrimitiveInGroup(w http.ResponseWriter, r *http.Request, primitive Primitive, run clusterConfigCommand, cibBase ...string) {
+	base := "/cib/live"
+	if len(cibBase) > 0 {
+		base = cibBase[0]
+	}
 	if !groupID.MatchString(primitive.Parent) {
 		http.Error(w, "Invalid parent group ID", 400)
 		return
@@ -359,5 +363,5 @@ func createPrimitiveInGroup(w http.ResponseWriter, r *http.Request, primitive Pr
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "redirect": "/cib/live/groups/" + primitive.Parent + "/edit?flash=child-created"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "redirect": base + "/groups/" + primitive.Parent + "/edit?flash=child-created"})
 }

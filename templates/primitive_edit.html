@@ -1,5 +1,6 @@
 
 {{ define "content" }}
+{{ $cibBase := "/cib/live" }}{{ if .CIBBase }}{{ $cibBase = .CIBBase }}{{ end }}
 <link rel="stylesheet" href="/static/css/primitive_edit.css">
 <link rel="stylesheet" href="/static/css/common.css">
 <script>
@@ -12,7 +13,8 @@
     ResourceID: "{{ .ResourceID }}",
     ResourceAgent: "{{ .ResourceAgent }}",
     CreateMode: {{ if .CreateMode }}true{{ else }}false{{ end }},
-    Parent: "{{ .Parent }}"
+    Parent: "{{ .Parent }}",
+    CreateAPI: "{{ .CreateAPI }}"
   };
 </script>
 <script src="/static/js/XCSS.js"></script>
@@ -32,10 +34,17 @@
 <script src="/static/js/classes/XInputsKvGroup.js"></script>
 <script src="/static/js/classes/Primitive.js"></script>
 <script src="/static/js/classes/Span.js"></script>
+{{ if .BatchMode }}
+<script src="/static/js/classes/ConfirmActionPopup.js"></script>
+<link rel="stylesheet" href="/static/css/highlight.css">
+<script src="/static/js/vendor/highlight.js" defer></script>
+<script src="/static/js/batch.js" defer></script>
+{{ end }}
 <script src="/static/js/primitive_edit.js" defer></script>
 
 <div class="edit-layout">
   <div class="edit-left">
+    {{ if .BatchMode }}<div id="batch-notifications" role="status" aria-live="polite"></div>{{ end }}
 
     {{ if .AlertMessage }}
       <x-alert
@@ -47,7 +56,7 @@
 
 
     <div style="display: flex; justify-content: space-between; align-items: center;">
-      <h2>{{ if .CreateMode }}<i class="fas fa-file"></i> Create Primitive{{ else }}<i class="fas fa-pencil-alt"></i> Edit Primitive: {{ .ResourceID }}{{ end }}</h2>
+      <h2>{{ if .CreateMode }}<i class="far fa-file"></i> Create Primitive{{ else }}<i class="fas fa-pencil-alt"></i> Edit Primitive: {{ .ResourceID }}{{ end }}</h2>
       {{ if not .CreateMode }}<div id="copy-rename-delete-container">
         <button class="btn btn-white" name="copy" onclick="toggleUpdateCreateMode(true)"><i class="fas fa-copy"></i> Copy</button>
         <button class="btn btn-white" name="rename" onclick="new RenamePopup(window.resourceData.ResourceID)"><i class="fas fa-font"></i> Rename</button>
@@ -119,7 +128,7 @@
       <div style="margin-top: 20px; text-align: center;">
         <button id="apply-create-button" name="submit" class="btn btn-success" onclick="clickApplyCreateButton(this)" {{ if .CreateMode }}disabled{{ end }}>{{ if .CreateMode }}Create{{ else }}Apply{{ end }}</button>
         <!-- I would rather expect `onclick="history.back()"` however old hawk forwards to /cib/live/config/edit -->
-        <a class="btn btn-white" href="{{ if .CreateMode }}/cib/live/resources/types{{ else }}/cib/live/config/edit{{ end }}">Back</a>
+        <a class="btn btn-white" href="{{ $cibBase }}/{{ if .CreateMode }}resources/types{{ else }}config/edit{{ end }}">Back</a>
       </div>
 
     </div>

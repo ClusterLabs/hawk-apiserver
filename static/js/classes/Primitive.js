@@ -61,7 +61,7 @@ class Primitive {
             operations: operationsList
         };
 
-        return fetch("/api/cib/primitive/create", {
+        return fetch(window.resourceData?.CreateAPI || "/api/cib/primitive/create", {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(primitive)
@@ -76,7 +76,7 @@ class Primitive {
             .then(status => {
                 console.log("Create status:", status);
                 if (status.error || status.status !== "ok") throw new Error(status.error || "Unable to create primitive.");
-                window.location.href = status.redirect || `/cib/live/primitives/${encodeURIComponent(newID)}/edit?flash=created`;
+                window.location.href = status.redirect || `${statusCIBBase()}/primitives/${encodeURIComponent(newID)}/edit?flash=created`;
             });
     }
 }
