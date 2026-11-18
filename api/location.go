@@ -422,3 +422,41 @@ func saveLocationUpdate(w http.ResponseWriter, r *http.Request, l locationCreate
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "redirect": base + "/locations/" + url.PathEscape(l.ID) + "/edit?flash=updated"})
 }
+
+// Header actions work for any location constraint, including rules that the
+// form cannot edit, and never allow mutation of another CIB object type.
+func locationAction(ctx context.Context, id, newID string, run clusterConfigCommand) (int, error) {
+	if !groupID.MatchString(id) || (newID != "" && (!groupID.MatchString(newID) || newID == id)) {
+		return 400, fmt.Errorf("Invalid constraint ID")
+	}
+	data, err := run(ctx, "cibadmin", []string{"-Ql"}, "")
+	if err != nil {
+		return 500, err
+	}
+	var document struct {
+		Locations []struct {
+			ID string `xml:"id,attr"`
+		} `xml:"configuration>constraints>rsc_location"`
+	}
+	if err := xml.Unmarshal(data, &document); err != nil {
+		return 500, err
+	}
+	found := false
+	for _, location := range document.Locations {
+		if location.ID == id {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return 404, fmt.Errorf("The location constraint does not exist")
+	}
+	args := []string{"--force", "configure", "delete", id}
+	if newID != "" {
+		args = []string{"-D", "plain", "configure", "rename", id, newID}
+	}
+	if _, err := run(ctx, "crm", args, ""); err != nil {
+		return 500, fmt.Errorf("%s", tagCreateError(id, err))
+	}
+	return 200, nil
+}

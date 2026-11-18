@@ -18,16 +18,22 @@ function updateFromSimple() {
     rules.setValues([{ score, role: "", operator: "and", expressions: node ? [{ value: node, attribute: "#uname", operation: "eq", kind: "uname" }] : [] }]);
 }
 
+function updateLocationButtons() {
+    for (const id of ["create-location-button", "rename-location", "delete-location", "revert-location-button"]) {
+        const button = document.getElementById(id);
+        if (button) button.disabled = !locationReady || creatingLocation;
+    }
+}
+
 function clickCreateButton(event) {
     event.preventDefault();
     if (!locationReady || creatingLocation) return;
     const location = new Location(document.getElementById("input-location-id"), document.getElementById("location_resources"), document.getElementById("location_discovery"), rules);
-    const button = document.getElementById("create-location-button");
     creatingLocation = true;
-    button.disabled = true;
+    updateLocationButtons();
     location.create(Boolean(locationID)).catch(err => showFlash("danger", err.message)).finally(() => {
         creatingLocation = false;
-        button.disabled = !locationReady;
+        updateLocationButtons();
     });
 }
 
@@ -58,14 +64,15 @@ async function initializeLocationForm() {
             if (!simple || location.discovery) document.querySelector('[data-location-tab="locadvanced"]').click();
         }
         const flash = new URL(window.location.href).searchParams.get("flash");
-        if (flash === "created" || flash === "updated") {
-            showFlash("success", `Constraint ${flash} successfully`);
+        if (["created", "updated", "renamed", "error"].includes(flash)) {
             const url = new URL(window.location.href);
+            showFlash(flash === "error" ? "danger" : "success", flash === "error" ? url.searchParams.get("msg") || "Unable to rename constraint." : `Constraint ${flash} successfully`);
             url.searchParams.delete("flash");
+            url.searchParams.delete("msg");
             history.replaceState({}, "", url);
         }
         locationReady = true;
-        document.getElementById("create-location-button").disabled = false;
+        updateLocationButtons();
     } catch (err) {
         showFlash("danger", err.message);
     }
@@ -135,3 +142,25 @@ document.getElementById("location-create-form").addEventListener("focusin", show
 document.getElementById("revert-location-button")?.addEventListener("click", () => window.location.reload());
 
 if (window.hawkBatch) window.hawkBatch.start();
+
+if (locationID) {
+    document.getElementById("rename-location").addEventListener("click", () => {
+        new RenamePopup(locationID, locationForm.dataset.renameApi);
+    });
+    document.getElementById("delete-location").addEventListener("click", () => {
+        new DeletePopup(locationID, async () => {
+            if (creatingLocation) return;
+            creatingLocation = true;
+            updateLocationButtons();
+            try {
+                const response = await fetch(locationForm.dataset.deleteApi, {
+                    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(locationID),
+                });
+                if (!response.ok) throw new Error(await response.text() || "Unable to delete constraint.");
+                sessionStorage.setItem("configFlash", "Constraint deleted successfully");
+                window.location.href = `${statusCIBBase()}/config/edit#constraints`;
+            } catch (error) { showFlash("danger", error.message); }
+            finally { creatingLocation = false; updateLocationButtons(); }
+        });
+    });
+}

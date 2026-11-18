@@ -13,12 +13,20 @@
 <script src="/static/js/vendor/highlight.js" defer></script>
 <script src="/static/js/batch.js" defer></script>
 {{ end }}
+{{ if .EditMode }}
+<script src="/static/js/classes/Input.js"></script>
+<script src="/static/js/classes/RenamePopup.js"></script>
+<script src="/static/js/classes/DeletePopup.js"></script>
+<link rel="stylesheet" href="/static/css/config_edit.css">
+{{ end }}
 <script src="/static/js/location_new.js" defer></script>
 <div class="edit-layout">
   <div class="edit-left">
     {{ if .BatchMode }}<div id="batch-notifications" role="status" aria-live="polite"></div>{{ end }}
-    <h2><i class="fas fa-globe" aria-hidden="true"></i> {{ if .EditMode }}Edit{{ else }}Create{{ end }} Location</h2>
-    <form id="location-create-form" data-api-base="{{ $locationAPI }}" data-options-api="{{ $locationAPI }}/options{{ if not .BatchMode }}/fetch{{ end }}" class="primitive-create-panel" data-location-id="{{ .LocationID }}">
+    <h2><i class="fas fa-globe" aria-hidden="true"></i> {{ if .EditMode }}Edit{{ else }}Create{{ end }} Location
+      {{ if .EditMode }}<span class="pull-right btn-group"><a class="btn btn-default" href="{{ $cibBase }}/locations/new"><i class="fa fa-plus"></i> Create</a><button id="rename-location" name="rename" type="button" class="btn btn-default" disabled><i class="fa fa-font"></i> Rename</button><button id="delete-location" name="delete" type="button" class="btn btn-default" disabled><i class="fa fa-trash"></i> Delete</button></span>{{ end }}
+    </h2>
+    <form id="location-create-form" data-api-base="{{ $locationAPI }}" data-rename-api="{{ if .BatchMode }}{{ $locationAPI }}/rename{{ else }}/api/cib/resource/rename{{ end }}" data-delete-api="{{ if .BatchMode }}{{ $locationAPI }}/delete{{ else }}/api/cib/resource/delete{{ end }}" data-options-api="{{ $locationAPI }}/options{{ if not .BatchMode }}/fetch{{ end }}" class="primitive-create-panel" data-location-id="{{ .LocationID }}">
       <div id="location-error" class="alert alert-danger" role="alert" hidden></div>
       <div class="kvsection-row kvsection-row-thin"><label for="input-location-id">Constraint ID</label>
         <input id="input-location-id" name="location[id]" class="form-control location-control" {{ if .EditMode }}readonly{{ end }} required></div>

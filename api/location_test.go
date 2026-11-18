@@ -102,7 +102,7 @@ func TestLocationEditTemplate(t *testing.T) {
 	require.NoError(t, err)
 	var body strings.Builder
 	require.NoError(t, tmpl.ExecuteTemplate(&body, "content", map[string]any{"EditMode": true, "LocationID": "location1"}))
-	for _, value := range []string{`data-location-id="location1"`, `readonly`, `>Apply</button>`, `id="revert-location-button"`, `/cib/live/config/edit#constraints`} {
+	for _, value := range []string{`data-location-id="location1"`, `readonly`, `>Apply</button>`, `id="revert-location-button"`, `id="rename-location"`, `id="delete-location"`, `href="/cib/live/locations/new"`, `data-rename-api="/api/cib/resource/rename"`, `data-delete-api="/api/cib/resource/delete"`, `/cib/live/config/edit#constraints`} {
 		require.Contains(t, body.String(), value)
 	}
 	response := httptest.NewRecorder()
@@ -174,7 +174,7 @@ func TestBatchLocationEditTemplate(t *testing.T) {
 		"BatchConfig": map[string]string{"base": batchBase, "api": batchAPI, "id": batchID},
 	}))
 	html := body.String()
-	for _, text := range []string{`data-location-id="location1"`, `data-api-base="/api/batch/hacluster/location"`, `readonly`, `>Apply</button>`, `id="revert-location-button"`, `href="/cib/hacluster/config/edit#constraints"`, `id="btn-show-batch"`} {
+	for _, text := range []string{`data-location-id="location1"`, `data-api-base="/api/batch/hacluster/location"`, `readonly`, `>Apply</button>`, `id="revert-location-button"`, `href="/cib/hacluster/config/edit#constraints"`, `href="/cib/hacluster/locations/new"`, `data-rename-api="/api/batch/hacluster/location/rename"`, `data-delete-api="/api/batch/hacluster/location/delete"`, `id="rename-location"`, `id="delete-location"`, `id="btn-show-batch"`} {
 		require.Contains(t, html, text)
 	}
 	require.NotContains(t, html, `href="/cib/live/`)
@@ -220,4 +220,40 @@ func TestBatchLocationFetchAndUpdateStayScoped(t *testing.T) {
 	require.Contains(t, response.Body.String(), "too complex")
 	require.Len(t, *calls, 1)
 	require.Equal(t, "cibadmin", (*calls)[0].name)
+}
+
+func TestBatchLocationHeaderActionsStayScoped(t *testing.T) {
+	backend, calls := batchTestBackend(t)
+	original := backend.run
+	fixture := `<cib><configuration><resources><primitive id="r1"/></resources><constraints><rsc_location id="location1" rsc="r1"><rule score="100"><date_expression operation="in_range"/></rule></rsc_location><rsc_order id="order1"/></constraints></configuration></cib>`
+	backend.run = func(ctx context.Context, live bool, name string, args []string, input string) ([]byte, error) {
+		out, err := original(ctx, live, name, args, input)
+		if name == "cibadmin" {
+			return []byte(fixture), nil
+		}
+		return out, err
+	}
+	for _, tt := range []struct {
+		operation, body string
+		args            []string
+	}{
+		{"location/rename", `{"oldID":"location1","newID":"renamed"}`, []string{"-D", "plain", "configure", "rename", "location1", "renamed"}},
+		{"location/delete", `"location1"`, []string{"--force", "configure", "delete", "location1"}},
+	} {
+		*calls = nil
+		response := batchTestRequest(backend, "POST", tt.operation, tt.body)
+		require.Equal(t, 200, response.Code, response.Body.String())
+		require.Len(t, *calls, 2)
+		require.Equal(t, tt.args, (*calls)[1].args)
+		for _, call := range *calls {
+			require.False(t, call.live)
+		}
+	}
+	for _, body := range []string{`"r1"`, `"order1"`, `"missing"`} {
+		*calls = nil
+		response := batchTestRequest(backend, "POST", "location/delete", body)
+		require.Equal(t, 404, response.Code)
+		require.Len(t, *calls, 1)
+		require.Equal(t, "cibadmin", (*calls)[0].name)
+	}
 }
