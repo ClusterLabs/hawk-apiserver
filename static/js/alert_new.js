@@ -27,7 +27,7 @@ class AlertForm {
         });
         if (this.editing) {
             document.getElementById("revert-alert").addEventListener("click", () => this.discard(() => this.load()));
-            document.getElementById("rename-alert").addEventListener("click", () => new RenamePopup(this.id));
+            document.getElementById("rename-alert").addEventListener("click", () => new RenamePopup(this.id, form.dataset.renameApi || "/api/cib/resource/rename"));
             document.getElementById("delete-alert").addEventListener("click", () => new DeletePopup(this.id, () => this.delete()));
             const back = form.querySelector("a.back");
             back.addEventListener("click", event => {
@@ -75,7 +75,7 @@ class AlertForm {
         try {
             let data = { recipients: [], params: {}, meta: {} };
             if (this.editing) {
-                const response = await fetch(`/api/cib/alert/fetch?id=${encodeURIComponent(this.id)}`, { cache: "no-store" });
+                const response = await fetch(`${this.form.dataset.apiBase || "/api/cib/alert"}/fetch?id=${encodeURIComponent(this.id)}`, { cache: "no-store" });
                 if (!response.ok) throw new Error(await response.text() || "Unable to load alert.");
                 data = await response.json();
                 document.getElementById("input-alert-path").value = data.path;
@@ -185,12 +185,12 @@ class AlertForm {
     async delete() {
         this.busy(true);
         try {
-            const response = await fetch("/api/cib/resource/delete", {
+            const response = await fetch(this.form.dataset.deleteApi || "/api/cib/resource/delete", {
                 method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(this.id),
             });
             if (!response.ok) throw new Error(await response.text() || "Unable to delete alert.");
             sessionStorage.setItem("configFlash", "Alert deleted successfully");
-            window.location.href = "/cib/live/config/edit#alerts";
+            window.location.href = `${statusCIBBase()}/config/edit#alerts`;
         } catch (error) { this.notify("danger", error.message); this.busy(false); }
     }
 }
@@ -198,4 +198,6 @@ class AlertForm {
 new AlertForm(document.getElementById("alert-create-form"));
 document.getElementById("monitoringMenu").classList.remove("in");
 document.getElementById("configurationMenu").classList.add("in");
-document.querySelector('a[href="/cib/live/resources/types"]').setAttribute("aria-current", "page");
+document.querySelector(`a[href="${statusCIBBase()}/resources/types"]`).setAttribute("aria-current", "page");
+
+if (window.hawkBatch) window.hawkBatch.start();

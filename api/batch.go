@@ -248,7 +248,7 @@ func batchJSON(w http.ResponseWriter, value any) {
 
 func (b *batchBackend) api(w http.ResponseWriter, r *http.Request) {
 	operation := strings.TrimPrefix(r.URL.Path, batchAPI+"/")
-	methods := map[string]string{"state": "GET", "details": "GET", "review": "GET", "result": "GET", "simulate": "POST", "action": "POST", "apply": "POST", "discard": "POST", "primitive/create": "POST", "group/children": "POST", "group/create": "POST", "clone/children": "POST", "clone/create": "POST", "tag/objects": "POST", "tag/create": "POST", "tag/fetch": "GET", "tag/update": "POST", "tag/rename": "POST", "tag/delete": "POST"}
+	methods := map[string]string{"state": "GET", "details": "GET", "review": "GET", "result": "GET", "simulate": "POST", "action": "POST", "apply": "POST", "discard": "POST", "primitive/create": "POST", "group/children": "POST", "group/create": "POST", "clone/children": "POST", "clone/create": "POST", "tag/objects": "POST", "tag/create": "POST", "tag/fetch": "GET", "tag/update": "POST", "tag/rename": "POST", "tag/delete": "POST", "alert/create": "POST", "alert/fetch": "GET", "alert/update": "POST", "alert/rename": "POST", "alert/delete": "POST"}
 	method, ok := methods[operation]
 	if !ok {
 		http.NotFound(w, r)
@@ -323,6 +323,27 @@ func (b *batchBackend) api(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		batchJSON(w, map[string]bool{"success": true})
+	case "alert/fetch":
+		fetchAlert(w, r, func(ctx context.Context, name string, args []string, input string) ([]byte, error) {
+			return b.run(ctx, false, name, args, input)
+		})
+	case "alert/update":
+		var alert alertCreate
+		if !readBatchJSON(w, r, &alert) {
+			return
+		}
+		saveAlertUpdate(w, r, alert, func(ctx context.Context, name string, args []string, input string) ([]byte, error) {
+			return b.run(ctx, false, name, args, input)
+		})
+	case "alert/create":
+		var alert alertCreate
+		if !readBatchJSON(w, r, &alert) {
+			return
+		}
+		saveAlert(w, r, alert, func(ctx context.Context, args ...string) error {
+			_, err := b.run(ctx, false, "crm", args, "")
+			return err
+		}, batchBase)
 	case "tag/fetch":
 		fetchTag(w, r, func(ctx context.Context, name string, args []string, input string) ([]byte, error) {
 			return b.run(ctx, false, name, args, input)
@@ -335,9 +356,9 @@ func (b *batchBackend) api(w http.ResponseWriter, r *http.Request) {
 		saveTagUpdate(w, r, tag, func(ctx context.Context, name string, args []string, input string) ([]byte, error) {
 			return b.run(ctx, false, name, args, input)
 		})
-	case "tag/rename", "tag/delete":
+	case "tag/rename", "tag/delete", "alert/rename", "alert/delete":
 		var id, newID string
-		if operation == "tag/rename" {
+		if strings.HasSuffix(operation, "/rename") {
 			var input struct {
 				OldID string `json:"oldID"`
 				NewID string `json:"newID"`
@@ -347,13 +368,17 @@ func (b *batchBackend) api(w http.ResponseWriter, r *http.Request) {
 			}
 			id, newID = input.OldID, input.NewID
 			if newID == "" {
-				batchError(w, 400, fmt.Errorf("New tag ID is required"))
+				batchError(w, 400, fmt.Errorf("New ID is required"))
 				return
 			}
 		} else if !readBatchJSON(w, r, &id) {
 			return
 		}
-		status, err := tagAction(ctx, id, newID, func(ctx context.Context, name string, args []string, input string) ([]byte, error) {
+		action := tagAction
+		if strings.HasPrefix(operation, "alert/") {
+			action = alertAction
+		}
+		status, err := action(ctx, id, newID, func(ctx context.Context, name string, args []string, input string) ([]byte, error) {
 			return b.run(ctx, false, name, args, input)
 		})
 		if err != nil {
