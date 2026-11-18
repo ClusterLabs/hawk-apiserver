@@ -240,6 +240,8 @@ func main() {
 	mux.HandleFunc("/api/cib/location/create", authMiddleware(api.LocationCreateHandler))
 	mux.HandleFunc("/cib/live/constraints/types", authMiddleware(api.ConstraintTypesHandler))
 	mux.HandleFunc("/cib/live/constraints/types/", authMiddleware(api.ConstraintTypesHandler))
+	mux.HandleFunc("/cib/hacluster/resources/types", authMiddleware(api.ResourceTypesHandler))
+	mux.HandleFunc("/cib/hacluster/resources/types/", authMiddleware(api.ResourceTypesHandler))
 	mux.HandleFunc("/cib/live/resources/types", authMiddleware(api.ResourceTypesHandler))
 	mux.HandleFunc("/cib/live/resources/types/", authMiddleware(api.ResourceTypesHandler))
 	mux.HandleFunc("/cib/live/primitives/new", authMiddleware(api.PrimitiveNewHandler))

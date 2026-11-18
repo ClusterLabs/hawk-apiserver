@@ -66,7 +66,12 @@ func resourceTypes() []resourceType {
 }
 
 func ResourceTypesHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/cib/live/resources/types" && r.URL.Path != "/cib/live/resources/types/" {
+	base := "/cib/live"
+	switch r.URL.Path {
+	case "/cib/live/resources/types", "/cib/live/resources/types/":
+	case batchBase + "/resources/types", batchBase + "/resources/types/":
+		base = batchBase
+	default:
 		http.NotFound(w, r)
 		return
 	}
@@ -78,6 +83,11 @@ func ResourceTypesHandler(w http.ResponseWriter, r *http.Request) {
 	data := map[string]any{
 		"Title":         "Add Resource",
 		"ResourceTypes": resourceTypes(),
+		"CIBBase":       base,
+	}
+	if base == batchBase {
+		data["BatchMode"] = true
+		data["BatchConfig"] = map[string]string{"base": batchBase, "api": batchAPI, "id": batchID}
 	}
 	// This flash is only for backward compatibility with Ruby redirects.
 	if r.URL.Query().Get("flash") == "deleted" {

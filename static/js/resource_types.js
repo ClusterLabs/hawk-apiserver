@@ -23,3 +23,5 @@ document.getElementById("monitoringMenu").classList.remove("in");
 document.getElementById("configurationMenu").classList.add("in");
 const typesMenuPath = window.location.pathname.replace(/\/$/, "");
 document.querySelector(`a[href="${typesMenuPath}"]`)?.setAttribute("aria-current", "page");
+
+if (window.hawkBatch) window.hawkBatch.start();
