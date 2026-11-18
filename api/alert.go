@@ -26,7 +26,12 @@ type alertCreate struct {
 }
 
 func AlertNewHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/cib/live/alerts/new" && r.URL.Path != "/cib/live/alerts/new/" {
+	base := "/cib/live"
+	switch r.URL.Path {
+	case "/cib/live/alerts/new", "/cib/live/alerts/new/":
+	case batchBase + "/alerts/new", batchBase + "/alerts/new/":
+		base = batchBase
+	default:
 		http.NotFound(w, r)
 		return
 	}
@@ -35,7 +40,13 @@ func AlertNewHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
-	renderTemplate(w, "alert_new", map[string]any{"Title": "Create Alert"})
+	data := map[string]any{"Title": "Create Alert", "CIBBase": base}
+	if base == batchBase {
+		data["BatchMode"] = true
+		data["BatchConfig"] = map[string]string{"base": batchBase, "api": batchAPI, "id": batchID}
+		data["AlertAPI"] = batchAPI + "/alert"
+	}
+	renderTemplate(w, "alert_new", data)
 }
 
 func alertMetaOptions() []SelectOption {
@@ -128,6 +139,12 @@ func createAlert(w http.ResponseWriter, r *http.Request, run func(context.Contex
 		http.Error(w, "Invalid request", 400)
 		return
 	}
+	saveAlert(w, r, alert, run, "/cib/live")
+}
+
+// Validation, recipients, instance attributes, and meta attributes are shared
+// between live and shadow creation; only the runner and redirect base differ.
+func saveAlert(w http.ResponseWriter, r *http.Request, alert alertCreate, run func(context.Context, ...string) error, base string) {
 	args, err := alertCreateArgs(alert)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
@@ -138,7 +155,7 @@ func createAlert(w http.ResponseWriter, r *http.Request, run func(context.Contex
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "redirect": "/cib/live/alerts/" + url.PathEscape(alert.ID) + "/edit?flash=created"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "redirect": base + "/alerts/" + url.PathEscape(alert.ID) + "/edit?flash=created"})
 }
 
 func AlertRubyHandler(w http.ResponseWriter, r *http.Request) { resourceRubyHandler(w, r, "Alert") }

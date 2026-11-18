@@ -248,6 +248,8 @@ func main() {
 	mux.HandleFunc("/cib/hacluster/primitives/new/", authMiddleware(api.PrimitiveNewHandler))
 	mux.HandleFunc("/cib/live/primitives/new", authMiddleware(api.PrimitiveNewHandler))
 	mux.HandleFunc("/cib/live/primitives/new/", authMiddleware(api.PrimitiveNewHandler))
+	mux.HandleFunc("/cib/hacluster/alerts/new", authMiddleware(api.AlertNewHandler))
+	mux.HandleFunc("/cib/hacluster/alerts/new/", authMiddleware(api.AlertNewHandler))
 	mux.HandleFunc("/cib/live/alerts/new", authMiddleware(api.AlertNewHandler))
 	mux.HandleFunc("/cib/live/alerts/new/", authMiddleware(api.AlertNewHandler))
 	mux.HandleFunc("/cib/live/alerts/", authMiddleware(api.AlertEditHandler))

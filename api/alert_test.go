@@ -67,3 +67,43 @@ func TestAlertTemplateAndMapping(t *testing.T) {
 	AlertNewHandler(response, httptest.NewRequest("POST", "/cib/live/alerts/new", nil))
 	require.Equal(t, 405, response.Code)
 }
+
+func TestBatchAlertNewForm(t *testing.T) {
+	tmpl, err := template.ParseFiles("../templates/layout.html", "../templates/alert_new.html")
+	require.NoError(t, err)
+	var body strings.Builder
+	require.NoError(t, tmpl.ExecuteTemplate(&body, "layout.html", map[string]any{
+		"Title": "Create Alert", "CIBBase": batchBase, "BatchMode": true, "AlertAPI": batchAPI + "/alert",
+		"BatchConfig": map[string]string{"base": batchBase, "api": batchAPI, "id": batchID},
+	}))
+	html := body.String()
+	require.Contains(t, html, `data-api-base="/api/batch/hacluster/alert"`)
+	require.Contains(t, html, `href="/cib/hacluster/resources/types"`)
+	require.Contains(t, html, `id="btn-show-batch"`)
+	require.Contains(t, html, `AlertRecipientPopup.js`)
+	require.NotContains(t, html, `href="/cib/live/`)
+	require.Equal(t, 1, strings.Count(html, `src="/static/js/classes/Popup.js"`))
+}
+
+func TestBatchAlertCreationStaysScoped(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "agent")
+	require.NoError(t, os.WriteFile(path, []byte("#!/bin/sh\n"), 0600))
+	alert := alertCreate{ID: "batch-alert", Path: path, Params: map[string]string{"message": "hello world"}, Meta: map[string]string{"timeout": "30s"}, Recipients: []alertRecipient{{ID: "recipient1", Value: "user@example.com", Params: map[string]string{"subject": "cluster event"}, Meta: map[string]string{"timestamp-format": "%H:%M:%S"}}}}
+	payload, err := json.Marshal(alert)
+	require.NoError(t, err)
+	args, err := alertCreateArgs(alert)
+	require.NoError(t, err)
+	backend, calls := batchTestBackend(t)
+	response := batchTestRequest(backend, "POST", "alert/create", string(payload))
+	require.Equal(t, 200, response.Code, response.Body.String())
+	require.Contains(t, response.Body.String(), "/cib/hacluster/alerts/batch-alert/edit?flash=created")
+	require.Equal(t, []batchTestCall{{false, "crm", args, ""}}, *calls)
+	*calls = nil
+	response = batchTestRequest(backend, "POST", "alert/create", `{"id":"invalid","path":"/missing/alert/agent"}`)
+	require.Equal(t, 400, response.Code)
+	require.Empty(t, *calls)
+	backend.exists = func() (bool, error) { return false, nil }
+	response = batchTestRequest(backend, "POST", "alert/create", string(payload))
+	require.Equal(t, 409, response.Code)
+	require.Empty(t, *calls)
+}

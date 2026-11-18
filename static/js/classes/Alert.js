@@ -17,7 +17,7 @@ class Alert {
     }
 
     async save(operation) {
-        const response = await fetch(`/api/cib/alert/${operation}`, {
+        const response = await fetch(`${document.getElementById("alert-create-form")?.dataset.apiBase || "/api/cib/alert"}/${operation}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({

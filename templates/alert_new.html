@@ -1,4 +1,6 @@
 {{ define "content" }}
+{{ $cibBase := "/cib/live" }}{{ if .CIBBase }}{{ $cibBase = .CIBBase }}{{ end }}
+{{ $alertAPI := "/api/cib/alert" }}{{ if .AlertAPI }}{{ $alertAPI = .AlertAPI }}{{ end }}
 <link rel="stylesheet" href="/static/css/primitive_edit.css">
 <link rel="stylesheet" href="/static/css/common.css">
 <link rel="stylesheet" href="/static/css/alert_new.css">
@@ -9,7 +11,6 @@
 <script src="/static/js/classes/XKvGroupBase.js"></script>
 <script src="/static/js/classes/XKvGroup.js"></script>
 <script src="/static/js/classes/XInputsKvGroup.js"></script>
-<script src="/static/js/classes/Popup.js"></script>
 <script src="/static/js/classes/AlertAttributes.js"></script>
 <script src="/static/js/classes/AlertRecipientPopup.js"></script>
 <script src="/static/js/classes/Alert.js"></script>
@@ -20,13 +21,20 @@
 <script src="/static/js/classes/DeletePopup.js" defer></script>
 <link rel="stylesheet" href="/static/css/config_edit.css">
 {{ end }}
+{{ if .BatchMode }}
+<script src="/static/js/classes/ConfirmActionPopup.js"></script>
+<link rel="stylesheet" href="/static/css/highlight.css">
+<script src="/static/js/vendor/highlight.js" defer></script>
+<script src="/static/js/batch.js" defer></script>
+{{ end }}
 <script src="/static/js/alert_new.js" defer></script>
 <div class="edit-layout">
   <div class="edit-left">
+    {{ if .BatchMode }}<div id="batch-notifications" role="status" aria-live="polite"></div>{{ end }}
     <h2><i class="far fa-copy" aria-hidden="true"></i> {{ if .Editing }}Edit Alert{{ else }}Create Alert{{ end }}
-      {{ if .Editing }}<span class="pull-right btn-group"><a class="btn btn-white" href="/cib/live/alerts/new"><i class="fa fa-plus"></i> Create</a><button type="button" class="btn btn-white" name="rename" id="rename-alert" disabled><i class="fa fa-font"></i> Rename</button><button type="button" class="btn btn-white" name="delete" id="delete-alert" disabled><i class="fa fa-trash"></i> Delete</button></span>{{ end }}</h2>
+      {{ if .Editing }}<span class="pull-right btn-group"><a class="btn btn-white" href="{{ $cibBase }}/alerts/new"><i class="fa fa-plus"></i> Create</a><button type="button" class="btn btn-white" name="rename" id="rename-alert" disabled><i class="fa fa-font"></i> Rename</button><button type="button" class="btn btn-white" name="delete" id="delete-alert" disabled><i class="fa fa-trash"></i> Delete</button></span>{{ end }}</h2>
     <div id="alert-notifications" role="status" aria-live="polite"></div>
-    <form id="alert-create-form" class="primitive-create-panel" {{ if .Editing }}data-editing="true" data-alert-id="{{ .AlertID }}"{{ end }}>
+    <form id="alert-create-form" data-api-base="{{ $alertAPI }}" class="primitive-create-panel" {{ if .Editing }}data-editing="true" data-alert-id="{{ .AlertID }}"{{ end }}>
       <p id="alert-loading" class="text-muted" role="status" {{ if not .Editing }}hidden{{ end }}>Loading alert…</p>
       <div id="alert-error" class="alert alert-danger" role="alert" hidden></div>
       <fieldset id="alert-form-fields" {{ if .Editing }}disabled hidden{{ end }}>
@@ -48,7 +56,7 @@
         </details>
         <div class="alert-actions"><button id="create-alert-button" name="submit" class="btn btn-success" type="submit" disabled>{{ if .Editing }}Apply{{ else }}Create{{ end }}</button>
           {{ if .Editing }}<button class="btn btn-white revert" name="revert" id="revert-alert" type="button" disabled>Revert</button>{{ end }}
-          {{ if .Editing }}<a class="btn btn-white back" href="/cib/live/config/edit#alerts">Back</a>{{ else }}<a class="btn btn-white back" href="/cib/live/resources/types">Back</a>{{ end }}</div>
+          {{ if .Editing }}<a class="btn btn-white back" href="{{ $cibBase }}/config/edit#alerts">Back</a>{{ else }}<a class="btn btn-white back" href="{{ $cibBase }}/resources/types">Back</a>{{ end }}</div>
       </div>
       </fieldset>
     </form>
