@@ -244,6 +244,8 @@ func main() {
 	mux.HandleFunc("/cib/hacluster/resources/types/", authMiddleware(api.ResourceTypesHandler))
 	mux.HandleFunc("/cib/live/resources/types", authMiddleware(api.ResourceTypesHandler))
 	mux.HandleFunc("/cib/live/resources/types/", authMiddleware(api.ResourceTypesHandler))
+	mux.HandleFunc("/cib/hacluster/primitives/new", authMiddleware(api.PrimitiveNewHandler))
+	mux.HandleFunc("/cib/hacluster/primitives/new/", authMiddleware(api.PrimitiveNewHandler))
 	mux.HandleFunc("/cib/live/primitives/new", authMiddleware(api.PrimitiveNewHandler))
 	mux.HandleFunc("/cib/live/primitives/new/", authMiddleware(api.PrimitiveNewHandler))
 	mux.HandleFunc("/cib/live/alerts/new", authMiddleware(api.AlertNewHandler))

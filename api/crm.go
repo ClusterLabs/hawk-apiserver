@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os/exec"
 	"regexp"
 	"sort"
@@ -355,15 +356,26 @@ func PrimitiveCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	createPrimitive(w, r, frontendPrimitive, runClusterConfigCommand, "/cib/live")
+}
+
+// Live and batch forms share validation and command construction. The caller
+// supplies the CIB-scoped runner; this helper never selects the live cluster.
+func createPrimitive(w http.ResponseWriter, r *http.Request, frontendPrimitive Primitive, run clusterConfigCommand, base string) {
 	if !regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_.:-]*$`).MatchString(frontendPrimitive.ID) || frontendPrimitive.Class == "" || frontendPrimitive.Type == "" || (frontendPrimitive.Class == "ocf" && frontendPrimitive.Provider == "") {
 		http.Error(w, "A valid Resource ID, Class and Type are required; OCF agents also require a Provider", http.StatusBadRequest)
 		return
 	}
 	if frontendPrimitive.Parent != "" {
-		createPrimitiveInGroup(w, r, frontendPrimitive, runClusterConfigCommand)
+		createPrimitiveInGroup(w, r, frontendPrimitive, run, base)
 		return
 	}
-	crmExecute(w, primitiveCreateArgs(frontendPrimitive), fmt.Sprintf("Created %s", frontendPrimitive.ID))
+	if _, err := run(r.Context(), "crm", primitiveCreateArgs(frontendPrimitive), ""); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "message": fmt.Sprintf("Created %s", frontendPrimitive.ID), "redirect": base + "/primitives/" + url.PathEscape(frontendPrimitive.ID) + "/edit?flash=created"})
 }
 
 func primitiveCreateArgs(frontendPrimitive Primitive) []string {

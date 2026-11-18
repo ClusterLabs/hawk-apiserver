@@ -244,7 +244,7 @@ func batchJSON(w http.ResponseWriter, value any) {
 
 func (b *batchBackend) api(w http.ResponseWriter, r *http.Request) {
 	operation := strings.TrimPrefix(r.URL.Path, batchAPI+"/")
-	methods := map[string]string{"state": "GET", "details": "GET", "review": "GET", "result": "GET", "simulate": "POST", "action": "POST", "apply": "POST", "discard": "POST"}
+	methods := map[string]string{"state": "GET", "details": "GET", "review": "GET", "result": "GET", "simulate": "POST", "action": "POST", "apply": "POST", "discard": "POST", "primitive/create": "POST"}
 	method, ok := methods[operation]
 	if !ok {
 		http.NotFound(w, r)
@@ -319,6 +319,14 @@ func (b *batchBackend) api(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		batchJSON(w, map[string]bool{"success": true})
+	case "primitive/create":
+		var primitive Primitive
+		if !readBatchJSON(w, r, &primitive) {
+			return
+		}
+		createPrimitive(w, r, primitive, func(ctx context.Context, name string, args []string, input string) ([]byte, error) {
+			return b.run(ctx, false, name, args, input)
+		}, batchBase)
 	case "discard":
 		var input struct{}
 		if !readBatchJSON(w, r, &input) {

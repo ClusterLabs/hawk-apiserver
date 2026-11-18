@@ -67,7 +67,7 @@ func TestGroupEditUpdatePaths(t *testing.T) {
 				writes++
 				if tt.name == "reorder" {
 					require.Equal(t, "crm", name)
-					require.Equal(t, []string{"-F", "configure", "load", "update", "/dev/stdin"}, args)
+					require.Equal(t, []string{"-F", "configure", "load", "update", "-"}, args)
 					require.Equal(t, "'group' 'g' 'b' 'free2' 'a' 'meta' 'priority=8' 'resource-stickiness=123'\n", input)
 				} else {
 					require.Equal(t, "cibadmin", name)
@@ -115,7 +115,7 @@ func TestCreatePrimitiveInGroup(t *testing.T) {
 		if writes == 1 {
 			require.Equal(t, []string{"configure", "primitive", "new-child", "ocf:pacemaker:Dummy"}, args)
 		} else {
-			require.Equal(t, []string{"-F", "configure", "load", "update", "/dev/stdin"}, args)
+			require.Equal(t, []string{"-F", "configure", "load", "update", "-"}, args)
 			require.Contains(t, input, "'group' 'g' 'a' 'b' 'new-child'")
 		}
 		return nil, nil

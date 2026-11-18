@@ -651,7 +651,12 @@ func enrichPrimitiveMetadataWithCibValues(metadata *FullPrimitive_CrmResourceMet
 
 // This function does the magic routing between Go and Ruby
 func PrimitiveNewHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/cib/live/primitives/new" && r.URL.Path != "/cib/live/primitives/new/" {
+	base := "/cib/live"
+	switch r.URL.Path {
+	case "/cib/live/primitives/new", "/cib/live/primitives/new/":
+	case batchBase + "/primitives/new", batchBase + "/primitives/new/":
+		base = batchBase
+	default:
 		http.NotFound(w, r)
 		return
 	}
@@ -660,7 +665,13 @@ func PrimitiveNewHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	renderTemplate(w, "primitive_edit", map[string]any{"Title": "Create Primitive", "CreateMode": true, "ResourceID": "", "ResourceAgent": "", "Class": "ocf", "Provider": "", "Type": "", "Parent": r.URL.Query().Get("parent")})
+	data := map[string]any{"Title": "Create Primitive", "CreateMode": true, "ResourceID": "", "ResourceAgent": "", "Class": "ocf", "Provider": "", "Type": "", "Parent": r.URL.Query().Get("parent"), "CIBBase": base, "CreateAPI": "/api/cib/primitive/create"}
+	if base == batchBase {
+		data["BatchMode"] = true
+		data["BatchConfig"] = map[string]string{"base": batchBase, "api": batchAPI, "id": batchID}
+		data["CreateAPI"] = batchAPI + "/primitive/create"
+	}
+	renderTemplate(w, "primitive_edit", data)
 }
 
 func ResourceEditHandler(w http.ResponseWriter, r *http.Request) {

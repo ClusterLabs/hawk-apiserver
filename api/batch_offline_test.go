@@ -139,7 +139,7 @@ func TestBatchShadowStartStopStatus(t *testing.T) {
 	shadow := filepath.Join(directory, "shadow.proof")
 	require.NoError(t, os.WriteFile(baseline, original, 0600))
 	require.NoError(t, os.WriteFile(shadow, original, 0600))
-	backend := &batchBackend{prepare: prepareBatchDirectory}
+	backend := &batchBackend{prepare: prepareBatchDirectory, exists: func() (bool, error) { return true, nil }}
 	backend.run = func(ctx context.Context, live bool, name string, args []string, input string) ([]byte, error) {
 		if name == "crm_simulate" {
 			// Exercise production credentials and shadow-environment isolation.
@@ -163,8 +163,11 @@ func TestBatchShadowStartStopStatus(t *testing.T) {
 		}
 		return out, nil
 	}
-	_, err = backend.run(ctx, false, "crm", []string{"-F", "configure", "load", "update", "/dev/stdin"}, "primitive hawk-color-proof ocf:pacemaker:Dummy\n")
+	response := batchTestRequest(backend, "POST", "primitive/create", `{"id":"hawk-color-proof","class":"ocf","provider":"pacemaker","type":"Dummy"}`)
+	require.Equal(t, 200, response.Code, response.Body.String())
+	_, created, err := backend.readCIB(ctx, false)
 	require.NoError(t, err)
+	require.Contains(t, string(created), `id="hawk-color-proof"`)
 	for _, action := range []string{"start", "stop", "start", "stop"} {
 		require.NoError(t, backend.action(ctx, batchAction{Kind: "resource", ID: "hawk-color-proof", Action: action}))
 		require.NoError(t, backend.simulate(ctx, nil))

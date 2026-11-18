@@ -250,5 +250,7 @@ if (!CreateMode) setAgentInfo().catch(err => showFlash("danger", err.message));
 if (CreateMode) {
     document.getElementById("monitoringMenu").classList.remove("in");
     document.getElementById("configurationMenu").classList.add("in");
-    document.querySelector('a[href="/cib/live/resources/types"]').setAttribute("aria-current", "page");
+    document.querySelector(`a[href="${statusCIBBase()}/resources/types"]`).setAttribute("aria-current", "page");
 }
+
+if (window.hawkBatch) window.hawkBatch.start();
