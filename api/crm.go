@@ -460,38 +460,64 @@ func primitiveCreateArgs(frontendPrimitive Primitive) []string {
 }
 
 func CloneCreateHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO: before creating the clone try creating it in the shadow-cib
-	var frontendClone Clone
-
-	if err := json.NewDecoder(r.Body).Decode(&frontendClone); err != nil {
+	if !groupFetchMethod(w, r) {
+		return
+	}
+	var clone Clone
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&clone); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
-		log.Printf("[CloneCreateHandler] JSON decode error: %v", err)
 		return
 	}
-	if frontendClone.ID == "" || len(frontendClone.Primitives) == 0 || frontendClone.Primitives[0].ID == "" {
-		http.Error(w, "Clone ID and child resource are required", http.StatusBadRequest)
+	createClone(w, r, clone, GetCIB, runClusterConfigCommand, "/cib/live")
+}
+
+func createClone(w http.ResponseWriter, r *http.Request, clone Clone,
+	readCIB func() (CIB, int, error), run clusterConfigCommand, base string) {
+	if clone.ChildResource == "" && len(clone.Primitives) > 0 {
+		clone.ChildResource = clone.Primitives[0].ID
+	}
+	if !regexp.MustCompile(`^[a-zA-Z0-9_-]+$`).MatchString(clone.ID) || clone.ChildResource == "" {
+		http.Error(w, "A valid Clone ID and child resource are required", http.StatusBadRequest)
 		return
 	}
+	cib, _, err := readCIB()
+	if err != nil {
+		http.Error(w, "Unable to read available children: "+err.Error(), 500)
+		return
+	}
+	available := false
+	for _, child := range cloneChildren(cib) {
+		if child == clone.ChildResource {
+			available = true
+			break
+		}
+	}
+	if !available || clone.ID == clone.ChildResource {
+		http.Error(w, "Child is no longer available: "+clone.ChildResource, http.StatusConflict)
+		return
+	}
+	if _, err := run(r.Context(), "crm", cloneCreateArgs(clone), ""); err != nil {
+		http.Error(w, "Unable to create: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "message": "Created " + clone.ID, "redirect": base + "/clones/" + url.PathEscape(clone.ID) + "/edit?flash=created"})
+}
 
-	log.Printf("Creating resource %s with fields: %+v\n", frontendClone.ID, frontendClone)
-
-	args := []string{"configure", "clone", frontendClone.ID, frontendClone.Primitives[0].ID}
-
-	// Meta Attributes
+func cloneCreateArgs(clone Clone) []string {
+	args := []string{"configure", "clone", clone.ID, clone.ChildResource}
 	metaStarted := false
-	for _, nvpair := range frontendClone.MetaAttributes.NVPairs {
-		// skip empty values like target-role="" (which happens in the test_copy_primitive)
-		if nvpair.Value == "" {
+	for _, pair := range clone.MetaAttributes.NVPairs {
+		if pair.Value == "" {
 			continue
 		}
 		if !metaStarted {
 			args = append(args, "meta")
 			metaStarted = true
 		}
-		args = append(args, fmt.Sprintf("%s=%s", nvpair.Name, nvpair.Value))
+		args = append(args, pair.Name+"="+pair.Value)
 	}
-
-	crmExecute(w, args, fmt.Sprintf("Created %s", frontendClone.ID))
+	return args
 }
 
 func ResourceDeleteHandler(w http.ResponseWriter, r *http.Request) {
@@ -786,6 +812,17 @@ func FetchPrimitiveTypes(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Match Ruby CloneHelper: top-level primitives and groups, never resources
+// already contained by another group or clone.
+func cloneChildren(cib CIB) []string {
+	children := groupChildren(cib)
+	for _, group := range cib.Configuration.Groups {
+		children = append(children, group.ID)
+	}
+	sortResourceIDs(children)
+	return children
+}
+
 func FetchChildResources(w http.ResponseWriter, r *http.Request) {
 	cib, _, err := GetCIB()
 	if err != nil {
@@ -795,8 +832,8 @@ func FetchChildResources(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var content SelectContent
-	for _, primitive := range cib.Configuration.Primitives {
-		content.Options = append(content.Options, SelectOption{Name: primitive.ID})
+	for _, id := range cloneChildren(cib) {
+		content.Options = append(content.Options, SelectOption{Name: id})
 	}
 
 	w.Header().Set("Content-Type", "application/json")

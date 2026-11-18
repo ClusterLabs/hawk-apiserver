@@ -203,6 +203,15 @@ func TestBatchShadowStartStopStatus(t *testing.T) {
 		}
 	}
 	require.True(t, foundGroup)
+	response = batchTestRequest(backend, "POST", "clone/create", `{"id":"hawk-clone-proof","childResource":"hawk-group-proof","primitive":[{"id":"hawk-group-proof"}],"meta_attributes":{"nvpair":[{"name":"target-role","value":"Stopped"}]}}`)
+	require.Equal(t, 200, response.Code, response.Body.String())
+	cib, raw, err := backend.readCIB(ctx, false)
+	require.NoError(t, err)
+	children := cloneChildren(cib)
+	require.NotContains(t, children, "hawk-group-proof")
+	require.NotContains(t, children, "hawk-color-proof")
+	require.Contains(t, string(raw), `<clone id="hawk-clone-proof">`)
+	require.Contains(t, string(raw), `<group id="hawk-group-proof">`)
 	unchanged, err := os.ReadFile(baseline)
 	require.NoError(t, err)
 	require.Equal(t, original, unchanged)

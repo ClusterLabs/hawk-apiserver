@@ -270,6 +270,7 @@ type ResourceGroup struct {
 }
 
 type Clone struct {
+	ChildResource  string        `xml:"-" json:"childResource,omitempty"`
 	ID             string        `xml:"id,attr" json:"id"`
 	Primitives     []Primitive   `xml:"primitive" json:"primitive"`
 	MetaAttributes MetaAttribute `xml:"meta_attributes" json:"meta_attributes"`
@@ -862,14 +863,28 @@ func CloneEditHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func CloneNewHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/cib/live/clones/new" && r.URL.Path != "/cib/live/clones/new/" {
+	base := "/cib/live"
+	switch r.URL.Path {
+	case "/cib/live/clones/new", "/cib/live/clones/new/":
+	case batchBase + "/clones/new", batchBase + "/clones/new/":
+		base = batchBase
+	default:
 		http.NotFound(w, r)
 		return
 	}
-
-	renderTemplate(w, "clone_new", map[string]any{
-		"Title": "Create Clone",
-	})
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		w.Header().Set("Allow", "GET, HEAD")
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	data := map[string]any{"Title": "Create Clone", "CIBBase": base, "CreateAPI": "/api/cib/clone/create", "ChildrenAPI": "/api/cib/clone/child-resources/fetch"}
+	if base == batchBase {
+		data["BatchMode"] = true
+		data["BatchConfig"] = map[string]string{"base": batchBase, "api": batchAPI, "id": batchID}
+		data["CreateAPI"] = batchAPI + "/clone/create"
+		data["ChildrenAPI"] = batchAPI + "/clone/children"
+	}
+	renderTemplate(w, "clone_new", data)
 }
 
 func NodesEditHandler(w http.ResponseWriter, r *http.Request) {

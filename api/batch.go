@@ -244,7 +244,7 @@ func batchJSON(w http.ResponseWriter, value any) {
 
 func (b *batchBackend) api(w http.ResponseWriter, r *http.Request) {
 	operation := strings.TrimPrefix(r.URL.Path, batchAPI+"/")
-	methods := map[string]string{"state": "GET", "details": "GET", "review": "GET", "result": "GET", "simulate": "POST", "action": "POST", "apply": "POST", "discard": "POST", "primitive/create": "POST", "group/children": "POST", "group/create": "POST"}
+	methods := map[string]string{"state": "GET", "details": "GET", "review": "GET", "result": "GET", "simulate": "POST", "action": "POST", "apply": "POST", "discard": "POST", "primitive/create": "POST", "group/children": "POST", "group/create": "POST", "clone/children": "POST", "clone/create": "POST"}
 	method, ok := methods[operation]
 	if !ok {
 		http.NotFound(w, r)
@@ -319,6 +319,32 @@ func (b *batchBackend) api(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		batchJSON(w, map[string]bool{"success": true})
+	case "clone/children":
+		var input struct{}
+		if !readBatchJSON(w, r, &input) {
+			return
+		}
+		cib, _, err := b.readCIB(ctx, false)
+		if err != nil {
+			batchError(w, 500, err)
+			return
+		}
+		content := SelectContent{}
+		for _, id := range cloneChildren(cib) {
+			content.Options = append(content.Options, SelectOption{Name: id})
+		}
+		batchJSON(w, content)
+	case "clone/create":
+		var clone Clone
+		if !readBatchJSON(w, r, &clone) {
+			return
+		}
+		createClone(w, r, clone, func() (CIB, int, error) {
+			cib, _, err := b.readCIB(ctx, false)
+			return cib, 0, err
+		}, func(ctx context.Context, name string, args []string, input string) ([]byte, error) {
+			return b.run(ctx, false, name, args, input)
+		}, batchBase)
 	case "group/children":
 		var input struct{}
 		if !readBatchJSON(w, r, &input) {

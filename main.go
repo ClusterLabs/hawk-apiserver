@@ -271,6 +271,8 @@ func main() {
 	mux.HandleFunc("/cib/live/primitives/", authMiddleware(api.ResourceEditHandler))
 	mux.HandleFunc("/cib/live/clones", authMiddleware(api.CloneEditHandler))
 	mux.HandleFunc("/cib/live/clones/", authMiddleware(api.CloneEditHandler))
+	mux.HandleFunc("/cib/hacluster/clones/new", authMiddleware(api.CloneNewHandler))
+	mux.HandleFunc("/cib/hacluster/clones/new/", authMiddleware(api.CloneNewHandler))
 	mux.HandleFunc("/cib/live/clones/new", authMiddleware(api.CloneNewHandler))
 	mux.HandleFunc("/cib/live/clones/new/", authMiddleware(api.CloneNewHandler))
 	mux.HandleFunc("/cib/live/nodes", authMiddleware(api.NodesEditHandler))
