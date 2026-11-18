@@ -34,7 +34,7 @@
     <h2><i class="far fa-copy" aria-hidden="true"></i> {{ if .Editing }}Edit Alert{{ else }}Create Alert{{ end }}
       {{ if .Editing }}<span class="pull-right btn-group"><a class="btn btn-white" href="{{ $cibBase }}/alerts/new"><i class="fa fa-plus"></i> Create</a><button type="button" class="btn btn-white" name="rename" id="rename-alert" disabled><i class="fa fa-font"></i> Rename</button><button type="button" class="btn btn-white" name="delete" id="delete-alert" disabled><i class="fa fa-trash"></i> Delete</button></span>{{ end }}</h2>
     <div id="alert-notifications" role="status" aria-live="polite"></div>
-    <form id="alert-create-form" data-api-base="{{ $alertAPI }}" class="primitive-create-panel" {{ if .Editing }}data-editing="true" data-alert-id="{{ .AlertID }}"{{ end }}>
+    <form id="alert-create-form" data-api-base="{{ $alertAPI }}" data-rename-api="{{ if .RenameAPI }}{{ .RenameAPI }}{{ else }}/api/cib/resource/rename{{ end }}" data-delete-api="{{ if .DeleteAPI }}{{ .DeleteAPI }}{{ else }}/api/cib/resource/delete{{ end }}" class="primitive-create-panel" {{ if .Editing }}data-editing="true" data-alert-id="{{ .AlertID }}"{{ end }}>
       <p id="alert-loading" class="text-muted" role="status" {{ if not .Editing }}hidden{{ end }}>Loading alert…</p>
       <div id="alert-error" class="alert alert-danger" role="alert" hidden></div>
       <fieldset id="alert-form-fields" {{ if .Editing }}disabled hidden{{ end }}>

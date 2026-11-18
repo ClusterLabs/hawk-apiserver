@@ -62,7 +62,7 @@ func loadAlert(ctx context.Context, id string, run clusterConfigCommand) (alertC
 }
 func AlertEditHandler(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-	if len(parts) != 5 || parts[0] != "cib" || parts[1] != "live" || parts[2] != "alerts" || parts[4] != "edit" {
+	if len(parts) != 5 || parts[0] != "cib" || (parts[1] != "live" && parts[1] != batchID) || parts[2] != "alerts" || parts[4] != "edit" {
 		AlertRubyHandler(w, r)
 		return
 	}
@@ -71,7 +71,16 @@ func AlertEditHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
-	renderTemplate(w, "alert_new", map[string]any{"Title": "Edit Alert", "Editing": true, "AlertID": parts[3]})
+	data := map[string]any{"Title": "Edit Alert", "Editing": true, "AlertID": parts[3]}
+	if parts[1] == batchID {
+		data["CIBBase"] = batchBase
+		data["BatchMode"] = true
+		data["BatchConfig"] = map[string]string{"base": batchBase, "api": batchAPI, "id": batchID}
+		data["AlertAPI"] = batchAPI + "/alert"
+		data["RenameAPI"] = batchAPI + "/alert/rename"
+		data["DeleteAPI"] = batchAPI + "/alert/delete"
+	}
+	renderTemplate(w, "alert_new", data)
 }
 func AlertFetchHandler(w http.ResponseWriter, r *http.Request) {
 	fetchAlert(w, r, runClusterConfigCommand)
@@ -122,6 +131,10 @@ func updateAlert(w http.ResponseWriter, r *http.Request, run clusterConfigComman
 		http.Error(w, "Invalid request", 400)
 		return
 	}
+	saveAlertUpdate(w, r, request, run)
+}
+
+func saveAlertUpdate(w http.ResponseWriter, r *http.Request, request alertCreate, run clusterConfigCommand) {
 	_, found, err := loadAlert(r.Context(), request.ID, run)
 	if err != nil {
 		http.Error(w, "Unable to read alert: "+err.Error(), 500)
@@ -136,10 +149,32 @@ func updateAlert(w http.ResponseWriter, r *http.Request, run clusterConfigComman
 		http.Error(w, err.Error(), 400)
 		return
 	}
-	if _, err := run(r.Context(), "crm", []string{"-F", "configure", "load", "update", "/dev/stdin"}, command); err != nil {
+	if _, err := run(r.Context(), "crm", []string{"-F", "configure", "load", "update", "-"}, command); err != nil {
 		http.Error(w, tagCreateError(request.ID, err), 500)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "message": "Alert updated successfully"})
+}
+
+// Restrict editor actions to alerts in the selected CIB, not arbitrary resources.
+func alertAction(ctx context.Context, id, newID string, run clusterConfigCommand) (int, error) {
+	if !groupID.MatchString(id) || (newID != "" && (!groupID.MatchString(newID) || newID == id)) {
+		return 400, fmt.Errorf("Invalid alert ID")
+	}
+	_, found, err := loadAlert(ctx, id, run)
+	if err != nil {
+		return 500, err
+	}
+	if !found {
+		return 404, fmt.Errorf("The alert does not exist")
+	}
+	args := []string{"--force", "configure", "delete", id}
+	if newID != "" {
+		args = []string{"-D", "plain", "configure", "rename", id, newID}
+	}
+	if _, err := run(ctx, "crm", args, ""); err != nil {
+		return 500, fmt.Errorf("%s", tagCreateError(id, err))
+	}
+	return 200, nil
 }

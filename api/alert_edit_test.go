@@ -70,7 +70,7 @@ func TestUpdateAlert(t *testing.T) {
 				}
 				writes++
 				require.Equal(t, "crm", name)
-				require.Equal(t, []string{"-F", "configure", "load", "update", "/dev/stdin"}, args)
+				require.Equal(t, []string{"-F", "configure", "load", "update", "-"}, args)
 				expected := "'alert' 'notify' '" + path + "' 'attributes' 'FOO=hello world' 'meta' 'timeout=90s'"
 				if len(tt.recipients) > 0 {
 					expected += " 'to' '{' 'ops@example.com' 'attributes' 'TEXT=it'\"'\"'s okay' '}'"
@@ -113,5 +113,80 @@ func TestAlertEditPage(t *testing.T) {
 	require.Equal(t, 200, w.Code)
 	for _, value := range []string{"Edit Alert", `data-alert-id="notify"`, `readonly value="notify"`, `name="revert"`, `href="/cib/live/config/edit#alerts"`, "RenamePopup.js", "DeletePopup.js"} {
 		require.Contains(t, w.Body.String(), value)
+	}
+}
+
+func TestBatchAlertEditPage(t *testing.T) {
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(".."))
+	t.Cleanup(func() { _ = os.Chdir(cwd) })
+	for _, suffix := range []string{"", "/"} {
+		response := httptest.NewRecorder()
+		AlertEditHandler(response, httptest.NewRequest("GET", batchBase+"/alerts/notify/edit"+suffix+"?flash=created", nil))
+		require.Equal(t, 200, response.Code)
+		html := response.Body.String()
+		for _, text := range []string{"Edit Alert", `data-editing="true"`, `data-alert-id="notify"`, `readonly value="notify"`, `data-api-base="/api/batch/hacluster/alert"`, `data-rename-api="/api/batch/hacluster/alert/rename"`, `data-delete-api="/api/batch/hacluster/alert/delete"`, `href="/cib/hacluster/config/edit#alerts"`, `id="btn-show-batch"`} {
+			require.Contains(t, html, text)
+		}
+		require.NotContains(t, html, `href="/cib/live/`)
+	}
+}
+
+func TestBatchAlertEditOperationsStayScoped(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "agent")
+	require.NoError(t, os.WriteFile(path, []byte("#!/bin/sh\n"), 0600))
+	backend, calls := batchTestBackend(t)
+	original := backend.run
+	backend.run = func(ctx context.Context, live bool, name string, args []string, input string) ([]byte, error) {
+		out, err := original(ctx, live, name, args, input)
+		if name == "cibadmin" {
+			return []byte(alertEditFixture), nil
+		}
+		return out, err
+	}
+	response := batchTestRequest(backend, "GET", "alert/fetch?id=notify", "")
+	require.Equal(t, 200, response.Code)
+	require.Contains(t, response.Body.String(), `"MESSAGE":"a \u0026 b"`)
+	require.Contains(t, response.Body.String(), `"value":"ops@example.com"`)
+	*calls = nil
+	alert := alertCreate{ID: "notify", Path: path, Recipients: []alertRecipient{{ID: "r1", Value: "new@example.com", Params: map[string]string{"SUBJECT": "updated"}, Meta: map[string]string{"timeout": "15s"}}}, Params: map[string]string{"MESSAGE": "updated event"}, Meta: map[string]string{"timeout": "60s"}}
+	payload, err := json.Marshal(alert)
+	require.NoError(t, err)
+	response = batchTestRequest(backend, "POST", "alert/update", string(payload))
+	require.Equal(t, 200, response.Code, response.Body.String())
+	require.Len(t, *calls, 2)
+	require.Equal(t, []string{"-F", "configure", "load", "update", "-"}, (*calls)[1].args)
+	for _, text := range []string{"'MESSAGE=updated event'", "'new@example.com'", "'SUBJECT=updated'", "'timeout=15s'"} {
+		require.Contains(t, (*calls)[1].input, text)
+	}
+	for _, call := range *calls {
+		require.False(t, call.live)
+	}
+	for _, tt := range []struct {
+		operation, body string
+		args            []string
+	}{
+		{"alert/rename", `{"oldID":"notify","newID":"renamed"}`, []string{"-D", "plain", "configure", "rename", "notify", "renamed"}},
+		{"alert/delete", `"notify"`, []string{"--force", "configure", "delete", "notify"}},
+	} {
+		*calls = nil
+		response = batchTestRequest(backend, "POST", tt.operation, tt.body)
+		require.Equal(t, 200, response.Code, response.Body.String())
+		require.Len(t, *calls, 2)
+		require.Equal(t, tt.args, (*calls)[1].args)
+		for _, call := range *calls {
+			require.False(t, call.live)
+		}
+	}
+	for _, tt := range []struct{ operation, body string }{
+		{"alert/delete", `"dummy"`}, {"alert/rename", `{"oldID":"dummy","newID":"renamed"}`}, {"alert/rename", `{"oldID":"notify","newID":""}`},
+	} {
+		*calls = nil
+		response = batchTestRequest(backend, "POST", tt.operation, tt.body)
+		require.GreaterOrEqual(t, response.Code, 400)
+		for _, call := range *calls {
+			require.Equal(t, "cibadmin", call.name)
+		}
 	}
 }
