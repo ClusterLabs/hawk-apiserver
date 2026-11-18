@@ -6,7 +6,7 @@ async function loadCommands() {
 
     try {
         // Keep the Rails command log as the source of truth during the UI port.
-        const response = await fetch("/cib/live/commands.json", {
+        const response = await fetch(container.dataset.source, {
             headers: { Accept: "application/json" },
             cache: "no-store",
         });
@@ -38,6 +38,7 @@ async function loadCommands() {
 // Open the sidebar section containing the current page.
 document.getElementById("monitoringMenu").classList.remove("in");
 document.getElementById("troubleshootMenu").classList.add("in");
-const link = document.querySelector('a[href="/cib/live/commands"]');
+const link = document.querySelector(`a[href="${statusCIBBase()}/commands"]`);
 link.setAttribute("aria-current", "page");
+if (window.hawkBatch) window.hawkBatch.start();
 loadCommands();
