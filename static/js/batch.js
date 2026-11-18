@@ -237,7 +237,9 @@ class BatchPage {
     }
     async render(state) {
         this.state = state;
-        await Promise.all([updateClusterStatus(), updateClusterStatusIndicator()]);
+        const updates = [updateClusterStatusIndicator()];
+        if (typeof updateClusterStatus === "function") updates.push(updateClusterStatus());
+        await Promise.all(updates);
     }
     response(value, status = 200) {
         return new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json" } });

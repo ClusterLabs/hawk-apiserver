@@ -1,12 +1,20 @@
 {{ define "content" }}
+{{ if .BatchMode }}
+<script src="/static/js/classes/XAlert.js"></script>
+<script src="/static/js/classes/ConfirmActionPopup.js"></script>
+<link rel="stylesheet" href="/static/css/highlight.css">
+<script src="/static/js/vendor/highlight.js" defer></script>
+<script src="/static/js/batch.js" defer></script>
+{{ end }}
 <script src="/static/js/commands.js" defer></script>
 <div class="edit-root">
+  {{ if .BatchMode }}<div id="batch-notifications" role="status" aria-live="polite"></div>{{ end }}
   <h1><i class="fa fa-calendar-days page" aria-hidden="true"></i> Command Log</h1>
   <div class="panel panel-default">
     <div class="panel-body">
       <p class="text-muted">Lists crm commands recently executed by hawk, most recent first.</p>
       <div id="commands-error" class="alert alert-danger" role="alert" hidden></div>
-      <div id="commands" class="commands" aria-busy="true"></div>
+      <div id="commands" data-source="{{ .CommandsURL }}" class="commands" aria-busy="true"></div>
     </div>
   </div>
 </div>
