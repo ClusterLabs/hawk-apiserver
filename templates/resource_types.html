@@ -33,12 +33,12 @@
   </div>
   <aside class="edit-right" aria-label="Resource help">
     <h2>Resources</h2>
-    <p>Configure a cluster resource for each service or application that you want to make highly available, such as a Web server, database, file system or virtual machine.</p>
-    <p>Set up the service or application first, and ensure its requirements are met on every cluster node before configuring and starting the resource.</p>
+    <p>For every service or application that you want to be highly available, configure a cluster resource. Cluster resources can include Web sites, e-mail servers, databases, file systems, virtual machines, and any other server-based applications or services.</p>
+    <p>Before configuring and starting a cluster resource, set up the service or application first. For example, set up an Apache server and complete its configuration before configuring a resource for it. If a service or application has specific environment requirements, make sure they are present and identical on all cluster nodes.</p>
     {{ range .ResourceTypes }}
     <section id="help-{{ .Path }}" class="resource-type-help">
       <h3>{{ .Name }}</h3>
-      <p>{{ .Help }}</p>
+      {{ .Help }}
     </section>
     {{ end }}
   </aside>
