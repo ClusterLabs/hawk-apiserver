@@ -15,7 +15,7 @@ class TagForm {
         form.addEventListener("change", () => { this.dirty = true; });
         if (this.editing) {
             this.revert.addEventListener("click", () => this.discard(() => this.load()));
-            document.getElementById("rename-tag").addEventListener("click", () => new RenamePopup(this.id));
+            document.getElementById("rename-tag").addEventListener("click", () => new RenamePopup(this.id, form.dataset.renameApi || "/api/cib/resource/rename"));
             document.getElementById("delete-tag").addEventListener("click", () => new DeletePopup(this.id, () => this.delete()));
             const back = form.querySelector("a.back");
             back.addEventListener("click", event => {
@@ -60,7 +60,7 @@ class TagForm {
         this.busy(true);
         this.list.setAttribute("aria-busy", "true");
         try {
-            const url = this.editing ? `/api/cib/tag/fetch?id=${encodeURIComponent(this.id)}` : this.form.dataset.objectsApi || "/api/cib/tag/objects/fetch";
+            const url = this.editing ? `${this.form.dataset.apiBase || "/api/cib/tag"}/fetch?id=${encodeURIComponent(this.id)}` : this.form.dataset.objectsApi || "/api/cib/tag/objects/fetch";
             const options = { method: this.editing ? "GET" : "POST", cache: "no-store" };
             if (!this.editing) {
                 options.headers = { "Content-Type": "application/json" };
@@ -130,12 +130,12 @@ class TagForm {
     async delete() {
         this.busy(true);
         try {
-            const response = await fetch("/api/cib/resource/delete", {
+            const response = await fetch(this.form.dataset.deleteApi || "/api/cib/resource/delete", {
                 method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(this.id),
             });
             if (!response.ok) throw new Error(await response.text() || "Unable to delete tag.");
             sessionStorage.setItem("configFlash", "Tag deleted successfully");
-            window.location.href = "/cib/live/config/edit#tags";
+            window.location.href = `${statusCIBBase()}/config/edit#tags`;
         } catch (error) { this.notify("danger", error.message); this.busy(false); }
     }
 }

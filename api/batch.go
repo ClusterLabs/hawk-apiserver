@@ -248,7 +248,7 @@ func batchJSON(w http.ResponseWriter, value any) {
 
 func (b *batchBackend) api(w http.ResponseWriter, r *http.Request) {
 	operation := strings.TrimPrefix(r.URL.Path, batchAPI+"/")
-	methods := map[string]string{"state": "GET", "details": "GET", "review": "GET", "result": "GET", "simulate": "POST", "action": "POST", "apply": "POST", "discard": "POST", "primitive/create": "POST", "group/children": "POST", "group/create": "POST", "clone/children": "POST", "clone/create": "POST", "tag/objects": "POST", "tag/create": "POST"}
+	methods := map[string]string{"state": "GET", "details": "GET", "review": "GET", "result": "GET", "simulate": "POST", "action": "POST", "apply": "POST", "discard": "POST", "primitive/create": "POST", "group/children": "POST", "group/create": "POST", "clone/children": "POST", "clone/create": "POST", "tag/objects": "POST", "tag/create": "POST", "tag/fetch": "GET", "tag/update": "POST", "tag/rename": "POST", "tag/delete": "POST"}
 	method, ok := methods[operation]
 	if !ok {
 		http.NotFound(w, r)
@@ -323,6 +323,44 @@ func (b *batchBackend) api(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		batchJSON(w, map[string]bool{"success": true})
+	case "tag/fetch":
+		fetchTag(w, r, func(ctx context.Context, name string, args []string, input string) ([]byte, error) {
+			return b.run(ctx, false, name, args, input)
+		})
+	case "tag/update":
+		var tag tagCreate
+		if !readBatchJSON(w, r, &tag) {
+			return
+		}
+		saveTagUpdate(w, r, tag, func(ctx context.Context, name string, args []string, input string) ([]byte, error) {
+			return b.run(ctx, false, name, args, input)
+		})
+	case "tag/rename", "tag/delete":
+		var id, newID string
+		if operation == "tag/rename" {
+			var input struct {
+				OldID string `json:"oldID"`
+				NewID string `json:"newID"`
+			}
+			if !readBatchJSON(w, r, &input) {
+				return
+			}
+			id, newID = input.OldID, input.NewID
+			if newID == "" {
+				batchError(w, 400, fmt.Errorf("New tag ID is required"))
+				return
+			}
+		} else if !readBatchJSON(w, r, &id) {
+			return
+		}
+		status, err := tagAction(ctx, id, newID, func(ctx context.Context, name string, args []string, input string) ([]byte, error) {
+			return b.run(ctx, false, name, args, input)
+		})
+		if err != nil {
+			batchError(w, status, err)
+			return
+		}
+		batchJSON(w, map[string]string{"status": "ok"})
 	case "tag/objects":
 		var input struct{}
 		if !readBatchJSON(w, r, &input) {
