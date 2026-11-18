@@ -21,7 +21,7 @@ class Group {
                 .map(input => input.value),
             meta: this.metaAttributes.getFrontendKValues(),
         };
-        const response = await fetch(`/api/cib/group/${operation}`, {
+        const response = await fetch(`${document.getElementById("group-create-form")?.dataset.apiBase || "/api/cib/group"}/${operation}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(group),

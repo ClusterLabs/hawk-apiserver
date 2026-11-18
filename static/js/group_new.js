@@ -31,7 +31,7 @@ async function loadGroupChildren(data = null) {
     let children;
     if (data) children = data.available;
     else {
-        const response = await fetch("/api/cib/group/children/fetch", { method: "POST" });
+        const response = await fetch(groupForm.dataset.childrenApi || "/api/cib/group/children/fetch", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
         if (!response.ok) throw new Error(await response.text() || "Unable to load group children.");
         children = await response.json();
     }
@@ -47,7 +47,7 @@ async function loadGroupChildren(data = null) {
         checkbox.checked = selected.has(id);
         checkbox.setAttribute("aria-label", id);
         const link = document.createElement("a");
-        link.href = `/cib/live/primitives/${encodeURIComponent(id)}/edit`;
+        link.href = `${statusCIBBase()}/primitives/${encodeURIComponent(id)}/edit`;
         link.textContent = id;
         const handle = document.createElement("i");
         handle.className = "fas fa-bars group-child-handle";
@@ -138,7 +138,7 @@ async function clickCreateGroupButton(event) {
 document.getElementById("group-create-form").addEventListener("submit", clickCreateGroupButton);
 document.getElementById("monitoringMenu").classList.remove("in");
 document.getElementById("configurationMenu").classList.add("in");
-document.querySelector('a[href="/cib/live/resources/types"]').setAttribute("aria-current", "page");
+document.querySelector(`a[href="${statusCIBBase()}/resources/types"]`).setAttribute("aria-current", "page");
 
 async function initializeGroupForm() {
     try {
@@ -214,3 +214,5 @@ if (editingGroup) {
     }
 }
 initializeGroupForm();
+
+if (window.hawkBatch) window.hawkBatch.start();

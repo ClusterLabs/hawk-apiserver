@@ -140,3 +140,56 @@ func TestGroupFlashBridgePreservesRubyEditor(t *testing.T) {
 	require.Contains(t, response.Body.String(), "Group created successfully")
 	require.Contains(t, response.Body.String(), "Ruby group editor")
 }
+
+func TestBatchGroupForm(t *testing.T) {
+	tmpl, err := template.ParseFiles("../templates/layout.html", "../templates/group_new.html")
+	require.NoError(t, err)
+	var body bytes.Buffer
+	require.NoError(t, tmpl.ExecuteTemplate(&body, "layout.html", map[string]any{
+		"Title": "Create Group", "CIBBase": batchBase, "BatchMode": true, "GroupAPI": batchAPI + "/group",
+		"BatchConfig": map[string]string{"base": batchBase, "api": batchAPI, "id": batchID},
+	}))
+	html := body.String()
+	require.Contains(t, html, `data-api-base="/api/batch/hacluster/group"`)
+	require.Contains(t, html, `data-children-api="/api/batch/hacluster/group/children"`)
+	require.Contains(t, html, `href="/cib/hacluster/resources/types"`)
+	require.Contains(t, html, `{"target-role":"Stopped"}`)
+	require.Contains(t, html, `id="btn-show-batch"`)
+	require.Contains(t, html, `/static/js/batch.js`)
+	require.NotContains(t, html, `href="/cib/live/`)
+}
+
+func TestBatchGroupChildrenAndCreationStayScoped(t *testing.T) {
+	backend, calls := batchTestBackend(t)
+	original := backend.run
+	backend.run = func(ctx context.Context, live bool, name string, args []string, input string) ([]byte, error) {
+		out, err := original(ctx, live, name, args, input)
+		if name == "cibadmin" {
+			return []byte(groupEditFixture), nil
+		}
+		return out, err
+	}
+	response := batchTestRequest(backend, "POST", "group/children", `{}`)
+	require.Equal(t, 200, response.Code)
+	require.JSONEq(t, `["free2","free10"]`, response.Body.String())
+	require.Equal(t, []batchTestCall{{false, "cibadmin", []string{"-Ql"}, ""}}, *calls)
+	*calls = nil
+	response = batchTestRequest(backend, "POST", "group/create", `{"id":"batch-group","children":["free10","free2"],"meta":{"target-role":"Stopped","priority":"10"}}`)
+	require.Equal(t, 200, response.Code, response.Body.String())
+	require.Contains(t, response.Body.String(), "/cib/hacluster/groups/batch-group/edit?flash=created")
+	require.Len(t, *calls, 3)
+	require.Equal(t, []string{"configure", "group", "batch-group", "free10", "free2", "meta", "priority=10", "target-role=Stopped"}, (*calls)[1].args)
+	require.Equal(t, []string{"-F", "resource", "stop", "batch-group"}, (*calls)[2].args)
+	for _, call := range *calls {
+		require.False(t, call.live)
+	}
+	*calls = nil
+	response = batchTestRequest(backend, "POST", "group/create", `{"id":"batch-group","children":["busy"]}`)
+	require.Equal(t, 409, response.Code)
+	require.Len(t, *calls, 1)
+	require.Equal(t, "cibadmin", (*calls)[0].name)
+	*calls = nil
+	response = batchTestRequest(backend, "POST", "group/create", `{"id":"batch-group","children":[]}`)
+	require.Equal(t, 400, response.Code)
+	require.Empty(t, *calls)
+}
