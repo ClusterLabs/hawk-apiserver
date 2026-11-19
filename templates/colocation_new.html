@@ -1,13 +1,31 @@
 {{ define "content" }}
+{{ $cibBase := "/cib/live" }}{{ if .CIBBase }}{{ $cibBase = .CIBBase }}{{ end }}
+{{ $colocationAPI := "/api/cib/colocation" }}{{ if .ColocationAPI }}{{ $colocationAPI = .ColocationAPI }}{{ end }}
 <link rel="stylesheet" href="/static/css/primitive_edit.css">
 <link rel="stylesheet" href="/static/css/colocation_new.css">
 <script src="/static/js/classes/ConstraintResources.js"></script>
 <script src="/static/js/classes/Colocation.js"></script>
+{{ if .BatchMode }}
+<script src="/static/js/classes/XAlert.js"></script>
+<script src="/static/js/classes/ConfirmActionPopup.js"></script>
+<link rel="stylesheet" href="/static/css/highlight.css">
+<script src="/static/js/vendor/highlight.js" defer></script>
+<script src="/static/js/batch.js" defer></script>
+{{ end }}
+{{ if .EditMode }}
+<script src="/static/js/classes/Input.js"></script>
+<script src="/static/js/classes/RenamePopup.js"></script>
+<script src="/static/js/classes/DeletePopup.js"></script>
+<link rel="stylesheet" href="/static/css/config_edit.css">
+{{ end }}
 <script src="/static/js/colocation_new.js" defer></script>
 <div class="edit-layout">
   <div class="edit-left">
-    <h2><i class="fa fa-tasks" aria-hidden="true"></i> {{ if .EditMode }}Edit{{ else }}Create{{ end }} Colocation</h2>
-    <form id="colocation-create-form" class="primitive-create-panel" data-colocation-id="{{ .ColocationID }}">
+    {{ if .BatchMode }}<div id="batch-notifications" role="status" aria-live="polite"></div>{{ end }}
+    <h2><i class="fa fa-tasks" aria-hidden="true"></i> {{ if .EditMode }}Edit{{ else }}Create{{ end }} Colocation
+      {{ if .EditMode }}<span class="pull-right btn-group"><a class="btn btn-default" href="{{ $cibBase }}/colocations/new"><i class="fa fa-plus"></i> Create</a><button id="rename-colocation" name="rename" type="button" class="btn btn-default" disabled><i class="fa fa-font"></i> Rename</button><button id="delete-colocation" name="delete" type="button" class="btn btn-default" disabled><i class="fa fa-trash"></i> Delete</button></span>{{ end }}
+    </h2>
+    <form id="colocation-create-form" class="primitive-create-panel" data-api-base="{{ $colocationAPI }}" data-rename-api="{{ if .BatchMode }}{{ $colocationAPI }}/rename{{ else }}/api/cib/resource/rename{{ end }}" data-delete-api="{{ if .BatchMode }}{{ $colocationAPI }}/delete{{ else }}/api/cib/resource/delete{{ end }}" data-options-api="{{ $colocationAPI }}/options{{ if not .BatchMode }}/fetch{{ end }}" data-colocation-id="{{ .ColocationID }}">
       <div id="colocation-error" class="alert alert-danger" role="alert" hidden></div>
       <div class="colocation-row" data-help="id"><label for="colocation_id">Constraint ID</label><input id="colocation_id" name="colocation[id]" class="form-control" {{ if .EditMode }}readonly{{ end }} required></div>
       <div class="colocation-row" data-help="score"><label for="colocation_score">Score</label>
@@ -25,7 +43,7 @@
         <legend>Advanced</legend>
         <div id="colocation-advanced"><div class="colocation-row" data-help="node-attribute"><label for="colocation_node_attr">Node Attribute</label><input id="colocation_node_attr" name="colocation[node_attr]" class="form-control"></div></div>
       </fieldset>
-      <div class="colocation-actions"><button id="create-colocation-button" type="submit" name="submit" class="btn btn-success" disabled>{{ if .EditMode }}Apply{{ else }}Create{{ end }}</button>{{ if .EditMode }}<button id="revert-colocation-button" type="button" class="btn btn-default" hidden>Revert</button>{{ end }}<a id="colocation-back" href="{{ if .EditMode }}/cib/live/config/edit#constraints{{ else }}/cib/live/constraints/types{{ end }}" class="btn btn-white">Back</a></div>
+      <div class="colocation-actions"><button id="create-colocation-button" type="submit" name="submit" class="btn btn-success" disabled>{{ if .EditMode }}Apply{{ else }}Create{{ end }}</button>{{ if .EditMode }}<button id="revert-colocation-button" type="button" class="btn btn-default" hidden>Revert</button>{{ end }}<a id="colocation-back" href="{{ if .EditMode }}{{ $cibBase }}/config/edit#constraints{{ else }}{{ $cibBase }}/constraints/types{{ end }}" class="btn btn-white">Back</a></div>
     </form>
   </div>
   <aside class="edit-right" aria-label="Colocation help">

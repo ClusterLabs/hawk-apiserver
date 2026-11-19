@@ -426,6 +426,10 @@ func saveLocationUpdate(w http.ResponseWriter, r *http.Request, l locationCreate
 // Header actions work for any location constraint, including rules that the
 // form cannot edit, and never allow mutation of another CIB object type.
 func locationAction(ctx context.Context, id, newID string, run clusterConfigCommand) (int, error) {
+	return constraintAction(ctx, id, newID, "location", run)
+}
+
+func constraintAction(ctx context.Context, id, newID, kind string, run clusterConfigCommand) (int, error) {
 	if !groupID.MatchString(id) || (newID != "" && (!groupID.MatchString(newID) || newID == id)) {
 		return 400, fmt.Errorf("Invalid constraint ID")
 	}
@@ -434,22 +438,25 @@ func locationAction(ctx context.Context, id, newID string, run clusterConfigComm
 		return 500, err
 	}
 	var document struct {
-		Locations []struct {
-			ID string `xml:"id,attr"`
-		} `xml:"configuration>constraints>rsc_location"`
+		Constraints struct {
+			Items []struct {
+				XMLName xml.Name
+				ID      string `xml:"id,attr"`
+			} `xml:",any"`
+		} `xml:"configuration>constraints"`
 	}
 	if err := xml.Unmarshal(data, &document); err != nil {
 		return 500, err
 	}
 	found := false
-	for _, location := range document.Locations {
-		if location.ID == id {
+	for _, constraint := range document.Constraints.Items {
+		if constraint.ID == id && constraint.XMLName.Local == "rsc_"+kind {
 			found = true
 			break
 		}
 	}
 	if !found {
-		return 404, fmt.Errorf("The location constraint does not exist")
+		return 404, fmt.Errorf("The %s constraint does not exist", kind)
 	}
 	args := []string{"--force", "configure", "delete", id}
 	if newID != "" {

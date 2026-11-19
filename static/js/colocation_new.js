@@ -10,12 +10,18 @@ function showFlash(type, message) {
     alert.hidden = false;
 }
 
+function updateColocationButtons() {
+    for (const id of ["create-colocation-button", "rename-colocation", "delete-colocation", "revert-colocation-button"]) {
+        const button = document.getElementById(id);
+        if (button) button.disabled = !resources || creatingColocation;
+    }
+}
+
 async function clickCreateButton(event) {
     event.preventDefault();
     if (!resources || creatingColocation) return;
-    const button = document.getElementById("create-colocation-button");
     creatingColocation = true;
-    button.disabled = true;
+    updateColocationButtons();
     try {
         const colocation = new Colocation(
             document.getElementById("colocation_id"),
@@ -28,18 +34,22 @@ async function clickCreateButton(event) {
         showFlash("danger", err.message);
     } finally {
         creatingColocation = false;
-        button.disabled = !resources;
+        updateColocationButtons();
     }
 }
 
 async function initializeColocationForm() {
     try {
-        const response = await fetch("/api/cib/colocation/options/fetch", { method: "POST" });
+        const response = await fetch(form.dataset.optionsApi || "/api/cib/colocation/options/fetch", {
+            method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
+        });
         if (!response.ok) throw new Error(await response.text() || "Unable to load cluster options.");
         const available = await response.json();
         let entries = [];
         if (colocationID) {
-            const response = await fetch("/api/cib/colocation/fetch?id=" + encodeURIComponent(colocationID), { method: "POST" });
+            const response = await fetch((form.dataset.apiBase || "/api/cib/colocation") + "/fetch?id=" + encodeURIComponent(colocationID), {
+                method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
+            });
             if (!response.ok) throw new Error(await response.text());
             const colocation = await response.json();
             document.getElementById("colocation_id").value = colocation.id;
@@ -50,12 +60,13 @@ async function initializeColocationForm() {
         resources = new ConstraintResources(document.getElementById("colocation-resources"), available, entries);
         const url = new URL(window.location.href);
         const flash = url.searchParams.get("flash");
-        if (flash === "created" || flash === "updated") {
-            showFlash("success", `Constraint ${flash} successfully`);
+        if (["created", "updated", "renamed", "error"].includes(flash)) {
+            showFlash(flash === "error" ? "danger" : "success", flash === "error" ? url.searchParams.get("msg") || "Unable to rename constraint." : `Constraint ${flash} successfully`);
             url.searchParams.delete("flash");
+            url.searchParams.delete("msg");
             history.replaceState({}, "", url);
         }
-        document.getElementById("create-colocation-button").disabled = false;
+        updateColocationButtons();
     } catch (err) {
         showFlash("danger", err.message);
     }
@@ -110,5 +121,29 @@ document.addEventListener("click", event => {
 });
 document.getElementById("monitoringMenu").classList.remove("in");
 document.getElementById("configurationMenu").classList.add("in");
-document.querySelector('a[href="/cib/live/constraints/types"]').setAttribute("aria-current", "page");
+document.querySelector(`a[href="${statusCIBBase()}/constraints/types"]`).setAttribute("aria-current", "page");
 initializeColocationForm();
+
+if (window.hawkBatch) window.hawkBatch.start();
+
+if (colocationID) {
+    document.getElementById("rename-colocation").addEventListener("click", () => {
+        new RenamePopup(colocationID, form.dataset.renameApi);
+    });
+    document.getElementById("delete-colocation").addEventListener("click", () => {
+        new DeletePopup(colocationID, async () => {
+            if (creatingColocation) return;
+            creatingColocation = true;
+            updateColocationButtons();
+            try {
+                const response = await fetch(form.dataset.deleteApi, {
+                    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(colocationID),
+                });
+                if (!response.ok) throw new Error(await response.text() || "Unable to delete constraint.");
+                sessionStorage.setItem("configFlash", "Constraint deleted successfully");
+                window.location.href = `${statusCIBBase()}/config/edit#constraints`;
+            } catch (error) { showFlash("danger", error.message); }
+            finally { creatingColocation = false; updateColocationButtons(); }
+        });
+    });
+}

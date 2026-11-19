@@ -7,7 +7,8 @@ class Colocation {
     }
 
     async create(editMode = false) {
-        const response = await fetch(editMode ? "/api/cib/colocation/update" : "/api/cib/colocation/create", {
+        const api = document.getElementById("colocation-create-form").dataset.apiBase || "/api/cib/colocation";
+        const response = await fetch(api + (editMode ? "/update" : "/create"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
