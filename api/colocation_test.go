@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -177,4 +178,60 @@ func TestColocationEditTemplate(t *testing.T) {
 	response := httptest.NewRecorder()
 	ColocationRubyHandler(response, httptest.NewRequest("POST", "/cib/live/colocations/colocation34/edit", nil))
 	require.Equal(t, 405, response.Code)
+}
+
+func TestBatchColocationCreation(t *testing.T) {
+	backend, calls := batchTestBackend(t)
+	original := backend.run
+	backend.run = func(ctx context.Context, live bool, name string, args []string, input string) ([]byte, error) {
+		out, err := original(ctx, live, name, args, input)
+		if name == "cibadmin" {
+			return []byte(`<cib><configuration><resources><primitive id="r2"/><group id="g"><primitive id="nested"/></group><template id="t"/></resources></configuration></cib>`), nil
+		}
+		return out, err
+	}
+	response := batchTestRequest(backend, "POST", "colocation/options", `{}`)
+	require.Equal(t, 200, response.Code, response.Body.String())
+	require.JSONEq(t, `["g","r2","t"]`, response.Body.String())
+	payload := `{"id":"colo1","score":"INFINITY","node_attr":"rack","resources":[{"sequential":true,"action":"Started","resources":["g"]},{"sequential":true,"action":"Started","resources":["r2"]}]}`
+	response = batchTestRequest(backend, "POST", "colocation/create", payload)
+	require.Equal(t, 200, response.Code, response.Body.String())
+	require.JSONEq(t, `{"status":"ok","redirect":"/cib/hacluster/colocations/colo1/edit?flash=created"}`, response.Body.String())
+	last := (*calls)[len(*calls)-1]
+	require.Equal(t, "crm", last.name)
+	require.Equal(t, []string{"configure", "colocation", "colo1", "INFINITY:", "g:Started", "r2:Started", "node-attribute=rack"}, last.args)
+	for _, call := range *calls {
+		require.False(t, call.live)
+	}
+	*calls = nil
+	response = batchTestRequest(backend, "POST", "colocation/create", strings.Replace(payload, `"r2"`, `"nested"`, 1))
+	require.Equal(t, 409, response.Code, response.Body.String())
+	for _, call := range *calls {
+		require.NotEqual(t, "crm", call.name)
+	}
+}
+
+func TestColocationNewCIBContext(t *testing.T) {
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(".."))
+	t.Cleanup(func() { _ = os.Chdir(cwd) })
+	for _, base := range []string{"/cib/live", batchBase} {
+		for _, suffix := range []string{"", "/"} {
+			response := httptest.NewRecorder()
+			ColocationNewHandler(response, httptest.NewRequest("GET", base+"/colocations/new"+suffix, nil))
+			require.Equal(t, 200, response.Code)
+			html := response.Body.String()
+			require.Contains(t, html, `href="`+base+`/constraints/types"`)
+			api := "/api/cib/colocation"
+			options := api + "/options/fetch"
+			if base == batchBase {
+				api = batchAPI + "/colocation"
+				options = api + "/options"
+			}
+			require.Contains(t, html, `data-api-base="`+api+`"`)
+			require.Contains(t, html, `data-options-api="`+options+`"`)
+			require.Equal(t, base == batchBase, strings.Contains(html, `/static/js/batch.js`))
+		}
+	}
 }

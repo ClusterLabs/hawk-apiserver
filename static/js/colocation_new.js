@@ -34,7 +34,9 @@ async function clickCreateButton(event) {
 
 async function initializeColocationForm() {
     try {
-        const response = await fetch("/api/cib/colocation/options/fetch", { method: "POST" });
+        const response = await fetch(form.dataset.optionsApi || "/api/cib/colocation/options/fetch", {
+            method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
+        });
         if (!response.ok) throw new Error(await response.text() || "Unable to load cluster options.");
         const available = await response.json();
         let entries = [];
@@ -110,5 +112,7 @@ document.addEventListener("click", event => {
 });
 document.getElementById("monitoringMenu").classList.remove("in");
 document.getElementById("configurationMenu").classList.add("in");
-document.querySelector('a[href="/cib/live/constraints/types"]').setAttribute("aria-current", "page");
+document.querySelector(`a[href="${statusCIBBase()}/constraints/types"]`).setAttribute("aria-current", "page");
 initializeColocationForm();
+
+if (window.hawkBatch) window.hawkBatch.start();

@@ -50,7 +50,12 @@ func colocationResourcesFromXML(data []byte) ([]string, error) {
 }
 
 func ColocationNewHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/cib/live/colocations/new" && r.URL.Path != "/cib/live/colocations/new/" {
+	base := "/cib/live"
+	switch r.URL.Path {
+	case "/cib/live/colocations/new", "/cib/live/colocations/new/":
+	case batchBase + "/colocations/new", batchBase + "/colocations/new/":
+		base = batchBase
+	default:
 		http.NotFound(w, r)
 		return
 	}
@@ -59,7 +64,13 @@ func ColocationNewHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
-	renderTemplate(w, "colocation_new", map[string]any{"Title": "Create Colocation"})
+	data := map[string]any{"Title": "Create Colocation", "CIBBase": base}
+	if base == batchBase {
+		data["BatchMode"] = true
+		data["BatchConfig"] = map[string]string{"base": batchBase, "api": batchAPI, "id": batchID}
+		data["ColocationAPI"] = batchAPI + "/colocation"
+	}
+	renderTemplate(w, "colocation_new", data)
 }
 func FetchColocationOptions(w http.ResponseWriter, r *http.Request) {
 	if !groupFetchMethod(w, r) {
@@ -165,6 +176,10 @@ func createColocation(w http.ResponseWriter, r *http.Request, read func() (CIB, 
 		http.Error(w, "Invalid request", 400)
 		return
 	}
+	saveColocation(w, r, c, read, run, "/cib/live")
+}
+
+func saveColocation(w http.ResponseWriter, r *http.Request, c colocationCreate, read func() (CIB, int, error), run func(context.Context, ...string) error, base string) {
 	args, err := colocationCreateArgs(c)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
@@ -192,7 +207,7 @@ func createColocation(w http.ResponseWriter, r *http.Request, read func() (CIB, 
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "redirect": "/cib/live/colocations/" + url.PathEscape(c.ID) + "/edit?flash=created"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "redirect": base + "/colocations/" + url.PathEscape(c.ID) + "/edit?flash=created"})
 }
 func ColocationRubyHandler(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")

@@ -224,6 +224,8 @@ func main() {
 	mux.HandleFunc("/api/cib/order/create", authMiddleware(api.OrderCreateHandler))
 	mux.HandleFunc("/api/cib/order/fetch", authMiddleware(api.OrderFetchHandler))
 	mux.HandleFunc("/api/cib/order/update", authMiddleware(api.OrderUpdateHandler))
+	mux.HandleFunc("/cib/hacluster/colocations/new", authMiddleware(api.ColocationNewHandler))
+	mux.HandleFunc("/cib/hacluster/colocations/new/", authMiddleware(api.ColocationNewHandler))
 	mux.HandleFunc("/cib/live/colocations/new", authMiddleware(api.ColocationNewHandler))
 	mux.HandleFunc("/cib/live/colocations/new/", authMiddleware(api.ColocationNewHandler))
 	mux.HandleFunc("/cib/live/colocations/", authMiddleware(api.ColocationRubyHandler))
