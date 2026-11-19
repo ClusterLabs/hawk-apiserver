@@ -1,4 +1,6 @@
 {{ define "content" }}
+{{ $cibBase := "/cib/live" }}{{ if .CIBBase }}{{ $cibBase = .CIBBase }}{{ end }}
+{{ $orderAPI := "/api/cib/order" }}{{ if .OrderAPI }}{{ $orderAPI = .OrderAPI }}{{ end }}
 <link rel="stylesheet" href="/static/css/primitive_edit.css">
 <link rel="stylesheet" href="/static/css/colocation_new.css">
 <script src="/static/js/classes/ConstraintResources.js"></script>
@@ -13,12 +15,19 @@
 <link rel="stylesheet" href="/static/css/common.css">
 <link rel="stylesheet" href="/static/css/config_edit.css">
 {{ end }}
+{{ if .BatchMode }}
+<script src="/static/js/classes/ConfirmActionPopup.js"></script>
+<link rel="stylesheet" href="/static/css/highlight.css">
+<script src="/static/js/vendor/highlight.js" defer></script>
+<script src="/static/js/batch.js" defer></script>
+{{ end }}
 <script src="/static/js/order_new.js" defer></script>
 <div class="edit-layout">
   <div class="edit-left">
-    <h2><i class="fa fa-sort-amount-down" aria-hidden="true"></i> {{ if .Editing }}Edit Order <span class="pull-right btn-group"><a class="btn btn-white" href="/cib/live/orders/new"><i class="fa fa-plus"></i> Create</a><button class="btn btn-white" type="button" id="rename-order" name="rename" disabled><i class="fa fa-font"></i> Rename</button><button class="btn btn-white" type="button" id="delete-order" name="delete" disabled><i class="fa fa-trash"></i> Delete</button></span>{{ else }}Create Order{{ end }}</h2>
+    {{ if .BatchMode }}<div id="batch-notifications" role="status" aria-live="polite"></div>{{ end }}
+    <h2><i class="fa fa-sort-amount-down" aria-hidden="true"></i> {{ if .Editing }}Edit Order <span class="pull-right btn-group"><a class="btn btn-white" href="{{ $cibBase }}/orders/new"><i class="fa fa-plus"></i> Create</a><button class="btn btn-white" type="button" id="rename-order" name="rename" disabled><i class="fa fa-font"></i> Rename</button><button class="btn btn-white" type="button" id="delete-order" name="delete" disabled><i class="fa fa-trash"></i> Delete</button></span>{{ else }}Create Order{{ end }}</h2>
     <div id="order-notifications" role="status" aria-live="polite"></div>
-    <form id="order-create-form" class="primitive-create-panel" {{ if .Editing }}data-editing="true" data-order-id="{{ .OrderID }}"{{ end }}>
+    <form id="order-create-form" data-api-base="{{ $orderAPI }}" data-options-api="{{ $orderAPI }}/options{{ if not .BatchMode }}/fetch{{ end }}" class="primitive-create-panel" {{ if .Editing }}data-editing="true" data-order-id="{{ .OrderID }}"{{ end }}>
       <div id="order-error" class="alert alert-danger" role="alert" hidden></div>
       <div class="colocation-row" data-help="id"><label for="order_id">Constraint ID</label><input id="order_id" name="order[id]" class="form-control" required {{ if .Editing }}readonly value="{{ .OrderID }}"{{ end }}></div>
       <div class="colocation-row" data-help="score"><label for="order_score">Kind</label>
@@ -30,7 +39,7 @@
       </div>
       <div class="colocation-row"><label for="order_score_symmetrical">Symmetrical</label><select id="order_score_symmetrical" name="order[symmetrical]" class="form-control"><option value="true">Yes</option><option value="false">No</option></select></div>
       <fieldset><legend>Resources</legend><div id="order-resources"></div></fieldset>
-      <div class="colocation-actions"><button id="create-order-button" type="submit" name="submit" class="btn btn-success" disabled>{{ if .Editing }}Apply{{ else }}Create{{ end }}</button>{{ if .Editing }}<button type="button" id="revert-order" name="revert" class="btn btn-white revert" disabled>Revert</button>{{ end }}<a id="order-back" href="{{ if .Editing }}/cib/live/config/edit#constraints{{ else }}/cib/live/constraints/types{{ end }}" class="btn btn-white">Back</a></div>
+      <div class="colocation-actions"><button id="create-order-button" type="submit" name="submit" class="btn btn-success" disabled>{{ if .Editing }}Apply{{ else }}Create{{ end }}</button>{{ if .Editing }}<button type="button" id="revert-order" name="revert" class="btn btn-white revert" disabled>Revert</button>{{ end }}<a id="order-back" href="{{ if .Editing }}{{ $cibBase }}/config/edit#constraints{{ else }}{{ $cibBase }}/constraints/types{{ end }}" class="btn btn-white">Back</a></div>
     </form>
   </div>
   <aside class="edit-right" aria-label="Order help">

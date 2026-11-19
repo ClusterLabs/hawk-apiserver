@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -112,4 +113,65 @@ func TestOrderTemplate(t *testing.T) {
 	response := httptest.NewRecorder()
 	OrderNewHandler(response, httptest.NewRequest("POST", "/cib/live/orders/new", nil))
 	require.Equal(t, 405, response.Code)
+}
+
+func TestBatchOrderCreate(t *testing.T) {
+	backend, calls := batchTestBackend(t)
+	original := backend.run
+	backend.run = func(ctx context.Context, live bool, name string, args []string, input string) ([]byte, error) {
+		out, err := original(ctx, live, name, args, input)
+		if name == "cibadmin" {
+			return []byte(`<cib><configuration><resources><primitive id="r2"/><group id="g"><primitive id="nested"/></group><template id="t"/></resources></configuration></cib>`), nil
+		}
+		return out, err
+	}
+	response := batchTestRequest(backend, "POST", "order/options", `{}`)
+	require.Equal(t, 200, response.Code, response.Body.String())
+	require.JSONEq(t, `["g","r2","t"]`, response.Body.String())
+	payload := `{"id":"order1","score":"Mandatory","symmetrical":false,"resources":[{"sequential":true,"action":"promote","resources":["g"]},{"sequential":false,"action":"start","resources":["r2","t"]}]}`
+	response = batchTestRequest(backend, "POST", "order/create", payload)
+	require.Equal(t, 200, response.Code, response.Body.String())
+	require.JSONEq(t, `{"status":"ok","redirect":"/cib/hacluster/orders/order1/edit?flash=created"}`, response.Body.String())
+	last := (*calls)[len(*calls)-1]
+	require.Equal(t, "crm", last.name)
+	require.Equal(t, []string{"configure", "order", "order1", "Mandatory:", "g:promote", "(", "r2:start", "t:start", ")", "symmetrical=false"}, last.args)
+	for _, call := range *calls {
+		require.False(t, call.live)
+	}
+	*calls = nil
+	response = batchTestRequest(backend, "POST", "order/create", strings.Replace(payload, `"r2"`, `"nested"`, 1))
+	require.Equal(t, 409, response.Code, response.Body.String())
+	for _, call := range *calls {
+		require.NotEqual(t, "crm", call.name)
+	}
+	*calls = nil
+	response = batchTestRequest(backend, "POST", "order/create", strings.Replace(payload, `"Mandatory"`, `"invalid"`, 1))
+	require.Equal(t, 400, response.Code, response.Body.String())
+	require.Empty(t, *calls)
+}
+
+func TestOrderNewCIBContext(t *testing.T) {
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(".."))
+	t.Cleanup(func() { _ = os.Chdir(cwd) })
+	for _, base := range []string{"/cib/live", batchBase} {
+		for _, suffix := range []string{"", "/"} {
+			response := httptest.NewRecorder()
+			OrderNewHandler(response, httptest.NewRequest("GET", base+"/orders/new"+suffix, nil))
+			require.Equal(t, 200, response.Code)
+			html := response.Body.String()
+			require.Contains(t, html, `href="`+base+`/constraints/types"`)
+			api := "/api/cib/order"
+			options := api + "/options/fetch"
+			if base == batchBase {
+				api = batchAPI + "/order"
+				options = api + "/options"
+			}
+			require.Contains(t, html, `data-api-base="`+api+`"`)
+			require.Contains(t, html, `data-options-api="`+options+`"`)
+			require.Equal(t, base == batchBase, strings.Contains(html, `/static/js/batch.js`))
+			require.NotContains(t, html, `id="rename-order"`)
+		}
+	}
 }

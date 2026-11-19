@@ -39,7 +39,11 @@ async function clickCreateButton(event) {
 
 async function initializeOrderForm() {
     try {
-        const response = await fetch(editingOrder ? `/api/cib/order/fetch?id=${encodeURIComponent(currentOrderID)}` : "/api/cib/order/options/fetch", { method: editingOrder ? "GET" : "POST", cache: "no-store" });
+        const api = orderForm.dataset.apiBase || "/api/cib/order";
+        const response = await fetch(editingOrder ? `${api}/fetch?id=${encodeURIComponent(currentOrderID)}` : orderForm.dataset.optionsApi || "/api/cib/order/options/fetch", {
+            method: editingOrder ? "GET" : "POST", cache: "no-store",
+            ...(!editingOrder ? { headers: { "Content-Type": "application/json" }, body: "{}" } : {}),
+        });
         if (!response.ok) throw new Error(await response.text() || "Unable to load cluster options.");
         const data = await response.json();
         const available = editingOrder ? data.available : data;
@@ -112,7 +116,7 @@ document.addEventListener("click", event => {
 });
 document.getElementById("monitoringMenu").classList.remove("in");
 document.getElementById("configurationMenu").classList.add("in");
-document.querySelector('a[href="/cib/live/constraints/types"]').setAttribute("aria-current", "page");
+document.querySelector(`a[href="${statusCIBBase()}/constraints/types"]`).setAttribute("aria-current", "page");
 function discardOrderChanges(onConfirm) {
     if (!orderChanged) { onConfirm(); return; }
     const popup = new Popup();
@@ -144,3 +148,5 @@ if (editingOrder) {
     }
 }
 initializeOrderForm();
+
+if (window.hawkBatch) window.hawkBatch.start();
