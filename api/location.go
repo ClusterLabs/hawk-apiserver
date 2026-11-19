@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os/exec"
 	"regexp"
 	"strings"
 )
@@ -59,7 +58,12 @@ func locationResourcesFromXML(data []byte) ([]string, error) {
 }
 
 func LocationNewHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/cib/live/locations/new" && r.URL.Path != "/cib/live/locations/new/" {
+	base := "/cib/live"
+	switch r.URL.Path {
+	case "/cib/live/locations/new", "/cib/live/locations/new/":
+	case batchBase + "/locations/new", batchBase + "/locations/new/":
+		base = batchBase
+	default:
 		http.NotFound(w, r)
 		return
 	}
@@ -68,7 +72,13 @@ func LocationNewHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
-	renderTemplate(w, "location_new", map[string]any{"Title": "Create Location Constraint"})
+	data := map[string]any{"Title": "Create Location Constraint", "CIBBase": base}
+	if base == batchBase {
+		data["BatchMode"] = true
+		data["BatchConfig"] = map[string]string{"base": batchBase, "api": batchAPI, "id": batchID}
+		data["LocationAPI"] = batchAPI + "/location"
+	}
+	renderTemplate(w, "location_new", data)
 }
 func FetchLocationOptions(w http.ResponseWriter, r *http.Request) {
 	if !groupFetchMethod(w, r) {
@@ -79,12 +89,16 @@ func FetchLocationOptions(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unable to read cluster: "+err.Error(), 500)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(locationOptions(cib))
+}
+
+func locationOptions(cib CIB) map[string]any {
 	nodes := []string{}
 	for _, node := range cib.Configuration.Nodes {
 		nodes = append(nodes, node.Uname)
 	}
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]any{"resources": cib.LocationResources, "nodes": nodes})
+	return map[string]any{"resources": cib.LocationResources, "nodes": nodes}
 }
 
 func simpleLocation(rules []locationRule) bool {
@@ -202,6 +216,10 @@ func createLocation(w http.ResponseWriter, r *http.Request, read func() (CIB, in
 		http.Error(w, "Invalid request", 400)
 		return
 	}
+	saveLocation(w, r, location, read, run, "/cib/live")
+}
+
+func saveLocation(w http.ResponseWriter, r *http.Request, location locationCreate, read func() (CIB, int, error), run func(context.Context, ...string) error, base string) {
 	args, err := locationCreateArgs(location)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
@@ -227,11 +245,11 @@ func createLocation(w http.ResponseWriter, r *http.Request, read func() (CIB, in
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "redirect": "/cib/live/locations/" + url.PathEscape(location.ID) + "/edit?flash=created"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "redirect": base + "/locations/" + url.PathEscape(location.ID) + "/edit?flash=created"})
 }
 func LocationRubyHandler(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-	if len(parts) != 5 || parts[4] != "edit" {
+	if len(parts) != 5 || parts[0] != "cib" || (parts[1] != "live" && parts[1] != batchID) || parts[2] != "locations" || parts[4] != "edit" {
 		resourceRubyHandler(w, r, "Constraint")
 		return
 	}
@@ -240,15 +258,26 @@ func LocationRubyHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
-	renderTemplate(w, "location_new", map[string]any{"Title": "Edit Location Constraint", "EditMode": true, "LocationID": parts[3]})
+	data := map[string]any{"Title": "Edit Location Constraint", "EditMode": true, "LocationID": parts[3]}
+	if parts[1] == batchID {
+		data["CIBBase"] = batchBase
+		data["BatchMode"] = true
+		data["BatchConfig"] = map[string]string{"base": batchBase, "api": batchAPI, "id": batchID}
+		data["LocationAPI"] = batchAPI + "/location"
+	}
+	renderTemplate(w, "location_new", data)
 }
 
 // Read the original XML so unsupported rules are never silently discarded.
 func readLocation(ctx context.Context, id string) (locationCreate, error) {
+	return readLocationUsing(ctx, id, runClusterConfigCommand)
+}
+
+func readLocationUsing(ctx context.Context, id string, run clusterConfigCommand) (locationCreate, error) {
 	if !groupID.MatchString(id) {
 		return locationCreate{}, fmt.Errorf("Invalid ID")
 	}
-	data, err := exec.CommandContext(ctx, "cibadmin", "-Q", "--xpath", "//constraints/rsc_location[@id='"+id+"']").Output()
+	data, err := run(ctx, "cibadmin", []string{"-Q", "--xpath", "//constraints/rsc_location[@id='" + id + "']"}, "")
 	if err != nil {
 		return locationCreate{}, fmt.Errorf("Unable to read location constraint: %w", err)
 	}
@@ -324,10 +353,14 @@ func locationFromXML(data []byte) (locationCreate, error) {
 }
 
 func FetchLocation(w http.ResponseWriter, r *http.Request) {
+	fetchLocation(w, r, runClusterConfigCommand)
+}
+
+func fetchLocation(w http.ResponseWriter, r *http.Request, run clusterConfigCommand) {
 	if !groupFetchMethod(w, r) {
 		return
 	}
-	l, err := readLocation(r.Context(), r.URL.Query().Get("id"))
+	l, err := readLocationUsing(r.Context(), r.URL.Query().Get("id"), run)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		return
@@ -345,16 +378,20 @@ func LocationUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request", 400)
 		return
 	}
+	saveLocationUpdate(w, r, l, GetCIB, runClusterConfigCommand, "/cib/live")
+}
+
+func saveLocationUpdate(w http.ResponseWriter, r *http.Request, l locationCreate, read func() (CIB, int, error), run clusterConfigCommand, base string) {
 	args, err := locationCreateArgs(l)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		return
 	}
-	if _, err = readLocation(r.Context(), l.ID); err != nil {
+	if _, err = readLocationUsing(r.Context(), l.ID, run); err != nil {
 		http.Error(w, err.Error(), 409)
 		return
 	}
-	cib, _, err := GetCIB()
+	cib, _, err := read()
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
@@ -378,12 +415,48 @@ func LocationUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		tokens = append(tokens, "\""+strings.NewReplacer("\\", "\\\\", "\"", "\\\"").Replace(arg)+"\"")
 	}
-	cmd := exec.CommandContext(r.Context(), "/usr/sbin/crm", "-F", "configure", "load", "update", "/dev/stdin")
-	cmd.Stdin = strings.NewReader(strings.Join(tokens, " ") + "\n")
-	if out, err := cmd.CombinedOutput(); err != nil {
-		http.Error(w, strings.TrimSpace(string(out)), 500)
+	if _, err := run(r.Context(), "crm", []string{"-F", "configure", "load", "update", "-"}, strings.Join(tokens, " ")+"\n"); err != nil {
+		http.Error(w, err.Error(), 500)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "redirect": "/cib/live/locations/" + url.PathEscape(l.ID) + "/edit?flash=updated"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "redirect": base + "/locations/" + url.PathEscape(l.ID) + "/edit?flash=updated"})
+}
+
+// Header actions work for any location constraint, including rules that the
+// form cannot edit, and never allow mutation of another CIB object type.
+func locationAction(ctx context.Context, id, newID string, run clusterConfigCommand) (int, error) {
+	if !groupID.MatchString(id) || (newID != "" && (!groupID.MatchString(newID) || newID == id)) {
+		return 400, fmt.Errorf("Invalid constraint ID")
+	}
+	data, err := run(ctx, "cibadmin", []string{"-Ql"}, "")
+	if err != nil {
+		return 500, err
+	}
+	var document struct {
+		Locations []struct {
+			ID string `xml:"id,attr"`
+		} `xml:"configuration>constraints>rsc_location"`
+	}
+	if err := xml.Unmarshal(data, &document); err != nil {
+		return 500, err
+	}
+	found := false
+	for _, location := range document.Locations {
+		if location.ID == id {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return 404, fmt.Errorf("The location constraint does not exist")
+	}
+	args := []string{"--force", "configure", "delete", id}
+	if newID != "" {
+		args = []string{"-D", "plain", "configure", "rename", id, newID}
+	}
+	if _, err := run(ctx, "crm", args, ""); err != nil {
+		return 500, fmt.Errorf("%s", tagCreateError(id, err))
+	}
+	return 200, nil
 }

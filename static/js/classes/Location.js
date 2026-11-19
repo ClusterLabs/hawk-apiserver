@@ -7,7 +7,7 @@ class Location {
     }
 
     async create(editMode = false) {
-        const response = await fetch(editMode ? "/api/cib/location/update" : "/api/cib/location/create", {
+        const response = await fetch(`${document.getElementById("location-create-form")?.dataset.apiBase || "/api/cib/location"}/${editMode ? "update" : "create"}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({

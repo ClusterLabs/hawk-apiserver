@@ -18,7 +18,12 @@ func constraintTypes() []constraintType {
 }
 
 func ConstraintTypesHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/cib/live/constraints/types" && r.URL.Path != "/cib/live/constraints/types/" {
+	base := "/cib/live"
+	switch r.URL.Path {
+	case "/cib/live/constraints/types", "/cib/live/constraints/types/":
+	case batchBase + "/constraints/types", batchBase + "/constraints/types/":
+		base = batchBase
+	default:
 		http.NotFound(w, r)
 		return
 	}
@@ -27,8 +32,10 @@ func ConstraintTypesHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	renderTemplate(w, "constraint_types", map[string]any{
-		"Title":           "Add Constraint",
-		"ConstraintTypes": constraintTypes(),
-	})
+	data := map[string]any{"Title": "Add Constraint", "ConstraintTypes": constraintTypes(), "CIBBase": base}
+	if base == batchBase {
+		data["BatchMode"] = true
+		data["BatchConfig"] = map[string]string{"base": batchBase, "api": batchAPI, "id": batchID}
+	}
+	renderTemplate(w, "constraint_types", data)
 }

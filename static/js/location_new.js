@@ -1,4 +1,5 @@
-const locationID = document.getElementById("location-create-form").dataset.locationId;
+const locationForm = document.getElementById("location-create-form");
+const locationID = locationForm.dataset.locationId;
 let locationReady = false;
 let creatingLocation = false;
 const rules = new LocationRules(document.getElementById("location-rules"));
@@ -17,28 +18,34 @@ function updateFromSimple() {
     rules.setValues([{ score, role: "", operator: "and", expressions: node ? [{ value: node, attribute: "#uname", operation: "eq", kind: "uname" }] : [] }]);
 }
 
+function updateLocationButtons() {
+    for (const id of ["create-location-button", "rename-location", "delete-location", "revert-location-button"]) {
+        const button = document.getElementById(id);
+        if (button) button.disabled = !locationReady || creatingLocation;
+    }
+}
+
 function clickCreateButton(event) {
     event.preventDefault();
     if (!locationReady || creatingLocation) return;
     const location = new Location(document.getElementById("input-location-id"), document.getElementById("location_resources"), document.getElementById("location_discovery"), rules);
-    const button = document.getElementById("create-location-button");
     creatingLocation = true;
-    button.disabled = true;
+    updateLocationButtons();
     location.create(Boolean(locationID)).catch(err => showFlash("danger", err.message)).finally(() => {
         creatingLocation = false;
-        button.disabled = !locationReady;
+        updateLocationButtons();
     });
 }
 
 async function initializeLocationForm() {
     try {
-        const response = await fetch("/api/cib/location/options/fetch", { method: "POST" });
+        const response = await fetch(locationForm.dataset.optionsApi || "/api/cib/location/options/fetch", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
         if (!response.ok) throw new Error(await response.text() || "Unable to load cluster options.");
         const options = await response.json();
         for (const id of options.resources) document.getElementById("location_resources").add(new Option(id, id));
         for (const name of options.nodes) document.getElementById("simple-node").add(new Option(name, name));
         if (locationID) {
-            const response = await fetch("/api/cib/location/fetch?id=" + encodeURIComponent(locationID), { method: "POST" });
+            const response = await fetch(`${locationForm.dataset.apiBase || "/api/cib/location"}/fetch?id=${encodeURIComponent(locationID)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
             if (!response.ok) throw new Error(await response.text());
             const location = await response.json();
             document.getElementById("input-location-id").value = location.id;
@@ -57,14 +64,15 @@ async function initializeLocationForm() {
             if (!simple || location.discovery) document.querySelector('[data-location-tab="locadvanced"]').click();
         }
         const flash = new URL(window.location.href).searchParams.get("flash");
-        if (flash === "created" || flash === "updated") {
-            showFlash("success", `Constraint ${flash} successfully`);
+        if (["created", "updated", "renamed", "error"].includes(flash)) {
             const url = new URL(window.location.href);
+            showFlash(flash === "error" ? "danger" : "success", flash === "error" ? url.searchParams.get("msg") || "Unable to rename constraint." : `Constraint ${flash} successfully`);
             url.searchParams.delete("flash");
+            url.searchParams.delete("msg");
             history.replaceState({}, "", url);
         }
         locationReady = true;
-        document.getElementById("create-location-button").disabled = false;
+        updateLocationButtons();
     } catch (err) {
         showFlash("danger", err.message);
     }
@@ -95,7 +103,7 @@ document.querySelectorAll("[data-location-tab]").forEach(tab => tab.addEventList
 }));
 document.getElementById("monitoringMenu").classList.remove("in");
 document.getElementById("configurationMenu").classList.add("in");
-document.querySelector('a[href="/cib/live/constraints/types"]').setAttribute("aria-current", "page");
+document.querySelector(`a[href="${statusCIBBase()}/constraints/types"]`).setAttribute("aria-current", "page");
 initializeLocationForm();
 
 const locationHelp = {
@@ -132,3 +140,27 @@ document.getElementById("location-create-form").addEventListener("mouseover", sh
 document.getElementById("location-create-form").addEventListener("focusin", showLocationHelp);
 
 document.getElementById("revert-location-button")?.addEventListener("click", () => window.location.reload());
+
+if (window.hawkBatch) window.hawkBatch.start();
+
+if (locationID) {
+    document.getElementById("rename-location").addEventListener("click", () => {
+        new RenamePopup(locationID, locationForm.dataset.renameApi);
+    });
+    document.getElementById("delete-location").addEventListener("click", () => {
+        new DeletePopup(locationID, async () => {
+            if (creatingLocation) return;
+            creatingLocation = true;
+            updateLocationButtons();
+            try {
+                const response = await fetch(locationForm.dataset.deleteApi, {
+                    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(locationID),
+                });
+                if (!response.ok) throw new Error(await response.text() || "Unable to delete constraint.");
+                sessionStorage.setItem("configFlash", "Constraint deleted successfully");
+                window.location.href = `${statusCIBBase()}/config/edit#constraints`;
+            } catch (error) { showFlash("danger", error.message); }
+            finally { creatingLocation = false; updateLocationButtons(); }
+        });
+    });
+}

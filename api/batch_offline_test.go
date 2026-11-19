@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -274,6 +275,56 @@ func TestBatchShadowStartStopStatus(t *testing.T) {
 	require.Equal(t, 200, response.Code, response.Body.String())
 	response = batchTestRequest(backend, "GET", "alert/fetch?id=hawk-alert-renamed", "")
 	require.Equal(t, 404, response.Code)
+	response = batchTestRequest(backend, "POST", "location/options", `{}`)
+	require.Equal(t, 200, response.Code)
+	var options struct {
+		Resources []string `json:"resources"`
+		Nodes     []string `json:"nodes"`
+	}
+	require.NoError(t, json.Unmarshal(response.Body.Bytes(), &options))
+	require.Contains(t, options.Resources, "hawk-clone-proof")
+	require.NotContains(t, options.Resources, "hawk-color-proof")
+	require.NotEmpty(t, options.Nodes)
+	locationPayload := fmt.Sprintf(`{"id":"hawk-location-proof","resources":["hawk-clone-proof"],"rules":[{"score":"100","expressions":[{"attribute":"#uname","operation":"eq","value":%q,"kind":"uname"}]}]}`, options.Nodes[0])
+	response = batchTestRequest(backend, "POST", "location/create", locationPayload)
+	require.Equal(t, 200, response.Code, response.Body.String())
+	response = batchTestRequest(backend, "POST", "location/create", `{"id":"hawk-location-rule-proof","resources":["hawk-clone-proof"],"discovery":"always","rules":[{"score":"100","operator":"and","expressions":[{"attribute":"rack","operation":"eq","value":"a","type":"string","kind":"attr-val"}]}]}`)
+	require.Equal(t, 200, response.Code, response.Body.String())
+	_, raw, err = backend.readCIB(ctx, false)
+	require.NoError(t, err)
+	require.Contains(t, string(raw), `id="hawk-location-proof"`)
+	require.Contains(t, string(raw), `id="hawk-location-rule-proof"`)
+	require.Contains(t, string(raw), `attribute="rack"`)
+	response = batchTestRequest(backend, "POST", "location/fetch?id=hawk-location-proof", `{}`)
+	require.Equal(t, 200, response.Code, response.Body.String())
+	var location locationCreate
+	require.NoError(t, json.Unmarshal(response.Body.Bytes(), &location))
+	require.Equal(t, "100", location.Rules[0].Score)
+	locationPayload = fmt.Sprintf(`{"id":"hawk-location-proof","resources":["hawk-clone-proof"],"rules":[{"score":"200","expressions":[{"attribute":"#uname","operation":"eq","value":%q,"kind":"uname"}]}]}`, options.Nodes[0])
+	response = batchTestRequest(backend, "POST", "location/update", locationPayload)
+	require.Equal(t, 200, response.Code, response.Body.String())
+	response = batchTestRequest(backend, "POST", "location/fetch?id=hawk-location-proof", `{}`)
+	require.Equal(t, 200, response.Code)
+	require.NoError(t, json.Unmarshal(response.Body.Bytes(), &location))
+	require.Equal(t, "200", location.Rules[0].Score)
+	response = batchTestRequest(backend, "POST", "location/update", `{"id":"hawk-location-rule-proof","resources":["hawk-clone-proof"],"discovery":"always","rules":[{"score":"50","operator":"or","expressions":[{"attribute":"rack","operation":"eq","value":"b","type":"string","kind":"attr-val"},{"attribute":"disk","operation":"defined","kind":"attr-def"}]}]}`)
+	require.Equal(t, 200, response.Code, response.Body.String())
+	response = batchTestRequest(backend, "POST", "location/fetch?id=hawk-location-rule-proof", `{}`)
+	require.Equal(t, 200, response.Code)
+	require.NoError(t, json.Unmarshal(response.Body.Bytes(), &location))
+	require.Equal(t, "50", location.Rules[0].Score)
+	require.Equal(t, "or", location.Rules[0].Operator)
+	require.Len(t, location.Rules[0].Expressions, 2)
+	response = batchTestRequest(backend, "POST", "location/rename", `{"oldID":"hawk-location-proof","newID":"hawk-location-renamed"}`)
+	require.Equal(t, 200, response.Code, response.Body.String())
+	response = batchTestRequest(backend, "POST", "location/fetch?id=hawk-location-renamed", `{}`)
+	require.Equal(t, 200, response.Code, response.Body.String())
+	response = batchTestRequest(backend, "POST", "location/delete", `"hawk-location-renamed"`)
+	require.Equal(t, 200, response.Code, response.Body.String())
+	_, raw, err = backend.readCIB(ctx, false)
+	require.NoError(t, err)
+	require.NotContains(t, string(raw), `id="hawk-location-renamed"`)
+	require.Contains(t, string(raw), `id="hawk-location-rule-proof"`)
 	unchanged, err := os.ReadFile(baseline)
 	require.NoError(t, err)
 	require.Equal(t, original, unchanged)
