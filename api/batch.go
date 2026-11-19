@@ -256,7 +256,7 @@ func batchJSON(w http.ResponseWriter, value any) {
 
 func (b *batchBackend) api(w http.ResponseWriter, r *http.Request) {
 	operation := strings.TrimPrefix(r.URL.Path, batchAPI+"/")
-	methods := map[string]string{"state": "GET", "details": "GET", "review": "GET", "result": "GET", "simulate": "POST", "action": "POST", "apply": "POST", "discard": "POST", "primitive/create": "POST", "group/children": "POST", "group/create": "POST", "clone/children": "POST", "clone/create": "POST", "tag/objects": "POST", "tag/create": "POST", "tag/fetch": "GET", "tag/update": "POST", "tag/rename": "POST", "tag/delete": "POST", "alert/create": "POST", "alert/fetch": "GET", "alert/update": "POST", "alert/rename": "POST", "alert/delete": "POST", "colocation/fetch": "POST", "colocation/update": "POST", "colocation/rename": "POST", "colocation/delete": "POST", "colocation/options": "POST", "colocation/create": "POST", "location/options": "POST", "location/create": "POST", "location/fetch": "POST", "location/update": "POST", "location/rename": "POST", "location/delete": "POST"}
+	methods := map[string]string{"state": "GET", "details": "GET", "review": "GET", "result": "GET", "simulate": "POST", "action": "POST", "apply": "POST", "discard": "POST", "primitive/create": "POST", "group/children": "POST", "group/create": "POST", "clone/children": "POST", "clone/create": "POST", "tag/objects": "POST", "tag/create": "POST", "tag/fetch": "GET", "tag/update": "POST", "tag/rename": "POST", "tag/delete": "POST", "alert/create": "POST", "alert/fetch": "GET", "alert/update": "POST", "alert/rename": "POST", "alert/delete": "POST", "colocation/fetch": "POST", "colocation/update": "POST", "colocation/rename": "POST", "colocation/delete": "POST", "order/fetch": "GET", "order/update": "POST", "order/rename": "POST", "order/delete": "POST", "order/options": "POST", "order/create": "POST", "colocation/options": "POST", "colocation/create": "POST", "location/options": "POST", "location/create": "POST", "location/fetch": "POST", "location/update": "POST", "location/rename": "POST", "location/delete": "POST"}
 	method, ok := methods[operation]
 	if !ok {
 		http.NotFound(w, r)
@@ -374,7 +374,7 @@ func (b *batchBackend) api(w http.ResponseWriter, r *http.Request) {
 		}, func(ctx context.Context, args ...string) error {
 			return runColocationUpdateUsing(ctx, run, args...)
 		}, batchBase)
-	case "colocation/options":
+	case "colocation/options", "order/options":
 		var input struct{}
 		if !readBatchJSON(w, r, &input) {
 			return
@@ -385,6 +385,30 @@ func (b *batchBackend) api(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		batchJSON(w, cib.ColocationResources)
+	case "order/fetch":
+		fetchOrderEdit(w, r, func(ctx context.Context, name string, args []string, input string) ([]byte, error) {
+			return b.run(ctx, false, name, args, input)
+		})
+	case "order/update":
+		var order orderCreate
+		if !readBatchJSON(w, r, &order) {
+			return
+		}
+		saveOrderEdit(w, r, order, func(ctx context.Context, name string, args []string, input string) ([]byte, error) {
+			return b.run(ctx, false, name, args, input)
+		})
+	case "order/create":
+		var order orderCreate
+		if !readBatchJSON(w, r, &order) {
+			return
+		}
+		saveOrder(w, r, order, func() (CIB, int, error) {
+			cib, _, err := b.readCIB(ctx, false)
+			return cib, 0, err
+		}, func(ctx context.Context, args ...string) error {
+			_, err := b.run(ctx, false, "crm", args, "")
+			return err
+		}, batchBase)
 	case "colocation/create":
 		var colocation colocationCreate
 		if !readBatchJSON(w, r, &colocation) {
@@ -453,7 +477,7 @@ func (b *batchBackend) api(w http.ResponseWriter, r *http.Request) {
 		saveTagUpdate(w, r, tag, func(ctx context.Context, name string, args []string, input string) ([]byte, error) {
 			return b.run(ctx, false, name, args, input)
 		})
-	case "colocation/rename", "colocation/delete", "tag/rename", "tag/delete", "alert/rename", "alert/delete", "location/rename", "location/delete":
+	case "order/rename", "order/delete", "colocation/rename", "colocation/delete", "tag/rename", "tag/delete", "alert/rename", "alert/delete", "location/rename", "location/delete":
 		var id, newID string
 		if strings.HasSuffix(operation, "/rename") {
 			var input struct {
@@ -478,6 +502,8 @@ func (b *batchBackend) api(w http.ResponseWriter, r *http.Request) {
 			action = locationAction
 		} else if strings.HasPrefix(operation, "colocation/") {
 			action = colocationAction
+		} else if strings.HasPrefix(operation, "order/") {
+			action = orderAction
 		}
 		status, err := action(ctx, id, newID, func(ctx context.Context, name string, args []string, input string) ([]byte, error) {
 			return b.run(ctx, false, name, args, input)

@@ -39,7 +39,11 @@ async function clickCreateButton(event) {
 
 async function initializeOrderForm() {
     try {
-        const response = await fetch(editingOrder ? `/api/cib/order/fetch?id=${encodeURIComponent(currentOrderID)}` : "/api/cib/order/options/fetch", { method: editingOrder ? "GET" : "POST", cache: "no-store" });
+        const api = orderForm.dataset.apiBase || "/api/cib/order";
+        const response = await fetch(editingOrder ? `${api}/fetch?id=${encodeURIComponent(currentOrderID)}` : orderForm.dataset.optionsApi || "/api/cib/order/options/fetch", {
+            method: editingOrder ? "GET" : "POST", cache: "no-store",
+            ...(!editingOrder ? { headers: { "Content-Type": "application/json" }, body: "{}" } : {}),
+        });
         if (!response.ok) throw new Error(await response.text() || "Unable to load cluster options.");
         const data = await response.json();
         const available = editingOrder ? data.available : data;
@@ -112,7 +116,7 @@ document.addEventListener("click", event => {
 });
 document.getElementById("monitoringMenu").classList.remove("in");
 document.getElementById("configurationMenu").classList.add("in");
-document.querySelector('a[href="/cib/live/constraints/types"]').setAttribute("aria-current", "page");
+document.querySelector(`a[href="${statusCIBBase()}/constraints/types"]`).setAttribute("aria-current", "page");
 function discardOrderChanges(onConfirm) {
     if (!orderChanged) { onConfirm(); return; }
     const popup = new Popup();
@@ -125,14 +129,14 @@ function discardOrderChanges(onConfirm) {
     footer.append(cancel, ok); popup._appendModalContentChild(body); popup._appendModalContentChild(footer);
 }
 if (editingOrder) {
-    document.getElementById("rename-order").addEventListener("click", () => new RenamePopup(currentOrderID));
+    document.getElementById("rename-order").addEventListener("click", () => new RenamePopup(currentOrderID, orderForm.dataset.renameApi));
     document.getElementById("revert-order").addEventListener("click", () => discardOrderChanges(() => window.location.reload()));
     document.getElementById("delete-order").addEventListener("click", () => new DeletePopup(currentOrderID, async () => {
         try {
-            const response = await fetch("/api/cib/resource/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(currentOrderID) });
+            const response = await fetch(orderForm.dataset.deleteApi || "/api/cib/resource/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(currentOrderID) });
             if (!response.ok) throw new Error(await response.text() || "Unable to delete constraint.");
             sessionStorage.setItem("configFlash", "Constraint deleted successfully");
-            window.location.href = "/cib/live/config/edit#constraints";
+            window.location.href = `${statusCIBBase()}/config/edit#constraints`;
         } catch (error) { showFlash("danger", error.message); }
     }));
     const url = new URL(window.location.href); const flash = url.searchParams.get("flash");
@@ -144,3 +148,5 @@ if (editingOrder) {
     }
 }
 initializeOrderForm();
+
+if (window.hawkBatch) window.hawkBatch.start();

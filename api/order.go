@@ -17,7 +17,12 @@ type orderCreate struct {
 }
 
 func OrderNewHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/cib/live/orders/new" && r.URL.Path != "/cib/live/orders/new/" {
+	base := "/cib/live"
+	switch r.URL.Path {
+	case "/cib/live/orders/new", "/cib/live/orders/new/":
+	case batchBase + "/orders/new", batchBase + "/orders/new/":
+		base = batchBase
+	default:
 		http.NotFound(w, r)
 		return
 	}
@@ -26,7 +31,13 @@ func OrderNewHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
-	renderTemplate(w, "order_new", map[string]any{"Title": "Create Order"})
+	data := map[string]any{"Title": "Create Order", "CIBBase": base}
+	if base == batchBase {
+		data["BatchMode"] = true
+		data["BatchConfig"] = map[string]string{"base": batchBase, "api": batchAPI, "id": batchID}
+		data["OrderAPI"] = batchAPI + "/order"
+	}
+	renderTemplate(w, "order_new", data)
 }
 
 func orderCreateArgs(order orderCreate) ([]string, error) {
@@ -95,6 +106,9 @@ func createOrder(w http.ResponseWriter, r *http.Request, read func() (CIB, int, 
 		http.Error(w, "Invalid request", 400)
 		return
 	}
+	saveOrder(w, r, order, read, run, "/cib/live")
+}
+func saveOrder(w http.ResponseWriter, r *http.Request, order orderCreate, read func() (CIB, int, error), run func(context.Context, ...string) error, base string) {
 	args, err := orderCreateArgs(order)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
@@ -123,7 +137,7 @@ func createOrder(w http.ResponseWriter, r *http.Request, read func() (CIB, int, 
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "redirect": "/cib/live/orders/" + url.PathEscape(order.ID) + "/edit?flash=created"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "redirect": base + "/orders/" + url.PathEscape(order.ID) + "/edit?flash=created"})
 }
 func OrderRubyHandler(w http.ResponseWriter, r *http.Request) {
 	resourceRubyHandler(w, r, "Constraint")

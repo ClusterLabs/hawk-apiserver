@@ -102,7 +102,7 @@ func readOrderEdit(ctx context.Context, id string, run clusterConfigCommand) (or
 }
 func OrderEditHandler(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-	if len(parts) != 5 || parts[0] != "cib" || parts[1] != "live" || parts[2] != "orders" || parts[4] != "edit" {
+	if len(parts) != 5 || parts[0] != "cib" || (parts[1] != "live" && parts[1] != batchID) || parts[2] != "orders" || parts[4] != "edit" {
 		OrderRubyHandler(w, r)
 		return
 	}
@@ -111,7 +111,14 @@ func OrderEditHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
-	renderTemplate(w, "order_new", map[string]any{"Title": "Edit Order", "Editing": true, "OrderID": parts[3]})
+	base := "/cib/" + parts[1]
+	data := map[string]any{"Title": "Edit Order", "Editing": true, "OrderID": parts[3], "CIBBase": base}
+	if base == batchBase {
+		data["BatchMode"] = true
+		data["BatchConfig"] = map[string]string{"base": batchBase, "api": batchAPI, "id": batchID}
+		data["OrderAPI"] = batchAPI + "/order"
+	}
+	renderTemplate(w, "order_new", data)
 }
 func OrderFetchHandler(w http.ResponseWriter, r *http.Request) {
 	fetchOrderEdit(w, r, runClusterConfigCommand)
@@ -148,6 +155,9 @@ func updateOrderEdit(w http.ResponseWriter, r *http.Request, run clusterConfigCo
 		http.Error(w, "Invalid request", 400)
 		return
 	}
+	saveOrderEdit(w, r, request, run)
+}
+func saveOrderEdit(w http.ResponseWriter, r *http.Request, request orderCreate, run clusterConfigCommand) {
 	args, err := orderCreateArgs(request)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
@@ -178,10 +188,14 @@ func updateOrderEdit(w http.ResponseWriter, r *http.Request, run clusterConfigCo
 	for _, arg := range args[1:] {
 		tokens = append(tokens, "'"+strings.ReplaceAll(arg, "'", "'\"'\"'")+"'")
 	}
-	if _, err := run(r.Context(), "crm", []string{"-F", "configure", "load", "update", "/dev/stdin"}, strings.Join(tokens, " ")+"\n"); err != nil {
+	if _, err := run(r.Context(), "crm", []string{"-F", "configure", "load", "update", "-"}, strings.Join(tokens, " ")+"\n"); err != nil {
 		http.Error(w, tagCreateError(request.ID, err), 500)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "message": "Constraint updated successfully"})
+}
+
+func orderAction(ctx context.Context, id, newID string, run clusterConfigCommand) (int, error) {
+	return constraintAction(ctx, id, newID, "order", run)
 }

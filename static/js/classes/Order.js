@@ -14,7 +14,8 @@ class Order {
     async update() { return this.save("update"); }
 
     async save(operation) {
-        const response = await fetch(`/api/cib/order/${operation}`, {
+        const api = document.getElementById("order-create-form").dataset.apiBase || "/api/cib/order";
+        const response = await fetch(`${api}/${operation}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
