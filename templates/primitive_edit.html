@@ -1,5 +1,6 @@
 
 {{ define "content" }}
+{{ $resourceAPI := "/api/cib/resource" }}{{ if .ResourceAPI }}{{ $resourceAPI = .ResourceAPI }}{{ end }}
 {{ $cibBase := "/cib/live" }}{{ if .CIBBase }}{{ $cibBase = .CIBBase }}{{ end }}
 <link rel="stylesheet" href="/static/css/primitive_edit.css">
 <link rel="stylesheet" href="/static/css/common.css">
@@ -14,7 +15,8 @@
     ResourceAgent: "{{ .ResourceAgent }}",
     CreateMode: {{ if .CreateMode }}true{{ else }}false{{ end }},
     Parent: "{{ .Parent }}",
-    CreateAPI: "{{ .CreateAPI }}"
+    CreateAPI: "{{ .CreateAPI }}",
+    ResourceAPI: "{{ $resourceAPI }}"
   };
 </script>
 <script src="/static/js/XCSS.js"></script>
@@ -59,12 +61,12 @@
       <h2>{{ if .CreateMode }}<i class="far fa-file"></i> Create Primitive{{ else }}<i class="fas fa-pencil-alt"></i> Edit Primitive: {{ .ResourceID }}{{ end }}</h2>
       {{ if not .CreateMode }}<div id="copy-rename-delete-container">
         <button class="btn btn-white" name="copy" onclick="toggleUpdateCreateMode(true)"><i class="fas fa-copy"></i> Copy</button>
-        <button class="btn btn-white" name="rename" onclick="new RenamePopup(window.resourceData.ResourceID)"><i class="fas fa-font"></i> Rename</button>
-        <button class="btn btn-white text-danger" name="delete" onclick="new DeletePopup(window.resourceData.ResourceID)"><i class="fas fa-trash"></i> Delete</button>
+        <button class="btn btn-white" name="rename" onclick="new RenamePopup(window.resourceData.ResourceID, window.resourceData.ResourceAPI + '/rename')"><i class="fas fa-font"></i> Rename</button>
+        <button class="btn btn-white text-danger" name="delete" onclick="deletePrimitive()"><i class="fas fa-trash"></i> Delete</button>
       </div>{{ end }}
     </div>
 
-    {{ if .CreateMode }}<div class="primitive-create-panel">{{ end }}
+    <div class="primitive-create-panel">
     <div class="form-section">
       <div class="kvsection-row">
         <label>Resource ID</label>
@@ -132,7 +134,7 @@
       </div>
 
     </div>
-    {{ if .CreateMode }}</div>{{ end }}
+    </div>
   </div>
   <div class="edit-right">
     <h4>Primitive</h4>
@@ -148,6 +150,7 @@
 {{ end }}
 
 {{ define "primitive_fields" }}
+{{ $resourceAPI := "/api/cib/resource" }}{{ if .ResourceAPI }}{{ $resourceAPI = .ResourceAPI }}{{ end }}
       <details id="details-instance_attributes" open>
         <summary><strong>Parameters</strong></summary>
         <x-kvgroup
@@ -155,8 +158,8 @@
           name="instance_attributes"
           resource-id="{{ .ResourceID }}"
           resource-agent="{{ .ResourceAgent }}"
-          options-api="/api/cib/resource/params/fetch"
-          submit-api="/api/cib/resource/params/submit">
+          options-api="{{ $resourceAPI }}/params/fetch"
+          submit-api="{{ $resourceAPI }}/params/submit">
         </x-kvgroup>
       </details>
 
@@ -167,8 +170,8 @@
           {{ if .CreateMode }}create-mode light-dom{{ end }}
           resource-id="{{ .ResourceID }}"
           resource-agent="{{ .ResourceAgent }}"
-          options-api="/api/cib/resource/operations/fetch"
-          submit-api="/api/cib/resource/operations/submit">
+          options-api="{{ $resourceAPI }}/operations/fetch"
+          submit-api="{{ $resourceAPI }}/operations/submit">
         </x-operations-kvgroup>
       </details>
 
@@ -180,8 +183,8 @@
           name="meta_attributes"
           resource-id="{{ .ResourceID }}"
           resource-agent="{{ .ResourceAgent }}"
-          options-api="/api/cib/resource/meta-attributes/fetch"
-          submit-api="/api/cib/resource/meta-attributes/submit">
+          options-api="{{ $resourceAPI }}/meta-attributes/fetch"
+          submit-api="{{ $resourceAPI }}/meta-attributes/submit">
         </x-kvgroup>
       </details>
 
@@ -190,8 +193,8 @@
         <x-inputs-kvgroup
           id="kvgroup-resource_utilizations"
           cib-object="{{ .ResourceID }}"
-          options-api="/api/cib/resource/utilizations/fetch"
-          submit-api="/api/cib/resource/utilizations/submit">
+          options-api="{{ $resourceAPI }}/utilizations/fetch"
+          submit-api="{{ $resourceAPI }}/utilizations/submit">
         </x-inputs-kvgroup>
       </details>
 
