@@ -1,29 +1,58 @@
 {{ define "content" }}
+{{ $cibBase := "/cib/live" }}{{ if .CIBBase }}{{ $cibBase = .CIBBase }}{{ end }}
 <link rel="stylesheet" href="/static/css/primitive_edit.css">
 <link rel="stylesheet" href="/static/css/fencing_edit.css">
 <link rel="stylesheet" href="/static/css/config_edit.css">
 <script src="/static/js/classes/XAlert.js" defer></script>
 <script src="/static/js/classes/DeletePopup.js" defer></script>
+{{ if .BatchMode }}
+<script src="/static/js/classes/ConfirmActionPopup.js" defer></script>
+<link rel="stylesheet" href="/static/css/highlight.css">
+<script src="/static/js/vendor/highlight.js" defer></script>
+<script src="/static/js/batch.js" defer></script>
+{{ end }}
 <script src="/static/js/fencing_edit.js" defer></script>
 <div class="edit-layout">
   <div class="edit-left">
+    {{ if .BatchMode }}<div id="batch-notifications" role="status" aria-live="polite"></div>{{ end }}
     <h1><i class="fa fa-plug" aria-hidden="true"></i> Edit Fencing Topology</h1>
     <div id="fencing-notifications" role="status" aria-live="polite"></div>
-    <form id="fencing-editor" aria-busy="true">
+    <form id="fencing-editor" data-fetch-api="{{ if .BatchMode }}{{ .FencingAPI }}/fetch{{ else }}/api/cib/fencing/fetch{{ end }}" data-submit-api="{{ if .BatchMode }}{{ .FencingAPI }}/update{{ else }}/cib/live/fencing/edit{{ end }}" aria-busy="true">
       <ul id="fencing-levels" class="list-unstyled"></ul>
       <datalist id="fencing-devices"></datalist>
       <button id="fencing-add" type="button" class="btn btn-info" disabled><i class="fa fa-plus" aria-hidden="true"></i> Add Level</button>
       <div class="panel panel-default fencing-actions"><div class="panel-body">
         <button id="fencing-apply" type="submit" class="btn btn-primary" disabled>Apply</button>
-        <a href="/cib/live/config/edit#fencing" class="btn btn-default">Back</a>
+        <a href="{{ $cibBase }}/config/edit#fencing" class="btn btn-default">Back</a>
       </div></div>
     </form>
   </div>
   <aside class="edit-right" aria-label="Fencing topology help">
-    <h4>Fencing Topology</h4>
-    <p>Define which fencing devices are used for each target. Targets can be node names, patterns, or node attribute/value pairs.</p>
-    <p>Index specifies a fencing level from 1 to 9. Lower indices are attempted first. Devices within a level are used in the listed order; all must succeed for that level to succeed.</p>
-    <p>Enter device resource IDs separated by commas or spaces. Moving a row changes its display order, not its index.</p>
+    <h3>Fencing Topology</h3>
+    <p>Configuring a fencing topology enables different fencing methods for different nodes, as well as allowing the use of multiple fencing methods for any particular node.</p>
+    <p>Example uses of topologies:</p>
+    <ul>
+      <li>Try poison-pill and fail back to power.</li>
+      <li>Try disk and network, and fall back to power if either fails.</li>
+      <li>Initiate a kdump, then poweroff the node.</li>
+    </ul>
+    <h4>Level</h4>
+    <p>The fencing topology consists of a series of levels, each with a target, an index and a list of devices.</p>
+    <p>The operation is finished when a level has passed (success), or all levels have been attempted (failed).</p>
+    <p>If the operation failed, the next step is determined by the Policy Engine and/or crmd.</p>
+    <h4>Target</h4>
+    <p>The target can be</p>
+    <ul>
+      <li>The name of a single node to which this level applies,</li>
+      <li>A regular expression matching the names of nodes to which this level applies,</li>
+      <li>A node attribute which is set (to the target value) for nodes to which this level applies.</li>
+    </ul>
+    <h4>Index</h4>
+    <p>The order in which to attempt the levels. Levels are attempted in ascending order until one succeeds. Valid values are 1 through 9.</p>
+    <p>If a device fails, processing terminates for the current level. No further devices in that level are exercised, and the next level is attempted instead.</p>
+    <h4>Devices</h4>
+    <p>A comma-separated list of devices that must all be tried for this level.</p>
+    <p>If the operation succeeds for all the listed devices in a level, the level is deemed to have passed.</p>
   </aside>
 </div>
 {{ end }}

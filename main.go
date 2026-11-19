@@ -301,6 +301,8 @@ func main() {
 	mux.HandleFunc("/cib/live/graph", authMiddleware(api.GraphHandler))
 	mux.HandleFunc("/cib/live/graph/", authMiddleware(api.GraphHandler))
 	mux.HandleFunc("/cib/live/graph.svg", authMiddleware(api.GraphHandler))
+	mux.HandleFunc("/cib/hacluster/fencing/edit", authMiddleware(api.BatchFencingEditHandler))
+	mux.HandleFunc("/cib/hacluster/fencing/edit/", authMiddleware(api.BatchFencingEditHandler))
 	mux.HandleFunc("/cib/live/fencing/edit", authMiddleware(api.FencingEditHandler))
 	mux.HandleFunc("/cib/live/fencing/edit/", authMiddleware(api.FencingEditHandler))
 	mux.HandleFunc("/api/cib/fencing/fetch", authMiddleware(api.FencingFetchHandler))
