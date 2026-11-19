@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os/exec"
 	"strings"
 )
 
@@ -211,7 +210,7 @@ func saveColocation(w http.ResponseWriter, r *http.Request, c colocationCreate, 
 }
 func ColocationRubyHandler(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-	if len(parts) != 5 || parts[4] != "edit" {
+	if len(parts) != 5 || parts[0] != "cib" || (parts[1] != "live" && parts[1] != batchID) || parts[2] != "colocations" || parts[4] != "edit" {
 		resourceRubyHandler(w, r, "Constraint")
 		return
 	}
@@ -220,7 +219,14 @@ func ColocationRubyHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
-	renderTemplate(w, "colocation_new", map[string]any{"Title": "Edit Colocation", "EditMode": true, "ColocationID": parts[3]})
+	base := "/cib/" + parts[1]
+	data := map[string]any{"Title": "Edit Colocation", "EditMode": true, "ColocationID": parts[3], "CIBBase": base}
+	if base == batchBase {
+		data["BatchMode"] = true
+		data["BatchConfig"] = map[string]string{"base": batchBase, "api": batchAPI, "id": batchID}
+		data["ColocationAPI"] = batchAPI + "/colocation"
+	}
+	renderTemplate(w, "colocation_new", data)
 }
 
 func colocationFromXML(data []byte) (colocationCreate, error) {
@@ -260,20 +266,26 @@ func colocationFromXML(data []byte) (colocationCreate, error) {
 	return c, nil
 }
 func readColocation(ctx context.Context, id string) (colocationCreate, error) {
+	return readColocationUsing(ctx, id, runClusterConfigCommand)
+}
+func readColocationUsing(ctx context.Context, id string, run clusterConfigCommand) (colocationCreate, error) {
 	if !groupID.MatchString(id) {
 		return colocationCreate{}, fmt.Errorf("Invalid ID")
 	}
-	data, err := exec.CommandContext(ctx, "cibadmin", "-Q", "--xpath", "//constraints/rsc_colocation[@id='"+id+"']").Output()
+	data, err := run(ctx, "cibadmin", []string{"-Q", "--xpath", "//constraints/rsc_colocation[@id='" + id + "']"}, "")
 	if err != nil {
 		return colocationCreate{}, fmt.Errorf("Unable to read colocation constraint: %w", err)
 	}
 	return colocationFromXML(data)
 }
 func FetchColocation(w http.ResponseWriter, r *http.Request) {
+	fetchColocation(w, r, runClusterConfigCommand)
+}
+func fetchColocation(w http.ResponseWriter, r *http.Request, run clusterConfigCommand) {
 	if !groupFetchMethod(w, r) {
 		return
 	}
-	c, err := readColocation(r.Context(), r.URL.Query().Get("id"))
+	c, err := readColocationUsing(r.Context(), r.URL.Query().Get("id"), run)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		return
@@ -282,10 +294,11 @@ func FetchColocation(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(c)
 }
 func runColocationUpdate(ctx context.Context, args ...string) error {
-	// All tokens have already been validated by colocationCreateArgs.
-	cmd := exec.CommandContext(ctx, "/usr/sbin/crm", "-F", "configure", "load", "update", "/dev/stdin")
-	cmd.Stdin = strings.NewReader(strings.Join(args[1:], " ") + "\n")
-	out, err := cmd.CombinedOutput()
+	return runColocationUpdateUsing(ctx, runClusterConfigCommand, args...)
+}
+func runColocationUpdateUsing(ctx context.Context, run clusterConfigCommand, args ...string) error {
+	// Tokens are validated by colocationCreateArgs before reaching this runner.
+	out, err := run(ctx, "crm", []string{"-F", "configure", "load", "update", "-"}, strings.Join(args[1:], " ")+"\n")
 	if err != nil {
 		return fmt.Errorf("%s: %w", strings.TrimSpace(string(out)), err)
 	}
@@ -303,6 +316,9 @@ func updateColocation(w http.ResponseWriter, r *http.Request, find func(context.
 		http.Error(w, "Invalid request", 400)
 		return
 	}
+	saveColocationUpdate(w, r, c, find, read, run, "/cib/live")
+}
+func saveColocationUpdate(w http.ResponseWriter, r *http.Request, c colocationCreate, find func(context.Context, string) (colocationCreate, error), read func() (CIB, int, error), run func(context.Context, ...string) error, base string) {
 	args, err := colocationCreateArgs(c)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
@@ -334,5 +350,5 @@ func updateColocation(w http.ResponseWriter, r *http.Request, find func(context.
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "redirect": "/cib/live/colocations/" + url.PathEscape(c.ID) + "/edit?flash=updated"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "redirect": base + "/colocations/" + url.PathEscape(c.ID) + "/edit?flash=updated"})
 }

@@ -41,7 +41,9 @@ async function initializeColocationForm() {
         const available = await response.json();
         let entries = [];
         if (colocationID) {
-            const response = await fetch("/api/cib/colocation/fetch?id=" + encodeURIComponent(colocationID), { method: "POST" });
+            const response = await fetch((form.dataset.apiBase || "/api/cib/colocation") + "/fetch?id=" + encodeURIComponent(colocationID), {
+                method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
+            });
             if (!response.ok) throw new Error(await response.text());
             const colocation = await response.json();
             document.getElementById("colocation_id").value = colocation.id;

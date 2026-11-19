@@ -228,6 +228,7 @@ func main() {
 	mux.HandleFunc("/cib/hacluster/colocations/new/", authMiddleware(api.ColocationNewHandler))
 	mux.HandleFunc("/cib/live/colocations/new", authMiddleware(api.ColocationNewHandler))
 	mux.HandleFunc("/cib/live/colocations/new/", authMiddleware(api.ColocationNewHandler))
+	mux.HandleFunc("/cib/hacluster/colocations/", authMiddleware(api.ColocationRubyHandler))
 	mux.HandleFunc("/cib/live/colocations/", authMiddleware(api.ColocationRubyHandler))
 	mux.HandleFunc("/api/cib/colocation/options/fetch", authMiddleware(api.FetchColocationOptions))
 	mux.HandleFunc("/api/cib/colocation/fetch", authMiddleware(api.FetchColocation))
