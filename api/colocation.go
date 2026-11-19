@@ -352,3 +352,7 @@ func saveColocationUpdate(w http.ResponseWriter, r *http.Request, c colocationCr
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "redirect": base + "/colocations/" + url.PathEscape(c.ID) + "/edit?flash=updated"})
 }
+
+func colocationAction(ctx context.Context, id, newID string, run clusterConfigCommand) (int, error) {
+	return constraintAction(ctx, id, newID, "colocation", run)
+}

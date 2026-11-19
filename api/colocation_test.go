@@ -293,3 +293,54 @@ func TestBatchColocationEditPage(t *testing.T) {
 		require.Contains(t, response.Body.String(), value)
 	}
 }
+
+func TestBatchColocationHeaderActions(t *testing.T) {
+	for _, operation := range []string{"rename", "delete"} {
+		t.Run(operation, func(t *testing.T) {
+			backend, calls := batchTestBackend(t)
+			original := backend.run
+			backend.run = func(ctx context.Context, live bool, name string, args []string, input string) ([]byte, error) {
+				out, err := original(ctx, live, name, args, input)
+				if name == "cibadmin" {
+					return []byte(`<cib><configuration><constraints><rsc_colocation id="colo1"/><rsc_location id="location1"/></constraints></configuration></cib>`), nil
+				}
+				return out, err
+			}
+			body := `"colo1"`
+			args := []string{"--force", "configure", "delete", "colo1"}
+			if operation == "rename" {
+				body = `{"oldID":"colo1","newID":"colo2"}`
+				args = []string{"-D", "plain", "configure", "rename", "colo1", "colo2"}
+			}
+			response := batchTestRequest(backend, "POST", "colocation/"+operation, body)
+			require.Equal(t, 200, response.Code, response.Body.String())
+			require.Equal(t, args, (*calls)[len(*calls)-1].args)
+			for _, call := range *calls {
+				require.False(t, call.live)
+			}
+			*calls = nil
+			response = batchTestRequest(backend, "POST", "colocation/"+operation, strings.ReplaceAll(body, "colo1", "location1"))
+			require.Equal(t, 404, response.Code, response.Body.String())
+			require.Len(t, *calls, 1)
+		})
+	}
+}
+
+func TestColocationHeaderTemplate(t *testing.T) {
+	tmpl, err := template.ParseFiles("../templates/colocation_new.html")
+	require.NoError(t, err)
+	for _, base := range []string{"/cib/live", batchBase} {
+		var body strings.Builder
+		require.NoError(t, tmpl.ExecuteTemplate(&body, "content", map[string]any{"EditMode": true, "CIBBase": base, "BatchMode": base == batchBase, "ColocationAPI": map[bool]string{true: batchAPI + "/colocation", false: "/api/cib/colocation"}[base == batchBase]}))
+		for _, value := range []string{`href="` + base + `/colocations/new"`, `id="rename-colocation"`, `id="delete-colocation"`, `/static/js/classes/RenamePopup.js`, `/static/js/classes/DeletePopup.js`} {
+			require.Contains(t, body.String(), value)
+		}
+		if base == batchBase {
+			require.Contains(t, body.String(), `data-rename-api="`+batchAPI+`/colocation/rename"`)
+			require.Contains(t, body.String(), `data-delete-api="`+batchAPI+`/colocation/delete"`)
+		} else {
+			require.Contains(t, body.String(), `data-rename-api="/api/cib/resource/rename"`)
+			require.Contains(t, body.String(), `data-delete-api="/api/cib/resource/delete"`)
+		}
+	}
+}
