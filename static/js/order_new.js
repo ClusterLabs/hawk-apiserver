@@ -129,14 +129,14 @@ function discardOrderChanges(onConfirm) {
     footer.append(cancel, ok); popup._appendModalContentChild(body); popup._appendModalContentChild(footer);
 }
 if (editingOrder) {
-    document.getElementById("rename-order").addEventListener("click", () => new RenamePopup(currentOrderID));
+    document.getElementById("rename-order").addEventListener("click", () => new RenamePopup(currentOrderID, orderForm.dataset.renameApi));
     document.getElementById("revert-order").addEventListener("click", () => discardOrderChanges(() => window.location.reload()));
     document.getElementById("delete-order").addEventListener("click", () => new DeletePopup(currentOrderID, async () => {
         try {
-            const response = await fetch("/api/cib/resource/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(currentOrderID) });
+            const response = await fetch(orderForm.dataset.deleteApi || "/api/cib/resource/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(currentOrderID) });
             if (!response.ok) throw new Error(await response.text() || "Unable to delete constraint.");
             sessionStorage.setItem("configFlash", "Constraint deleted successfully");
-            window.location.href = "/cib/live/config/edit#constraints";
+            window.location.href = `${statusCIBBase()}/config/edit#constraints`;
         } catch (error) { showFlash("danger", error.message); }
     }));
     const url = new URL(window.location.href); const flash = url.searchParams.get("flash");

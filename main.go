@@ -221,6 +221,7 @@ func main() {
 	mux.HandleFunc("/cib/hacluster/orders/new/", authMiddleware(api.OrderNewHandler))
 	mux.HandleFunc("/cib/live/orders/new", authMiddleware(api.OrderNewHandler))
 	mux.HandleFunc("/cib/live/orders/new/", authMiddleware(api.OrderNewHandler))
+	mux.HandleFunc("/cib/hacluster/orders/", authMiddleware(api.OrderEditHandler))
 	mux.HandleFunc("/cib/live/orders/", authMiddleware(api.OrderEditHandler))
 	mux.HandleFunc("/api/cib/order/options/fetch", authMiddleware(api.FetchColocationOptions))
 	mux.HandleFunc("/api/cib/order/create", authMiddleware(api.OrderCreateHandler))

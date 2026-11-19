@@ -58,7 +58,7 @@ func TestOrderEditAPI(t *testing.T) {
 				}
 				writes++
 				require.Equal(t, "crm", name)
-				require.Equal(t, []string{"-F", "configure", "load", "update", "/dev/stdin"}, args)
+				require.Equal(t, []string{"-F", "configure", "load", "update", "-"}, args)
 				require.Equal(t, "'order' 'o' 'Optional:' 'b:promote' 'a:start' 'symmetrical=false'\n", input)
 				if tt.fail {
 					return nil, fmt.Errorf("Permission denied")
@@ -96,5 +96,56 @@ func TestOrderEditPage(t *testing.T) {
 	require.Equal(t, 200, w.Code)
 	for _, text := range []string{"Edit Order", `data-order-id="o"`, `readonly value="o"`, `name="revert"`, `/cib/live/config/edit#constraints`, `RenamePopup.js`} {
 		require.Contains(t, w.Body.String(), text)
+	}
+}
+
+func TestBatchOrderEdit(t *testing.T) {
+	backend, calls := batchTestBackend(t)
+	original := backend.run
+	backend.run = func(ctx context.Context, live bool, name string, args []string, input string) ([]byte, error) {
+		out, err := original(ctx, live, name, args, input)
+		if name == "cibadmin" {
+			return []byte(orderEditFixture), nil
+		}
+		return out, err
+	}
+	response := batchTestRequest(backend, "GET", "order/fetch?id=o", "")
+	require.Equal(t, 200, response.Code, response.Body.String())
+	require.Contains(t, response.Body.String(), `"score":"Mandatory"`)
+	response = batchTestRequest(backend, "POST", "order/update", `{"id":"o","score":"Optional","symmetrical":false,"resources":[{"sequential":true,"action":"promote","resources":["b"]},{"sequential":true,"action":"start","resources":["a"]}]}`)
+	require.Equal(t, 200, response.Code, response.Body.String())
+	require.JSONEq(t, `{"status":"ok","message":"Constraint updated successfully"}`, response.Body.String())
+	last := (*calls)[len(*calls)-1]
+	require.Equal(t, []string{"-F", "configure", "load", "update", "-"}, last.args)
+	require.Equal(t, "'order' 'o' 'Optional:' 'b:promote' 'a:start' 'symmetrical=false'\n", last.input)
+	for _, operation := range []string{"rename", "delete"} {
+		body := `"o"`
+		if operation == "rename" {
+			body = `{"oldID":"o","newID":"o2"}`
+		}
+		response = batchTestRequest(backend, "POST", "order/"+operation, body)
+		require.Equal(t, 200, response.Code, response.Body.String())
+		response = batchTestRequest(backend, "POST", "order/"+operation, strings.ReplaceAll(body, `"o"`, `"a"`))
+		require.Equal(t, 404, response.Code, response.Body.String())
+	}
+	for _, call := range *calls {
+		require.False(t, call.live)
+	}
+	*calls = nil
+	response = batchTestRequest(backend, "POST", "order/update", `{"id":"missing","score":"Mandatory","symmetrical":true,"resources":[{"sequential":true,"resources":["a"]},{"sequential":true,"resources":["b"]}]}`)
+	require.Equal(t, 404, response.Code, response.Body.String())
+	require.Len(t, *calls, 1)
+}
+
+func TestBatchOrderEditPage(t *testing.T) {
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(".."))
+	t.Cleanup(func() { _ = os.Chdir(cwd) })
+	response := httptest.NewRecorder()
+	OrderEditHandler(response, httptest.NewRequest("GET", batchBase+"/orders/o/edit?flash=created", nil))
+	require.Equal(t, 200, response.Code)
+	for _, value := range []string{`data-editing="true"`, `data-order-id="o"`, `data-api-base="` + batchAPI + `/order"`, `data-rename-api="` + batchAPI + `/order/rename"`, `data-delete-api="` + batchAPI + `/order/delete"`, `href="` + batchBase + `/orders/new"`, `href="` + batchBase + `/config/edit#constraints"`, `/static/js/batch.js`, `id="rename-order"`, `id="delete-order"`, `id="revert-order"`} {
+		require.Contains(t, response.Body.String(), value)
 	}
 }
