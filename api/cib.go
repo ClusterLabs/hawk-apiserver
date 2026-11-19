@@ -548,14 +548,16 @@ func enrichCloneMetaAttributesWithCibValues(metadata *FullPrimitive_CrmResourceM
 }
 
 func enrichPrimitiveMetadataWithCibValues(metadata *FullPrimitive_CrmResourceMetadata, resourceID string) error {
+	return enrichPrimitiveMetadataUsing(metadata, resourceID, func(name string, args []string) ([]byte, error) { return exec.Command(name, args...).Output() })
+}
+func enrichPrimitiveMetadataUsing(metadata *FullPrimitive_CrmResourceMetadata, resourceID string, run func(string, []string) ([]byte, error)) error {
 	// New primitives use agent defaults without querying a nonexistent CIB object.
 	if resourceID == "" {
 		return nil
 	}
 	// 1. Query current XML
 	queryXPath := fmt.Sprintf("/cib/configuration/resources//primitive[@id='%s']", resourceID)
-	cmd := exec.Command("cibadmin", "-Q", "--xpath", queryXPath)
-	out, err := cmd.Output()
+	out, err := run("cibadmin", []string{"-Q", "--xpath", queryXPath})
 	if err != nil {
 		log.Printf("[enrichMetadataWithCibValues] cibadmin -Q error: %v", err)
 		return err
@@ -676,7 +678,14 @@ func PrimitiveNewHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func ResourceEditHandler(w http.ResponseWriter, r *http.Request) {
-	const prefix = "/cib/live/primitives"
+	servePrimitiveEdit(w, r, GetCIBResources)
+}
+func servePrimitiveEdit(w http.ResponseWriter, r *http.Request, read func() ([]ResourceRow, error)) {
+	base := "/cib/live"
+	if strings.HasPrefix(r.URL.Path, batchBase+"/") {
+		base = batchBase
+	}
+	prefix := base + "/primitives"
 
 	// Normalize (collapse //, removes trailing /)
 	cleanPath := path.Clean(r.URL.EscapedPath())
@@ -702,7 +711,7 @@ func ResourceEditHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		crm, err := GetCIBResources()
+		crm, err := read()
 		if err != nil {
 			http.Error(w, "[ResourceEditHandler] Failed to get CRM resource status: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -752,7 +761,7 @@ func ResourceEditHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		renderTemplate(w, "primitive_edit", map[string]any{
+		data := map[string]any{
 			"Title":         "Edit Primitive",
 			"ResourceID":    resourceID,
 			"Class":         resourceRow.Class,
@@ -761,7 +770,15 @@ func ResourceEditHandler(w http.ResponseWriter, r *http.Request) {
 			"ResourceAgent": resourceAgent,
 			"AlertType":     alertType,
 			"AlertMessage":  alertMsg,
-		})
+			"CIBBase":       base,
+		}
+		if base == batchBase {
+			data["BatchMode"] = true
+			data["BatchConfig"] = map[string]string{"base": batchBase, "api": batchAPI, "id": batchID}
+			data["ResourceAPI"] = batchAPI + "/resource"
+			data["CreateAPI"] = batchAPI + "/primitive/create"
+		}
+		renderTemplate(w, "primitive_edit", data)
 		return
 	}
 

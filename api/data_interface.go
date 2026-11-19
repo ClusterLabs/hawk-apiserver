@@ -852,6 +852,9 @@ type FullPrimitive_CrmResourceMetadata struct {
 }
 
 func fetchFullPrimitiveFromCib(ResourceID string, ResourceAgent string) (FullPrimitive_CrmResourceMetadata, error) {
+	return fetchFullPrimitiveUsing(ResourceID, ResourceAgent, enrichPrimitiveMetadataWithCibValues)
+}
+func fetchFullPrimitiveUsing(ResourceID string, ResourceAgent string, enrich func(*FullPrimitive_CrmResourceMetadata, string) error) (FullPrimitive_CrmResourceMetadata, error) {
 	// 1. Get the main content 'crm_resource --show-metadata'
 	parsedMetadata, err := getResourceMetadata(ResourceAgent)
 	if err != nil {
@@ -890,7 +893,7 @@ func fetchFullPrimitiveFromCib(ResourceID string, ResourceAgent string) (FullPri
 	}
 
 	// 4. Get current values of the attributes from cib.xml
-	err = enrichPrimitiveMetadataWithCibValues(&result, ResourceID)
+	err = enrich(&result, ResourceID)
 	if err != nil {
 		return FullPrimitive_CrmResourceMetadata{}, err
 	}
@@ -899,8 +902,11 @@ func fetchFullPrimitiveFromCib(ResourceID string, ResourceAgent string) (FullPri
 }
 
 func FetchResourceMetaAttributes(w http.ResponseWriter, r *http.Request) {
+	FetchResourceMetaAttributesUsing(w, r, fetchFullPrimitiveFromCib)
+}
+func FetchResourceMetaAttributesUsing(w http.ResponseWriter, r *http.Request, read func(string, string) (FullPrimitive_CrmResourceMetadata, error)) {
 	id, agent := parseIDandAgent(w, r)
-	fullPrimitive, err := fetchFullPrimitiveFromCib(id, agent)
+	fullPrimitive, err := read(id, agent)
 	if err != nil {
 		log.Printf("Failed to get cib values: %v", err)
 		http.Error(w, "Failed to get cib values: "+err.Error(), http.StatusInternalServerError)
@@ -962,8 +968,11 @@ func operationCibNameValues(action FullPrimitive_Action) []NameValue {
 }
 
 func FetchResourceOperations(w http.ResponseWriter, r *http.Request) {
+	FetchResourceOperationsUsing(w, r, fetchFullPrimitiveFromCib)
+}
+func FetchResourceOperationsUsing(w http.ResponseWriter, r *http.Request, read func(string, string) (FullPrimitive_CrmResourceMetadata, error)) {
 	id, agent := parseIDandAgent(w, r)
-	fullPrimitive, err := fetchFullPrimitiveFromCib(id, agent)
+	fullPrimitive, err := read(id, agent)
 	if err != nil {
 		log.Printf("Failed to get cib values: %v", err)
 		http.Error(w, "Failed to get cib values: "+err.Error(), http.StatusInternalServerError)
@@ -1057,8 +1066,11 @@ func FetchResourceOperationAttributes(w http.ResponseWriter, r *http.Request) {
 }
 
 func FetchResourceParams(w http.ResponseWriter, r *http.Request) {
+	FetchResourceParamsUsing(w, r, fetchFullPrimitiveFromCib)
+}
+func FetchResourceParamsUsing(w http.ResponseWriter, r *http.Request, read func(string, string) (FullPrimitive_CrmResourceMetadata, error)) {
 	id, agent := parseIDandAgent(w, r)
-	fullPrimitive, err := fetchFullPrimitiveFromCib(id, agent)
+	fullPrimitive, err := read(id, agent)
 	if err != nil {
 		log.Printf("Failed to get cib values: %v", err)
 		http.Error(w, "Failed to get cib values: "+err.Error(), http.StatusInternalServerError)

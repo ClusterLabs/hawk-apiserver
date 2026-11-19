@@ -21,7 +21,7 @@ function selectedResourceAgent() {
 }
 
 async function setAgentInfo(agent = currentResourceAgent) {
-    const response = await fetch('/api/cib/resource/params/fetch', {
+    const response = await fetch(`${window.resourceData.ResourceAPI || "/api/cib/resource"}/params/fetch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ResourceID: createMode ? "" : ResourceID, ResourceAgent: agent })
@@ -40,7 +40,7 @@ async function setAgentInfo(agent = currentResourceAgent) {
 }
 
 function showAgentInfo() {
-    if (currentResourceAgent) new RAInfoPopup(createMode ? "" : ResourceID, currentResourceAgent);
+    if (currentResourceAgent) new RAInfoPopup(createMode || window.hawkBatch ? "" : ResourceID, currentResourceAgent);
 }
 
 function primitiveGroups() {
@@ -254,3 +254,13 @@ if (CreateMode) {
 }
 
 if (window.hawkBatch) window.hawkBatch.start();
+
+function deletePrimitive() {
+    new DeletePopup(ResourceID, async () => {
+        try {
+            const response = await fetch(`${window.resourceData.ResourceAPI}/delete`, {method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(ResourceID)});
+            if (!response.ok) throw new Error(await response.text());
+            window.location.href = `${statusCIBBase()}/resources/types?flash=deleted`;
+        } catch (error) { showFlash("danger", error.message); }
+    });
+}
