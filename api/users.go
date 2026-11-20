@@ -26,7 +26,11 @@ func UsersHandler(w http.ResponseWriter, r *http.Request) {
 		renderTemplate(w, "user_new", map[string]any{"Title": "Edit ACL Target", "Editing": true, "TargetID": parts[3]})
 		return
 	}
-	if r.URL.Path != "/cib/live/users" && r.URL.Path != "/cib/live/users/" || r.Method == http.MethodPost {
+	base := "/cib/live"
+	if strings.HasPrefix(r.URL.Path, batchBase+"/") {
+		base = batchBase
+	}
+	if r.URL.Path != base+"/users" && r.URL.Path != base+"/users/" || r.Method == http.MethodPost {
 		if Routehandler != nil {
 			Routehandler.ServeHTTP(w, r)
 		} else {
@@ -39,7 +43,12 @@ func UsersHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	renderTemplate(w, "users", map[string]any{"Title": "ACL Targets"})
+	data := map[string]any{"Title": "ACL Targets", "CIBBase": base}
+	if base == batchBase {
+		data["BatchMode"] = true
+		data["BatchConfig"] = map[string]string{"base": batchBase, "api": batchAPI, "id": batchID}
+	}
+	renderTemplate(w, "users", data)
 }
 func UsersListHandler(w http.ResponseWriter, r *http.Request) {
 	// Roles and targets share the same CIB snapshot and feature checks.
