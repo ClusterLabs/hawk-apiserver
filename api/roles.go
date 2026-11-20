@@ -177,13 +177,18 @@ func RolesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-	if len(parts) == 5 && parts[0] == "cib" && parts[1] == "live" && parts[2] == "roles" && parts[4] == "edit" {
+	if len(parts) == 5 && parts[0] == "cib" && (parts[1] == "live" || parts[1] == batchID) && parts[2] == "roles" && parts[4] == "edit" {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
 			w.Header().Set("Allow", "GET, HEAD")
 			http.Error(w, "Method not allowed", 405)
 			return
 		}
-		renderTemplate(w, "role_edit", map[string]any{"Title": "Edit Role", "RoleID": parts[3]})
+		data := map[string]any{"Title": "Edit Role", "RoleID": parts[3], "CIBBase": "/cib/" + parts[1]}
+		if parts[1] == batchID {
+			data["BatchMode"] = true
+			data["BatchConfig"] = map[string]string{"base": batchBase, "api": batchAPI, "id": batchID}
+		}
+		renderTemplate(w, "role_edit", data)
 		return
 	}
 

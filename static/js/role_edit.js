@@ -3,6 +3,8 @@
 class RoleEditor {
     constructor(form) {
         this.form = form;
+        this.base = statusCIBBase();
+        this.api = window.batchConfig ? `${window.batchConfig.api}/acl` : "/api/cib/acl";
         this.creating = form.dataset.createMode === "true";
         this.id = form.dataset.roleId;
         this.rules = form.querySelector("#rules");
@@ -19,7 +21,7 @@ class RoleEditor {
         form.querySelector("a.back").addEventListener("click", event => {
             if (!this.dirty) return;
             event.preventDefault();
-            this.confirmDiscard(() => { window.location.href = "/cib/live/roles"; });
+            this.confirmDiscard(() => { window.location.href = `${this.base}/roles`; });
         });
         this.load();
     }
@@ -53,7 +55,7 @@ class RoleEditor {
     async load() {
         this.busy(true);
         try {
-            const data = await configJSON(this.creating ? "/api/cib/acl/roles" : `/api/cib/acl/role?id=${encodeURIComponent(this.id)}`);
+            const data = await configJSON(this.creating ? `${this.api}/roles` : `${this.api}/role?id=${encodeURIComponent(this.id)}`);
             if (this.creating && !data.supported) throw new Error("ACL is not supported by the cluster");
             this.legacy = data.legacy;
             this.warning.hidden = data.enabled;
@@ -135,14 +137,14 @@ class RoleEditor {
         });
         this.busy(true);
         try {
-            const data = await configJSON(this.creating ? "/api/cib/acl/roles/create" : "/api/cib/acl/role", {
+            const data = await configJSON(this.creating ? `${this.api}/roles/create` : `${this.api}/role${window.batchConfig ? "/update" : ""}`, {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ id: this.creating ? this.form.querySelector("#role_id").value : this.id, rules }),
             });
             this.dirty = false;
             if (this.creating) {
                 sessionStorage.setItem("rolesFlash", data.message);
-                window.location.href = "/cib/live/roles";
+                window.location.href = `${this.base}/roles`;
             } else this.notify(data.message);
         } catch (error) { this.notify(error.message, true); }
         finally { this.busy(false); }
@@ -151,11 +153,11 @@ class RoleEditor {
     async delete() {
         this.busy(true);
         try {
-            const data = await configJSON("/api/cib/acl/roles/delete", {
+            const data = await configJSON(`${this.api}/roles/delete`, {
                 method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: this.id }),
             });
             sessionStorage.setItem("rolesFlash", data.message);
-            window.location.href = "/cib/live/roles";
+            window.location.href = `${this.base}/roles`;
         } catch (error) { this.notify(error.message, true); this.busy(false); }
     }
 }
@@ -163,4 +165,6 @@ class RoleEditor {
 new RoleEditor(document.querySelector(".role-editor"));
 document.getElementById("monitoringMenu").classList.remove("in");
 document.getElementById("configurationMenu").classList.add("in");
-document.querySelector('a[href="/cib/live/roles"]').setAttribute("aria-current", "page");
+document.querySelector(`a[href="${statusCIBBase()}/roles"]`).setAttribute("aria-current", "page");
+
+if (window.hawkBatch) window.hawkBatch.start();

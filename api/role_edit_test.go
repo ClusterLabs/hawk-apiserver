@@ -53,7 +53,7 @@ func TestRoleEditAPI(t *testing.T) {
 			run := func(ctx context.Context, name string, args []string, input string) ([]byte, error) {
 				if name == "crm" {
 					writes++
-					require.Equal(t, []string{"-F", "configure", "load", "update", "/dev/stdin"}, args)
+					require.Equal(t, []string{"-F", "configure", "load", "update", "-"}, args)
 					require.Equal(t, "role a-role read 'xpath://resources'\n", input)
 					if tt.failure {
 						return nil, fmt.Errorf("Permission denied")
