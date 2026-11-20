@@ -322,6 +322,8 @@ func main() {
 	mux.HandleFunc("/api/cib/cluster/config/options", authMiddleware(api.ClusterConfigOptionsHandler))
 	mux.HandleFunc("/api/cib/cluster/config/update", authMiddleware(api.ClusterConfigUpdateHandler))
 
+	mux.HandleFunc("/cib/hacluster/users", authMiddleware(api.UsersHandler))
+	mux.HandleFunc("/cib/hacluster/users/", authMiddleware(api.UsersHandler))
 	mux.HandleFunc("/cib/live/users", authMiddleware(api.UsersHandler))
 	mux.HandleFunc("/cib/live/users/", authMiddleware(api.UsersHandler))
 	mux.HandleFunc("/api/cib/acl/users", authMiddleware(api.UsersListHandler))

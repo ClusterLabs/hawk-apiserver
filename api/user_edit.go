@@ -55,7 +55,7 @@ func serveUserEdit(w http.ResponseWriter, r *http.Request, run clusterConfigComm
 			fail(422, err)
 			return
 		}
-		if _, err := run(r.Context(), "crm", []string{"-F", "configure", "load", "update", "/dev/stdin"}, command); err != nil {
+		if _, err := run(r.Context(), "crm", []string{"-F", "configure", "load", "update", "-"}, command); err != nil {
 			fail(422, err)
 			return
 		}
