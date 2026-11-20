@@ -3,6 +3,8 @@
 class ACLTargetForm {
     constructor(form) {
         this.form = form;
+        this.base = statusCIBBase();
+        this.api = window.batchConfig ? `${window.batchConfig.api}/acl` : "/api/cib/acl";
         this.editing = form.dataset.editing === "true";
         this.id = form.dataset.targetId;
         this.fields = form.querySelector("#user-fields");
@@ -14,7 +16,6 @@ class ACLTargetForm {
         form.addEventListener("input", () => { this.dirty = true; });
         form.addEventListener("change", () => { this.dirty = true; });
         if (this.editing) {
-            form.querySelector('[name="revert"]').addEventListener("click", () => this.discard(() => this.load()));
             this.remove.addEventListener("click", () => new DeletePopup(this.id, () => this.delete()));
             const back = form.querySelector("a.back");
             back.addEventListener("click", event => {
@@ -42,7 +43,7 @@ class ACLTargetForm {
     async load() {
         this.busy(true);
         try {
-            const data = await configJSON(this.editing ? `/api/cib/acl/user?id=${encodeURIComponent(this.id)}` : "/api/cib/acl/users");
+            const data = await configJSON(this.editing ? `${this.api}/user?id=${encodeURIComponent(this.id)}` : `${this.api}/users`);
             if (!this.editing && !data.supported) throw new Error("ACL is not supported by this cluster.");
             this.warning.hidden = data.enabled;
             const selected = new Set(this.editing ? data.target.roles : []);
@@ -63,14 +64,14 @@ class ACLTargetForm {
         };
         this.busy(true);
         try {
-            const data = await configJSON(this.editing ? "/api/cib/acl/user" : "/api/cib/acl/users/create", {
+            const data = await configJSON(this.editing ? `${this.api}/user${window.batchConfig ? "/update" : ""}` : `${this.api}/users/create`, {
                 method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(target),
             });
             if (this.editing) {
                 if (await this.load()) this.notify(data.message, false);
             } else {
                 sessionStorage.setItem("usersFlash", data.message);
-                window.location.href = "/cib/live/users";
+                window.location.href = `${this.base}/users`;
             }
         } catch (error) { this.notify(error.message); this.busy(false); }
     }
@@ -92,11 +93,11 @@ class ACLTargetForm {
     async delete() {
         this.busy(true);
         try {
-            const data = await configJSON("/api/cib/acl/users/delete", {
+            const data = await configJSON(`${this.api}/users/delete`, {
                 method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: this.id }),
             });
             sessionStorage.setItem("usersFlash", data.message);
-            window.location.href = "/cib/live/users";
+            window.location.href = `${this.base}/users`;
         } catch (error) { this.notify(error.message); this.busy(false); }
     }
 }
@@ -104,4 +105,6 @@ class ACLTargetForm {
 new ACLTargetForm(document.querySelector(".user-editor"));
 document.getElementById("monitoringMenu").classList.remove("in");
 document.getElementById("configurationMenu").classList.add("in");
-document.querySelector('a[href="/cib/live/users"]').setAttribute("aria-current", "page");
+document.querySelector(`a[href="${statusCIBBase()}/users"]`).setAttribute("aria-current", "page");
+
+if (window.hawkBatch) window.hawkBatch.start();

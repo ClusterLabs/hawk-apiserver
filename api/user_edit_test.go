@@ -35,7 +35,7 @@ func TestUserEditAPI(t *testing.T) {
 			run := func(ctx context.Context, name string, args []string, input string) ([]byte, error) {
 				if name == "crm" {
 					writes++
-					require.Equal(t, []string{"-F", "configure", "load", "update", "/dev/stdin"}, args)
+					require.Equal(t, []string{"-F", "configure", "load", "update", "-"}, args)
 					expected := "acl_target a-user monitor\n"
 					if tt.legacy {
 						expected = "acl_user old-user monitor\n"
@@ -83,7 +83,7 @@ func TestUserEditPage(t *testing.T) {
 	w := httptest.NewRecorder()
 	UsersHandler(w, httptest.NewRequest("GET", "/cib/live/users/a-user/edit", nil))
 	require.Equal(t, 200, w.Code)
-	for _, text := range []string{"Edit ACL Target", `data-target-id="a-user"`, `readonly value="a-user"`, `name="revert"`, `DeletePopup.js`, `name="user[roles][]"`} {
+	for _, text := range []string{"Edit ACL Target", `data-target-id="a-user"`, `readonly value="a-user"`, `DeletePopup.js`, `name="user[roles][]"`} {
 		require.Contains(t, w.Body.String(), text)
 	}
 	w = httptest.NewRecorder()

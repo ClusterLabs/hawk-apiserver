@@ -134,3 +134,50 @@ func TestBatchUsersPage(t *testing.T) {
 		require.NotContains(t, response.Body.String(), `href="/cib/live/`)
 	}
 }
+
+func TestBatchUserEditorAPI(t *testing.T) {
+	backend, calls := batchTestBackend(t)
+	original := backend.run
+	backend.run = func(ctx context.Context, live bool, name string, args []string, input string) ([]byte, error) {
+		out, err := original(ctx, live, name, args, input)
+		if name == "pacemakerd" || name == "cibadmin" {
+			return targetsTestRunner(ctx, name, args, input)
+		}
+		return out, err
+	}
+	response := batchTestRequest(backend, "GET", "acl/user?id=a-user", "")
+	require.Equal(t, 200, response.Code, response.Body.String())
+	require.Contains(t, response.Body.String(), `"target":{"id":"a-user","roles":["monitor","operator"]}`)
+	response = batchTestRequest(backend, "POST", "acl/user/update", `{"id":"a-user","roles":["monitor"]}`)
+	require.Equal(t, 200, response.Code, response.Body.String())
+	last := (*calls)[len(*calls)-1]
+	require.Equal(t, "crm", last.name)
+	require.Equal(t, []string{"-F", "configure", "load", "update", "-"}, last.args)
+	require.Contains(t, last.input, "a-user")
+	require.Contains(t, last.input, "monitor")
+	for _, call := range *calls {
+		require.False(t, call.live)
+	}
+	for _, body := range []string{`{"id":"a-user","roles":["missing"]}`, `{"id":"missing","roles":["monitor"]}`} {
+		*calls = nil
+		response = batchTestRequest(backend, "POST", "acl/user/update", body)
+		require.GreaterOrEqual(t, response.Code, 400)
+		for _, call := range *calls {
+			require.NotEqual(t, "crm", call.name)
+		}
+	}
+}
+
+func TestBatchUserEditPage(t *testing.T) {
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(".."))
+	t.Cleanup(func() { _ = os.Chdir(cwd) })
+	response := httptest.NewRecorder()
+	UsersHandler(response, httptest.NewRequest("GET", batchBase+"/users/a-user/edit", nil))
+	require.Equal(t, 200, response.Code)
+	for _, value := range []string{`data-target-id="a-user"`, `data-editing="true"`, `href="` + batchBase + `/users"`, `href="` + batchBase + `/crm_config/edit"`, `id="delete-user"`, `id="btn-show-batch"`, `id="batch-notifications"`, `batch.js`, `user_new.js`} {
+		require.Contains(t, response.Body.String(), value)
+	}
+	require.NotContains(t, response.Body.String(), `href="/cib/live/`)
+}

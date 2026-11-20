@@ -1,4 +1,5 @@
 {{ define "content" }}
+{{ $cibBase := "/cib/live" }}{{ if .CIBBase }}{{ $cibBase = .CIBBase }}{{ end }}
 <link rel="stylesheet" href="/static/css/primitive_edit.css">
 <link rel="stylesheet" href="/static/css/roles.css">
 <link rel="stylesheet" href="/static/css/user_new.css">
@@ -6,19 +7,26 @@
 <script src="/static/js/classes/ConfigTable.js" defer></script>
 {{ if .Editing }}<script src="/static/js/classes/DeletePopup.js" defer></script>
 <link rel="stylesheet" href="/static/css/config_edit.css">{{ end }}
+{{ if .BatchMode }}
+<script src="/static/js/classes/ConfirmActionPopup.js" defer></script>
+<link rel="stylesheet" href="/static/css/highlight.css">
+<script src="/static/js/vendor/highlight.js" defer></script>
+<script src="/static/js/batch.js" defer></script>
+{{ end }}
 <script src="/static/js/user_new.js" defer></script>
 <div class="edit-layout roles-page">
  <div class="edit-left">
+  {{ if .BatchMode }}<div id="batch-notifications" role="status" aria-live="polite"></div>{{ end }}
   <div id="user-notifications" role="status" aria-live="polite"></div>
-  <div id="roles-acl-warning" class="alert alert-warning alert-dismissible" role="alert" hidden><button type="button" class="close" aria-label="Close"><span aria-hidden="true">&times;</span></button><a href="/cib/live/crm_config/edit">To enable ACLs, set "enable-acl" in the Cluster Configuration ('Configuration &gt; Cluster Configuration')</a></div>
+  <div id="roles-acl-warning" class="alert alert-warning alert-dismissible" role="alert" hidden><button type="button" class="close" aria-label="Close"><span aria-hidden="true">&times;</span></button><a href="{{ $cibBase }}/crm_config/edit">To enable ACLs, set "enable-acl" in the Cluster Configuration ('Configuration &gt; Cluster Configuration')</a></div>
   <h1><i class="fa fa-user" aria-hidden="true"></i> {{ if .Editing }}Edit ACL Target <span class="pull-right"><button type="button" id="delete-user" class="btn btn-default" disabled><i class="fa fa-trash"></i> Delete</button></span>{{ else }}Create ACL Target{{ end }}</h1>
   <div class="panel panel-default"><div class="panel-body">
-   <form class="form-horizontal user-editor" id="{{ if .Editing }}edit_user{{ else }}new_user{{ end }}" {{ if .Editing }}data-target-id="{{ .TargetID }}" data-editing="true"{{ end }} action="/cib/live/users" method="post" aria-busy="true">
+   <form class="form-horizontal user-editor" id="{{ if .Editing }}edit_user{{ else }}new_user{{ end }}" {{ if .Editing }}data-target-id="{{ .TargetID }}" data-editing="true"{{ end }} action="{{ $cibBase }}/users" method="post" aria-busy="true">
     <p id="user-loading" class="text-muted" role="status">Loading roles…</p>
     <fieldset id="user-fields" disabled hidden>
      <div class="form-group"><label class="col-sm-5 control-label" for="user_id">Target ID</label><div class="col-sm-7"><input class="form-control" id="user_id" name="user[id]" required pattern="[a-zA-Z0-9_-]+" autocomplete="off" {{ if .Editing }}readonly value="{{ .TargetID }}"{{ end }}></div></div>
      <div class="form-group"><label class="col-sm-5 control-label" for="user_roles">Roles</label><div class="col-sm-7"><select class="form-control" id="user_roles" name="user[roles][]" multiple size="5" required></select></div></div>
-     <div class="form-group"><div class="col-sm-7 col-sm-offset-5"><div class="btn-group"><button type="submit" class="btn btn-primary submit" name="submit">{{ if .Editing }}Apply{{ else }}Create{{ end }}</button>{{ if .Editing }}<button type="button" class="btn btn-default cancel revert" name="revert">Revert</button>{{ end }}<a href="/cib/live/users" class="btn btn-default back">Back</a></div></div></div>
+     <div class="form-group"><div class="col-sm-7 col-sm-offset-5"><div class="btn-group"><button type="submit" class="btn btn-primary submit" name="submit">{{ if .Editing }}Apply{{ else }}Create{{ end }}</button><a href="{{ $cibBase }}/users" class="btn btn-default back">Back</a></div></div></div>
     </fieldset>
    </form>
   </div></div>
