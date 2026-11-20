@@ -315,6 +315,8 @@ func main() {
 	mux.HandleFunc("/cib/live/profile/edit", authMiddleware(api.ProfileHandler))
 	mux.HandleFunc("/cib/live/profile/edit/", authMiddleware(api.ProfileHandler))
 
+	mux.HandleFunc("/cib/hacluster/crm_config/edit", authMiddleware(api.ClusterConfigHandler))
+	mux.HandleFunc("/cib/hacluster/crm_config/edit/", authMiddleware(api.ClusterConfigHandler))
 	mux.HandleFunc("/cib/live/crm_config/edit", authMiddleware(api.ClusterConfigHandler))
 	mux.HandleFunc("/cib/live/crm_config/edit/", authMiddleware(api.ClusterConfigHandler))
 	mux.HandleFunc("/api/cib/cluster/config/options", authMiddleware(api.ClusterConfigOptionsHandler))
