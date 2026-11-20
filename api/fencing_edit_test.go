@@ -153,3 +153,59 @@ func TestFencingFetchAndPage(t *testing.T) {
 		require.Contains(t, w.Body.String(), text)
 	}
 }
+
+func TestBatchFencingEditor(t *testing.T) {
+	for _, exists := range []bool{false, true} {
+		backend, calls := batchTestBackend(t)
+		original := backend.run
+		backend.run = func(ctx context.Context, live bool, name string, args []string, input string) ([]byte, error) {
+			out, err := original(ctx, live, name, args, input)
+			if name == "cibadmin" && args[0] == "-Ql" {
+				topology := ""
+				if exists {
+					topology = `<fencing-topology><fencing-level id="fencing" target="n1" index="2" devices="sbd"/></fencing-topology>`
+				}
+				return []byte(fencingFixture(topology)), nil
+			}
+			return out, err
+		}
+		response := batchTestRequest(backend, "GET", "fencing/fetch", "")
+		require.Equal(t, 200, response.Code, response.Body.String())
+		require.Contains(t, response.Body.String(), `"devices":["other","sbd"]`)
+		response = batchTestRequest(backend, "POST", "fencing/update", `{"fencing":[{"type":"node","target":"n1","index":3,"devices":["sbd"]}]}`)
+		require.Equal(t, 200, response.Code, response.Body.String())
+		last := (*calls)[len(*calls)-1]
+		require.Equal(t, []string{"-p", "--replace", "--xpath", "/cib/configuration/fencing-topology"}, last.args)
+		require.Contains(t, last.input, `index="3"`)
+		for _, call := range *calls {
+			require.False(t, call.live)
+		}
+		*calls = nil
+		response = batchTestRequest(backend, "POST", "fencing/update", `{"fencing":[]}`)
+		require.Equal(t, 200, response.Code, response.Body.String())
+		if exists {
+			require.Equal(t, []string{"--delete", "--xpath", "/cib/configuration/fencing-topology"}, (*calls)[len(*calls)-1].args)
+		} else {
+			require.Len(t, *calls, 1)
+		}
+		*calls = nil
+		response = batchTestRequest(backend, "POST", "fencing/update", `{"fencing":[{"type":"node","target":"n1","index":1,"devices":["ordinary"]}]}`)
+		require.Equal(t, 422, response.Code, response.Body.String())
+		require.Len(t, *calls, 1)
+	}
+}
+
+func TestBatchFencingPage(t *testing.T) {
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(".."))
+	t.Cleanup(func() { _ = os.Chdir(cwd) })
+	for _, suffix := range []string{"", "/"} {
+		response := httptest.NewRecorder()
+		BatchFencingEditHandler(response, httptest.NewRequest("GET", batchBase+"/fencing/edit"+suffix, nil))
+		require.Equal(t, 200, response.Code, response.Body.String())
+		for _, text := range []string{`data-fetch-api="` + batchAPI + `/fencing/fetch"`, `data-submit-api="` + batchAPI + `/fencing/update"`, `href="` + batchBase + `/config/edit#fencing"`, `/static/js/batch.js`, `id="fencing-add"`} {
+			require.Contains(t, response.Body.String(), text)
+		}
+	}
+}

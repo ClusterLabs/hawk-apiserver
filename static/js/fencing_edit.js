@@ -97,7 +97,7 @@ fencingForm.addEventListener("submit", async event => {
     // Keep the submitted state fixed until the save completes.
     fencingForm.querySelectorAll("button, input, select").forEach(control => { control.disabled = true; });
     try {
-        const response = await fetch("/cib/live/fencing/edit", {
+        const response = await fetch(fencingForm.dataset.submitApi || "/cib/live/fencing/edit", {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ fencing: fencingLevels }),
         });
@@ -116,7 +116,7 @@ fencingForm.addEventListener("submit", async event => {
 });
 async function loadFencing() {
     try {
-        const response = await fetch("/api/cib/fencing/fetch", { cache: "no-store" });
+        const response = await fetch(fencingForm.dataset.fetchApi || "/api/cib/fencing/fetch", { cache: "no-store" });
         const text = await response.text();
         let data;
         try { data = JSON.parse(text); } catch { throw new Error(text || "Unable to load fencing topology."); }
@@ -131,5 +131,7 @@ async function loadFencing() {
 }
 document.getElementById("monitoringMenu").classList.remove("in");
 document.getElementById("configurationMenu").classList.add("in");
-document.querySelector('a[href="/cib/live/config/edit"]')?.setAttribute("aria-current", "page");
+document.querySelector(`a[href="${statusCIBBase()}/config/edit"]`)?.setAttribute("aria-current", "page");
 loadFencing();
+
+if (window.hawkBatch) window.hawkBatch.start();

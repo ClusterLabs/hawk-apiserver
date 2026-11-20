@@ -144,7 +144,12 @@ func FencingEditHandler(w http.ResponseWriter, r *http.Request) {
 	serveFencingEdit(w, r, runClusterConfigCommand)
 }
 func serveFencingEdit(w http.ResponseWriter, r *http.Request, run clusterConfigCommand) {
-	if r.URL.Path != "/cib/live/fencing/edit" && r.URL.Path != "/cib/live/fencing/edit/" {
+	base := "/cib/live"
+	switch r.URL.Path {
+	case "/cib/live/fencing/edit", "/cib/live/fencing/edit/":
+	case batchBase + "/fencing/edit", batchBase + "/fencing/edit/":
+		base = batchBase
+	default:
 		http.NotFound(w, r)
 		return
 	}
@@ -154,7 +159,13 @@ func serveFencingEdit(w http.ResponseWriter, r *http.Request, run clusterConfigC
 		return
 	}
 	if r.Method != http.MethodPost {
-		renderTemplate(w, "fencing_edit", map[string]any{"Title": "Edit Fencing Topology"})
+		data := map[string]any{"Title": "Edit Fencing Topology", "CIBBase": base}
+		if base == batchBase {
+			data["BatchMode"] = true
+			data["BatchConfig"] = map[string]string{"base": batchBase, "api": batchAPI, "id": batchID}
+			data["FencingAPI"] = batchAPI + "/fencing"
+		}
+		renderTemplate(w, "fencing_edit", data)
 		return
 	}
 	var request struct {
@@ -229,4 +240,16 @@ func fetchFencingEdit(w http.ResponseWriter, r *http.Request, run clusterConfigC
 	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(state)
+}
+
+func BatchFencingEditHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		request := r.Clone(r.Context())
+		copiedURL := *r.URL
+		request.URL = &copiedURL
+		request.URL.Path = batchAPI + "/fencing/update"
+		batch.api(w, request)
+		return
+	}
+	serveFencingEdit(w, r, runClusterConfigCommand)
 }
