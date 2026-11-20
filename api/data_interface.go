@@ -427,6 +427,7 @@ func FetchResourceUtilizations(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&frontendNode); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		log.Printf("[FetchNodeAttributes] JSON decode error: %v", err)
+		return
 	}
 
 	resources, err := GetCIBResources()
@@ -461,6 +462,7 @@ func SubmitResourceUtilizations(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&frontendNode); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		log.Printf("[SubmitNodeAttibutes] JSON decode error: %v", err)
+		return
 	}
 
 	resources, err := GetCIBResources()
@@ -532,6 +534,7 @@ func FetchNodeAttributes(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&frontendNode); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		log.Printf("[FetchNodeAttributes] JSON decode error: %v", err)
+		return
 	}
 
 	nodes, err := GetCIBNodes()
@@ -566,6 +569,7 @@ func SubmitNodeAttributes(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&frontendNode); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		log.Printf("[SubmitNodeAttibutes] JSON decode error: %v", err)
+		return
 	}
 
 	nodes, err := GetCIBNodes()
@@ -637,6 +641,7 @@ func FetchNodeUtilizations(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&frontendNode); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		log.Printf("[FetchNodeUtilizations] JSON decode error: %v", err)
+		return
 	}
 
 	nodes, err := GetCIBNodes()
@@ -671,6 +676,7 @@ func SubmitNodeUtilizations(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&frontendNode); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		log.Printf("[SubmitNodeUtilizations] JSON decode error: %v", err)
+		return
 	}
 
 	nodes, err := GetCIBNodes()
