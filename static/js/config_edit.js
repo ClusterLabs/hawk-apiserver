@@ -1,6 +1,6 @@
 "use strict";
 
-const configBase = "/cib/live";
+const configBase = statusCIBBase();
 const configTables = new Map();
 let configAuthenticityToken;
 
@@ -133,7 +133,7 @@ function configResourceType(row) {
         event.preventDefault();
         const metadataRow = row.template ? configTables.get("resources")?.rows.find(item => item.id === row.template) : row;
         const resourceAgent = metadataRow ? [metadataRow.clazz, metadataRow.provider, metadataRow.type].filter(Boolean).join(":") : agent;
-        new RAInfoPopup(row.id, resourceAgent || agent);
+        new RAInfoPopup(window.hawkBatch ? "" : row.id, resourceAgent || agent);
     });
     return link;
 }
@@ -186,7 +186,14 @@ selectConfigTab(window.location.hash.slice(1));
 refreshConfigTables();
 
 // Use the same monitor-driven refresh loop as the live status page.
-pollClusterStatus(refreshConfigTables);
+if (window.hawkBatch) window.hawkBatch.start();
+else pollClusterStatus(refreshConfigTables);
 document.getElementById("monitoringMenu").classList.remove("in");
 document.getElementById("configurationMenu").classList.add("in");
-document.querySelector('a[href="/cib/live/config/edit"]').setAttribute("aria-current", "page");
+document.querySelector(`a[href="${configBase}/config/edit"]`).setAttribute("aria-current", "page");
+
+// BatchPage calls the same refresh hook as the status page after simulations
+// and while polling the shadow CIB.
+function updateClusterStatus() {
+    return refreshConfigTables();
+}

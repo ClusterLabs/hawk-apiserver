@@ -46,3 +46,29 @@ func TestConfigEditHandler(t *testing.T) {
 		}
 	}
 }
+
+func TestBatchConfigEditPage(t *testing.T) {
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(".."))
+	t.Cleanup(func() { _ = os.Chdir(cwd) })
+	for _, suffix := range []string{"", "/"} {
+		response := httptest.NewRecorder()
+		ConfigEditHandler(response, httptest.NewRequest("GET", batchBase+"/config/edit"+suffix, nil))
+		require.Equal(t, 200, response.Code)
+		html := response.Body.String()
+		for _, link := range []string{"/config/edit", "/config", "/config?xml=true", "/graph", "/fencing/edit"} {
+			require.Contains(t, html, `href="`+batchBase+link+`"`)
+		}
+		require.NotContains(t, html, `href="/cib/live/`)
+		require.Equal(t, 6, strings.Count(html, `data-config-table=`))
+		for _, asset := range []string{"ConfigTable.js", "DeletePopup.js", "RAInfoPopup.js", "config_edit.js", "batch.js", "ConfirmActionPopup.js"} {
+			require.Contains(t, html, asset)
+		}
+		require.Contains(t, html, `id="batch-notifications"`)
+		require.Contains(t, html, `id="btn-show-batch"`)
+	}
+	response := httptest.NewRecorder()
+	ConfigEditHandler(response, httptest.NewRequest("POST", batchBase+"/config/edit", nil))
+	require.Equal(t, 405, response.Code)
+}

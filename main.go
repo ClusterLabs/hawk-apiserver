@@ -306,6 +306,8 @@ func main() {
 	mux.HandleFunc("/cib/live/fencing/edit", authMiddleware(api.FencingEditHandler))
 	mux.HandleFunc("/cib/live/fencing/edit/", authMiddleware(api.FencingEditHandler))
 	mux.HandleFunc("/api/cib/fencing/fetch", authMiddleware(api.FencingFetchHandler))
+	mux.HandleFunc("/cib/hacluster/config/edit", authMiddleware(api.ConfigEditHandler))
+	mux.HandleFunc("/cib/hacluster/config/edit/", authMiddleware(api.ConfigEditHandler))
 	mux.HandleFunc("/cib/live/config/edit", authMiddleware(api.ConfigEditHandler))
 	mux.HandleFunc("/cib/live/config/edit/", authMiddleware(api.ConfigEditHandler))
 
