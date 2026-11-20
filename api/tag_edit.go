@@ -30,7 +30,7 @@ func (tag tagElement) id() string {
 func TagEditHandler(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 	if len(parts) != 5 || parts[0] != "cib" || (parts[1] != "live" && parts[1] != batchID) || parts[2] != "tags" || parts[4] != "edit" {
-		TagRubyHandler(w, r)
+		resourceFallback(w, r)
 		return
 	}
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {

@@ -125,20 +125,13 @@ func TestGroupPageTemplateAndMethods(t *testing.T) {
 	require.Equal(t, http.StatusMethodNotAllowed, response.Code)
 }
 
-func TestGroupFlashBridgePreservesRubyEditor(t *testing.T) {
+func TestUnportedResourceDoesNotUseFallbackApplication(t *testing.T) {
 	previous := Routehandler
 	t.Cleanup(func() { Routehandler = previous })
-	Routehandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, "identity", r.Header.Get("Accept-Encoding"))
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = w.Write([]byte(`<html><body><div class="row" id="flashes"></div><form>Ruby group editor</form></body></html>`))
-	})
+	Routehandler = http.HandlerFunc(func(http.ResponseWriter, *http.Request) { t.Fatal("Unported editor contacted another application") })
 	response := httptest.NewRecorder()
-	GroupRubyHandler(response, httptest.NewRequest("GET", "/cib/live/groups/g/edit?flash=created", nil))
-	require.Equal(t, http.StatusOK, response.Code)
-	require.Contains(t, response.Body.String(), `class="alert-success alert alert-dismissible"`)
-	require.Contains(t, response.Body.String(), "Group created successfully")
-	require.Contains(t, response.Body.String(), "Ruby group editor")
+	resourceFallback(response, httptest.NewRequest("GET", "/cib/hacluster/groups/g/edit?flash=created", nil))
+	require.Equal(t, http.StatusNotFound, response.Code)
 }
 
 func TestBatchGroupForm(t *testing.T) {

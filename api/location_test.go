@@ -106,7 +106,7 @@ func TestLocationEditTemplate(t *testing.T) {
 		require.Contains(t, body.String(), value)
 	}
 	response := httptest.NewRecorder()
-	LocationRubyHandler(response, httptest.NewRequest("POST", "/cib/live/locations/location1/edit", nil))
+	LocationEditHandler(response, httptest.NewRequest("POST", "/cib/live/locations/location1/edit", nil))
 	require.Equal(t, 405, response.Code)
 }
 

@@ -63,7 +63,7 @@ func loadAlert(ctx context.Context, id string, run clusterConfigCommand) (alertC
 func AlertEditHandler(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 	if len(parts) != 5 || parts[0] != "cib" || (parts[1] != "live" && parts[1] != batchID) || parts[2] != "alerts" || parts[4] != "edit" {
-		AlertRubyHandler(w, r)
+		resourceFallback(w, r)
 		return
 	}
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {

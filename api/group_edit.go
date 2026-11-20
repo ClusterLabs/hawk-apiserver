@@ -131,7 +131,7 @@ func readGroupEdit(ctx context.Context, id string, run clusterConfigCommand) (gr
 func GroupEditHandler(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 	if len(parts) != 5 || parts[0] != "cib" || parts[1] != "live" || parts[2] != "groups" || parts[4] != "edit" {
-		GroupRubyHandler(w, r)
+		resourceFallback(w, r)
 		return
 	}
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {

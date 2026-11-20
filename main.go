@@ -1,14 +1,8 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
-	"log"
-	"net"
 	"net/http"
-	"strings"
-	"time"
 
 	"github.com/ClusterLabs/hawk-apiserver/api"
 	"github.com/ClusterLabs/hawk-apiserver/internal"
@@ -16,88 +10,26 @@ import (
 	logrus "github.com/sirupsen/logrus"
 )
 
-const hawkRubySock = "/usr/share/hawk/tmp/hawk.sock"
-
-type rubyAuthResp struct {
-	OK   bool   `json:"ok"`
-	User string `json:"user"`
-}
-
-/*
-hawk-apiserver doesn't do auth right now (but will do it in later versions)
-instead, it asks the hawk (RoR) if it's authenticated
-each time inside /cib/live/primitives/{primitive-id}/edit page.
-Thought it's stressfull, but it happens only in one page right now (as of 18.12.2025)
-and in future, Go should do all the auth routines. (#TODO)
-*/
-// Preserve the selected CIB when checking the Ruby session. Ruby also uses
-// this context for the shadow editors that remain behind the reverse proxy.
-func rubyAuthURL(r *http.Request) string {
-	batchRequest := r.URL.Path == "/cib/hacluster" || strings.HasPrefix(r.URL.Path, "/cib/hacluster/") || strings.HasPrefix(r.URL.Path, "/api/batch/hacluster/")
-	metadata := r.URL.Path == "/api/cib/resource/params/fetch" || r.URL.Path == "/api/cib/resource/operations/fetch"
-	if batchRequest || (metadata && r.URL.Query().Get("cib_id") == "hacluster") {
-		return "http://localhost/internal/auth?cib_id=hacluster"
-	}
-	return "http://localhost/internal/auth"
-}
-
-func authViaRuby(r *http.Request) (ok bool, user string, err error) {
-	tr := &http.Transport{
-		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			d := net.Dialer{Timeout: 2 * time.Second}
-			return d.DialContext(ctx, "unix", hawkRubySock)
-		},
-	}
-	client := &http.Client{
-		Transport: tr,
-		Timeout:   3 * time.Second,
-	}
-
-	// URL host is dummy; DialContext ignores it and uses the unix socket.
-	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, rubyAuthURL(r), nil)
-	if err != nil {
-		return false, "", err
-	}
-
-	// Forward cookies from the *incoming* browser request to Ruby.
-	if ck := r.Header.Get("Cookie"); ck != "" {
-		req.Header.Set("Cookie", ck)
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return false, "", err
-	}
-	defer resp.Body.Close()
-
-	var out rubyAuthResp
-	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		return false, "", err
-	}
-
-	return out.OK, out.User, nil
-}
+var authentication *api.Authentication
 
 func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return authentication.Middleware(next)
+}
 
-		ok, user, err := authViaRuby(r)
-		if err != nil {
-			log.Printf("[auth] ruby auth error: %v", err)
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
+// nativeFallback never forwards requests or reads Rails' public directory.
+// Unported endpoints intentionally return 404.
+func nativeFallback(monitor http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" {
+			http.Redirect(w, r, "/cib/live", http.StatusSeeOther)
 			return
 		}
-		if !ok {
-			log.Printf("[auth] ruby auth: forbidden")
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
+		if r.URL.Path == "/monitor" || r.URL.Path == "/monitor.json" {
+			monitor.ServeHTTP(w, r)
 			return
 		}
-
-		// (Optional) log who Ruby thinks it is
-		_ = user
-
-		next.ServeHTTP(w, r)
-	}
+		http.NotFound(w, r)
+	})
 }
 
 // the released version of the binary. Generated via makefile or buildsystem
@@ -106,8 +38,13 @@ var version = "was not built correctly"
 func main() {
 	// initialize configuration, which handle the different routes
 	config := internal.InitConfig(version)
-	routehandler := internal.NewRouteHandler(&config)
-	api.Routehandler = routehandler
+	authentication = api.NewAuthentication(config.SessionDirectory, internal.AuthenticatePassword)
+	// Keep native monitoring; configured legacy proxy/static routes no longer run.
+	nativeConfig := config
+	nativeConfig.Route = []internal.ConfigRoute{{Handler: "monitor", Path: "/monitor"}}
+	routehandler := internal.NewRouteHandler(&nativeConfig)
+	fallback := nativeFallback(http.HandlerFunc(authMiddleware(routehandler.ServeHTTP)))
+	api.Routehandler = fallback
 
 	// binds to pacemaker-go and serve CIB async info
 	routehandler.Cib.Start()
@@ -115,6 +52,10 @@ func main() {
 	logrus.Infof("Listening to https://%s:%d\n", config.Listen, config.Port)
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("/login", authentication.Login)
+	mux.HandleFunc("/login.json", api.DashboardStatusCORS(authentication.Login))
+	mux.HandleFunc("/logout", authentication.Logout)
+	mux.HandleFunc("/logout.json", authentication.Logout)
 
 	reportsAPI := api.NewReportsAPI("")
 	mux.HandleFunc("/reports", authMiddleware(api.ReportsHandler))
@@ -123,8 +64,8 @@ func main() {
 			authMiddleware(api.ReportsHandler)(w, r)
 			return
 		}
-		// The transition explorer remains in Rails during the landing page port.
-		routehandler.ServeHTTP(w, r)
+		// The transition explorer has no native handler yet.
+		fallback.ServeHTTP(w, r)
 	})
 	mux.HandleFunc("/api/reports", authMiddleware(reportsAPI.ServeHTTP))
 	mux.HandleFunc("/api/reports/", authMiddleware(reportsAPI.ServeHTTP))
@@ -132,12 +73,12 @@ func main() {
 	liveHandler := authMiddleware(api.LiveStatusHandler)
 	mux.HandleFunc("/cib/live", liveHandler)
 	mux.HandleFunc("/cib/live/", func(w http.ResponseWriter, r *http.Request) {
-		// Unported pages beneath /cib/live/ still use the Ruby fallback.
+		// Unported endpoints no longer fall back to Rails.
 		if r.URL.Path == "/cib/live/" {
 			liveHandler(w, r)
 			return
 		}
-		routehandler.ServeHTTP(w, r) // if not exactly "/cib/live/" --> Ruby fallback
+		fallback.ServeHTTP(w, r) // Unported endpoint.
 	})
 	mux.HandleFunc("/cib/hacluster", authMiddleware(api.BatchHandler))
 	mux.HandleFunc("/cib/hacluster/", func(w http.ResponseWriter, r *http.Request) {
@@ -145,10 +86,10 @@ func main() {
 			authMiddleware(api.BatchHandler)(w, r)
 			return
 		}
-		routehandler.ServeHTTP(w, r)
+		fallback.ServeHTTP(w, r)
 	})
 	mux.HandleFunc("/api/batch/hacluster/", authMiddleware(api.BatchAPIHandler))
-	// Register BOTH /cib/live/foo and /cib/live/foo/ to avoid conflicts with Ruby
+	// Register both canonical URLs and their trailing-slash variants.
 	mux.HandleFunc("/cib/live/wizards/cryptctl", authMiddleware(api.CryptctlWizardHandler))
 	mux.HandleFunc("/cib/live/wizards/cryptctl/", authMiddleware(api.CryptctlWizardHandler))
 	mux.HandleFunc("/cib/live/wizards/fence-vmware-rest", authMiddleware(api.VMwareRESTWizardHandler))
@@ -211,7 +152,7 @@ func main() {
 			authMiddleware(api.WizardsHandler)(w, r)
 			return
 		}
-		routehandler.ServeHTTP(w, r)
+		fallback.ServeHTTP(w, r)
 	})
 	mux.HandleFunc("/cib/hacluster/commands", authMiddleware(api.CommandsHandler))
 	mux.HandleFunc("/cib/hacluster/commands/", authMiddleware(api.CommandsHandler))
@@ -231,8 +172,8 @@ func main() {
 	mux.HandleFunc("/cib/hacluster/colocations/new/", authMiddleware(api.ColocationNewHandler))
 	mux.HandleFunc("/cib/live/colocations/new", authMiddleware(api.ColocationNewHandler))
 	mux.HandleFunc("/cib/live/colocations/new/", authMiddleware(api.ColocationNewHandler))
-	mux.HandleFunc("/cib/hacluster/colocations/", authMiddleware(api.ColocationRubyHandler))
-	mux.HandleFunc("/cib/live/colocations/", authMiddleware(api.ColocationRubyHandler))
+	mux.HandleFunc("/cib/hacluster/colocations/", authMiddleware(api.ColocationEditHandler))
+	mux.HandleFunc("/cib/live/colocations/", authMiddleware(api.ColocationEditHandler))
 	mux.HandleFunc("/api/cib/colocation/options/fetch", authMiddleware(api.FetchColocationOptions))
 	mux.HandleFunc("/api/cib/colocation/fetch", authMiddleware(api.FetchColocation))
 	mux.HandleFunc("/api/cib/colocation/update", authMiddleware(api.ColocationUpdateHandler))
@@ -241,8 +182,8 @@ func main() {
 	mux.HandleFunc("/cib/hacluster/locations/new/", authMiddleware(api.LocationNewHandler))
 	mux.HandleFunc("/cib/live/locations/new", authMiddleware(api.LocationNewHandler))
 	mux.HandleFunc("/cib/live/locations/new/", authMiddleware(api.LocationNewHandler))
-	mux.HandleFunc("/cib/hacluster/locations/", authMiddleware(api.LocationRubyHandler))
-	mux.HandleFunc("/cib/live/locations/", authMiddleware(api.LocationRubyHandler))
+	mux.HandleFunc("/cib/hacluster/locations/", authMiddleware(api.LocationEditHandler))
+	mux.HandleFunc("/cib/live/locations/", authMiddleware(api.LocationEditHandler))
 	mux.HandleFunc("/api/cib/location/options/fetch", authMiddleware(api.FetchLocationOptions))
 	mux.HandleFunc("/api/cib/location/fetch", authMiddleware(api.FetchLocation))
 	mux.HandleFunc("/api/cib/location/update", authMiddleware(api.LocationUpdateHandler))
@@ -396,7 +337,7 @@ func main() {
 	mux.HandleFunc("/api/crm/status/fetch", authMiddleware(api.FetchCrmStatus))
 	mux.HandleFunc("/api/cib/resources/fetch", authMiddleware(api.FetchCibResources))
 
-	mux.Handle("/", routehandler) // routehandler is a fallback
+	mux.Handle("/", fallback) // routehandler is a fallback
 
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 

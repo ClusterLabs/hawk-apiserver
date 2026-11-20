@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>SUSE Hawk: Log In</title><link rel="stylesheet" href="/static/login.css"></head>
+<body><main class="login-container">
+<img src="/static/img/white.png" alt="SUSE Hawk"><h1>Log In</h1>
+{{ if .Error }}<p class="error" role="alert">{{ .Error }}</p>{{ end }}
+<form id="new_session" action="/login" method="post">
+<input type="hidden" name="authenticity_token" value="{{ .Token }}"><input type="hidden" name="return_to" value="{{ .ReturnTo }}">
+<label for="session_username">Username</label><input id="session_username" name="session[username]" value="{{ .Username }}" autocomplete="username" required autofocus>
+<label for="session_password">Password</label><input id="session_password" name="session[password]" type="password" autocomplete="current-password" required>
+<button name="commit" type="submit">Login</button>
+</form></main></body></html>

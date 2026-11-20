@@ -22,12 +22,36 @@ MONITORING -> Status -> [{Resource-ID} dwopdown menu ▼] -> ✏️ Edit
 
 There are also custom JavaScript classes in static/js/classes designed to simplify the development.
 
-What about hawk2?
-=================
-The idea is to migrate the functionality from Ruby to Go without big changes to the Ruby part.
-However, some changes are unavoidable. For example, when redirecting from one web page to another, Ruby passes the arguments through its internal cookies, which are not accessible from Go. Therefore, Ruby must to provide the arguments explicitely through the URL.
-For now, it's recommented to simply ignore this issue. If you want all tests to pass, you can use
-the patched hawk from https://build.suse.de/package/show/home:aburlakov:branches:SUSE:SLE-15-SP6:Update/hawk2
+Go and Rails separation
+=======================
+The Go server authenticates directly through `/usr/sbin/hawk_chkpwd passwd <user>`.
+It does not contact Puma, use Rails session cookies/secrets, or fall back to Rails.
+The PAM helper remains a shared system executable; no PAM or cluster settings are
+changed by this separation.
+
+`/login`, `/login.json`, `/logout`, and `/logout.json` are native Go endpoints.
+The HTML login keeps the existing `session[username]` and `session[password]`
+field names. `/login.json` also accepts these form fields for dashboard clients.
+Sessions last ten days, survive server restarts, and are invalidated on logout.
+Passwords are sent to the helper through stdin and are never stored in sessions.
+
+Go owns the `hawk_go_session` cookie and a separate private session directory,
+`/var/lib/hawk/go-sessions` by default. The Go service account must be able to
+own and create/write this directory with mode 0700. Override it with `-session-dir` or
+`session_directory` in the JSON configuration. Separate deployments can use
+separate directories. Existing Rails logins are not imported; sign into Go again.
+
+The listener/TLS settings still come from the existing command-line arguments
+and JSON configuration. Legacy `file` and `proxy` routes in installed Hawk
+configuration are ignored by the native server. `/monitor` and `/monitor.json`
+are handled in Go, and assets come from this project's `/static/` directory.
+No service units, `/etc/sysconfig/hawk`, certificates, or firewall settings are
+changed by this code.
+
+Unported endpoints return 404. This includes legacy table JSON/rename forms used
+by Edit Configuration, Command Log's `commands.json`, the report transition
+viewer, and unported batch pages. Their replacement is outside this separation.
+Native editor APIs and the existing Go batch simulation logic remain in place.
 
 How to install?
 ===============
