@@ -256,7 +256,7 @@ func batchJSON(w http.ResponseWriter, value any) {
 
 func (b *batchBackend) api(w http.ResponseWriter, r *http.Request) {
 	operation := strings.TrimPrefix(r.URL.Path, batchAPI+"/")
-	methods := map[string]string{"state": "GET", "details": "GET", "review": "GET", "result": "GET", "simulate": "POST", "action": "POST", "apply": "POST", "discard": "POST", "primitive/create": "POST", "group/children": "POST", "group/create": "POST", "clone/children": "POST", "clone/create": "POST", "tag/objects": "POST", "tag/create": "POST", "tag/fetch": "GET", "tag/update": "POST", "tag/rename": "POST", "tag/delete": "POST", "alert/create": "POST", "alert/fetch": "GET", "alert/update": "POST", "alert/rename": "POST", "alert/delete": "POST", "colocation/fetch": "POST", "colocation/update": "POST", "colocation/rename": "POST", "colocation/delete": "POST", "fencing/fetch": "GET", "fencing/update": "POST", "order/fetch": "GET", "order/update": "POST", "order/rename": "POST", "order/delete": "POST", "order/options": "POST", "order/create": "POST", "colocation/options": "POST", "colocation/create": "POST", "location/options": "POST", "location/create": "POST", "location/fetch": "POST", "location/update": "POST", "location/rename": "POST", "location/delete": "POST"}
+	methods := map[string]string{"state": "GET", "details": "GET", "review": "GET", "result": "GET", "simulate": "POST", "action": "POST", "apply": "POST", "discard": "POST", "primitive/create": "POST", "group/children": "POST", "group/create": "POST", "clone/children": "POST", "clone/create": "POST", "tag/objects": "POST", "tag/create": "POST", "tag/fetch": "GET", "tag/update": "POST", "tag/rename": "POST", "tag/delete": "POST", "alert/create": "POST", "alert/fetch": "GET", "alert/update": "POST", "alert/rename": "POST", "alert/delete": "POST", "colocation/fetch": "POST", "colocation/update": "POST", "colocation/rename": "POST", "colocation/delete": "POST", "cluster/config/options": "POST", "cluster/config/update": "POST", "fencing/fetch": "GET", "fencing/update": "POST", "order/fetch": "GET", "order/update": "POST", "order/rename": "POST", "order/delete": "POST", "order/options": "POST", "order/create": "POST", "colocation/options": "POST", "colocation/create": "POST", "location/options": "POST", "location/create": "POST", "location/fetch": "POST", "location/update": "POST", "location/rename": "POST", "location/delete": "POST"}
 	for _, section := range []string{"params", "meta-attributes", "operations", "utilizations"} {
 		methods["resource/"+section+"/fetch"] = "POST"
 		methods["resource/"+section+"/submit"] = "POST"
@@ -395,6 +395,10 @@ func (b *batchBackend) api(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		batchJSON(w, cib.ColocationResources)
+	case "cluster/config/options", "cluster/config/update":
+		clusterConfigAPI(w, r, func(ctx context.Context, name string, args []string, input string) ([]byte, error) {
+			return b.run(ctx, false, name, args, input)
+		}, operation == "cluster/config/update")
 	case "fencing/fetch":
 		fetchFencingEdit(w, r, func(ctx context.Context, name string, args []string, input string) ([]byte, error) {
 			return b.run(ctx, false, name, args, input)

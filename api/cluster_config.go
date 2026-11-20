@@ -328,7 +328,12 @@ func clusterConfigMutations(state clusterConfigState, values map[string]map[stri
 	return mutations, nil
 }
 func ClusterConfigHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/cib/live/crm_config/edit" && r.URL.Path != "/cib/live/crm_config/edit/" {
+	base := "/cib/live"
+	switch r.URL.Path {
+	case "/cib/live/crm_config/edit", "/cib/live/crm_config/edit/":
+	case batchBase + "/crm_config/edit", batchBase + "/crm_config/edit/":
+		base = batchBase
+	default:
 		http.NotFound(w, r)
 		return
 	}
@@ -337,7 +342,13 @@ func ClusterConfigHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
-	renderTemplate(w, "cluster_config", map[string]any{"Title": "Cluster Configuration"})
+	data := map[string]any{"Title": "Cluster Configuration", "CIBBase": base}
+	if base == batchBase {
+		data["BatchMode"] = true
+		data["BatchConfig"] = map[string]string{"base": batchBase, "api": batchAPI, "id": batchID}
+		data["ClusterConfigAPI"] = batchAPI + "/cluster/config"
+	}
+	renderTemplate(w, "cluster_config", data)
 }
 func ClusterConfigOptionsHandler(w http.ResponseWriter, r *http.Request) {
 	clusterConfigAPI(w, r, runClusterConfigCommand, false)

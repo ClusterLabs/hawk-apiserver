@@ -149,3 +149,49 @@ func TestClusterConfigPage(t *testing.T) {
 		require.Contains(t, response.Body.String(), value)
 	}
 }
+
+func TestBatchClusterConfiguration(t *testing.T) {
+	backend, calls := batchTestBackend(t)
+	original := backend.run
+	backend.run = func(ctx context.Context, live bool, name string, args []string, input string) ([]byte, error) {
+		_, _ = original(ctx, live, name, args, input)
+		if name == "crm_attribute" && len(args) > 0 && args[0] != "--list-options=cluster" {
+			return nil, nil
+		}
+		return clusterConfigTestRunner(ctx, name, args, input)
+	}
+	for _, section := range []string{"crm_config", "rsc_defaults", "op_defaults"} {
+		response := batchTestRequest(backend, "POST", "cluster/config/options", `{"section":"`+section+`"}`)
+		require.Equal(t, 200, response.Code, response.Body.String())
+		if section == "crm_config" {
+			require.Contains(t, response.Body.String(), `"CibValue":"test"`)
+		}
+	}
+	*calls = nil
+	response := batchTestRequest(backend, "POST", "cluster/config/update", `{"values":{"crm_config":{"cluster-name":"batch-name","maintenance-mode":"false"},"rsc_defaults":{"priority":"2"},"op_defaults":{"timeout":"600"}}}`)
+	require.Equal(t, 200, response.Code, response.Body.String())
+	last := (*calls)[len(*calls)-1]
+	require.Equal(t, "crm_attribute", last.name)
+	require.Equal(t, []string{"--type", "crm_config", "--set-name", "cib-bootstrap-options", "--name", "cluster-name", "--update", "batch-name"}, last.args)
+	for _, call := range *calls {
+		require.False(t, call.live)
+	}
+}
+
+func TestBatchClusterConfigurationPage(t *testing.T) {
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(".."))
+	t.Cleanup(func() { _ = os.Chdir(cwd) })
+	for _, suffix := range []string{"", "/"} {
+		response := httptest.NewRecorder()
+		ClusterConfigHandler(response, httptest.NewRequest("GET", batchBase+"/crm_config/edit"+suffix, nil))
+		require.Equal(t, 200, response.Code)
+		html := response.Body.String()
+		require.Contains(t, html, `action="`+batchAPI+`/cluster/config/update"`)
+		require.Equal(t, 3, strings.Count(html, `options-api="`+batchAPI+`/cluster/config/options"`))
+		require.Contains(t, html, `id="btn-show-batch"`)
+		require.Contains(t, html, `/static/js/batch.js`)
+		require.NotContains(t, html, `options-api="/api/cib/cluster/config`)
+	}
+}

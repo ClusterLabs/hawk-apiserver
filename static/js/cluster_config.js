@@ -46,5 +46,7 @@ clusterConfigForm.querySelectorAll(".config-section-toggle").forEach(button => b
 }));
 document.getElementById("monitoringMenu").classList.remove("in");
 document.getElementById("configurationMenu").classList.add("in");
-document.querySelector('a[href="/cib/live/crm_config/edit"]').setAttribute("aria-current", "page");
+document.querySelector(`a[href="${statusCIBBase()}/crm_config/edit"]`).setAttribute("aria-current", "page");
 initializeClusterConfig();
+
+if (window.hawkBatch) window.hawkBatch.start();
