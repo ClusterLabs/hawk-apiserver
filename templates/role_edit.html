@@ -1,4 +1,5 @@
 {{ define "content" }}
+{{ $cibBase := "/cib/live" }}{{ if .CIBBase }}{{ $cibBase = .CIBBase }}{{ end }}
 <link rel="stylesheet" href="/static/css/primitive_edit.css">
 <link rel="stylesheet" href="/static/css/roles.css">
 <link rel="stylesheet" href="/static/css/config_edit.css">
@@ -6,11 +7,18 @@
 <script src="/static/js/classes/XAlert.js" defer></script>
 <script src="/static/js/classes/DeletePopup.js" defer></script>
 <script src="/static/js/classes/ConfigTable.js" defer></script>
+{{ if .BatchMode }}
+<script src="/static/js/classes/ConfirmActionPopup.js" defer></script>
+<link rel="stylesheet" href="/static/css/highlight.css">
+<script src="/static/js/vendor/highlight.js" defer></script>
+<script src="/static/js/batch.js" defer></script>
+{{ end }}
 <script src="/static/js/role_edit.js" defer></script>
 <div class="edit-layout roles-page">
  <div class="edit-left">
+  {{ if .BatchMode }}<div id="batch-notifications" role="status" aria-live="polite"></div>{{ end }}
   <div id="role-notifications" role="status" aria-live="polite"></div>
-  <div id="roles-acl-warning" class="alert alert-warning alert-dismissible" role="alert" hidden><button type="button" class="close" aria-label="Close"><span aria-hidden="true">&times;</span></button><a href="/cib/live/crm_config/edit">To enable ACLs, set "enable-acl" in the Cluster Configuration ('Configuration &gt; Cluster Configuration')</a></div>
+  <div id="roles-acl-warning" class="alert alert-warning alert-dismissible" role="alert" hidden><button type="button" class="close" aria-label="Close"><span aria-hidden="true">&times;</span></button><a href="{{ $cibBase }}/crm_config/edit">To enable ACLs, set "enable-acl" in the Cluster Configuration ('Configuration &gt; Cluster Configuration')</a></div>
   <h1><i class="fa fa-users" aria-hidden="true"></i> {{ if .Creating }}Create Role{{ else }}Edit Role{{ end }} {{ if not .Creating }}<span class="pull-right"><button type="button" id="delete-role" class="btn btn-default" disabled><i class="fa fa-trash"></i> Delete</button></span>{{ end }}</h1>
   <div class="panel panel-default"><div class="panel-body">
    <form class="form-horizontal role-editor" id="{{ if .Creating }}new_role{{ else }}edit_role{{ end }}" {{ if .Creating }}data-create-mode="true"{{ else }}data-role-id="{{ .RoleID }}"{{ end }} aria-busy="true">
@@ -18,7 +26,7 @@
     <fieldset id="role-fields" disabled hidden>
      <div class="form-group"><label class="col-sm-5 control-label" for="role_id">Role ID</label><div class="col-sm-7"><input class="form-control" id="role_id" name="role[id]" required {{ if .Creating }}pattern="[a-zA-Z0-9_.-]+"{{ else }}readonly value="{{ .RoleID }}"{{ end }}></div></div>
      <div id="rules"></div>
-     <div class="form-group"><div class="col-sm-7 col-sm-offset-5"><div class="btn-group"><button type="submit" class="btn btn-primary submit" name="submit">{{ if .Creating }}Create{{ else }}Apply{{ end }}</button>{{ if not .Creating }}<button type="button" class="btn btn-default cancel revert" name="revert">Revert</button>{{ end }}<a href="/cib/live/roles" class="btn btn-default back">Back</a></div></div></div>
+     <div class="form-group"><div class="col-sm-7 col-sm-offset-5"><div class="btn-group"><button type="submit" class="btn btn-primary submit" name="submit">{{ if .Creating }}Create{{ else }}Apply{{ end }}</button>{{ if not .Creating }}<button type="button" class="btn btn-default cancel revert" name="revert">Revert</button>{{ end }}<a href="{{ $cibBase }}/roles" class="btn btn-default back">Back</a></div></div></div>
     </fieldset>
    </form>
   </div></div>

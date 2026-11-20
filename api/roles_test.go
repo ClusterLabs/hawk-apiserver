@@ -118,3 +118,94 @@ func TestRolesEndpoints(t *testing.T) {
 		require.Contains(t, response.Body.String(), value)
 	}
 }
+
+func TestBatchRolesListAndDelete(t *testing.T) {
+	backend, calls := batchTestBackend(t)
+	original := backend.run
+	backend.run = func(ctx context.Context, live bool, name string, args []string, input string) ([]byte, error) {
+		out, err := original(ctx, live, name, args, input)
+		if name == "pacemakerd" || name == "cibadmin" {
+			return rolesTestRunner(ctx, name, args, input)
+		}
+		return out, err
+	}
+	response := batchTestRequest(backend, "GET", "acl/roles", "")
+	require.Equal(t, 200, response.Code, response.Body.String())
+	require.Contains(t, response.Body.String(), `"id":"a-role"`)
+	require.Contains(t, response.Body.String(), `"enabled":true`)
+	response = batchTestRequest(backend, "POST", "acl/roles/delete", `{"id":"a-role"}`)
+	require.Equal(t, 200, response.Code, response.Body.String())
+	last := (*calls)[len(*calls)-1]
+	require.Equal(t, "crm", last.name)
+	require.Equal(t, []string{"--force", "configure", "delete", "a-role"}, last.args)
+	for _, call := range *calls {
+		require.False(t, call.live)
+	}
+	*calls = nil
+	response = batchTestRequest(backend, "POST", "acl/roles/delete", `{"id":"primitive1"}`)
+	require.Equal(t, 404, response.Code, response.Body.String())
+	for _, call := range *calls {
+		require.NotEqual(t, "crm", call.name)
+	}
+}
+
+func TestBatchRolesPage(t *testing.T) {
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(".."))
+	t.Cleanup(func() { _ = os.Chdir(cwd) })
+	for _, suffix := range []string{"", "/"} {
+		response := httptest.NewRecorder()
+		RolesHandler(response, httptest.NewRequest("GET", batchBase+"/roles"+suffix, nil))
+		require.Equal(t, 200, response.Code)
+		for _, value := range []string{`href="` + batchBase + `/roles/new"`, `href="` + batchBase + `/crm_config/edit"`, `id="btn-show-batch"`, `id="batch-notifications"`, `ACLOverview.js`, `batch.js`} {
+			require.Contains(t, response.Body.String(), value)
+		}
+		require.NotContains(t, response.Body.String(), `href="/cib/live/`)
+	}
+}
+
+func TestBatchRoleEditorAPI(t *testing.T) {
+	backend, calls := batchTestBackend(t)
+	original := backend.run
+	backend.run = func(ctx context.Context, live bool, name string, args []string, input string) ([]byte, error) {
+		out, err := original(ctx, live, name, args, input)
+		if name == "pacemakerd" || name == "cibadmin" {
+			return rolesTestRunner(ctx, name, args, input)
+		}
+		return out, err
+	}
+	response := batchTestRequest(backend, "GET", "acl/role?id=a-role", "")
+	require.Equal(t, 200, response.Code, response.Body.String())
+	require.Contains(t, response.Body.String(), `"id":"a-role"`)
+	require.Contains(t, response.Body.String(), `"right":"write"`)
+	response = batchTestRequest(backend, "POST", "acl/role/update", `{"id":"a-role","rules":[{"right":"read","xpath":"//resources"}]}`)
+	require.Equal(t, 200, response.Code, response.Body.String())
+	last := (*calls)[len(*calls)-1]
+	require.Equal(t, "crm", last.name)
+	require.Equal(t, []string{"-F", "configure", "load", "update", "-"}, last.args)
+	require.Equal(t, "role a-role read 'xpath://resources'\n", last.input)
+	for _, call := range *calls {
+		require.False(t, call.live)
+	}
+	*calls = nil
+	response = batchTestRequest(backend, "POST", "acl/role/update", `{"id":"primitive1","rules":[{"right":"read","xpath":"//resources"}]}`)
+	require.Equal(t, 404, response.Code, response.Body.String())
+	for _, call := range *calls {
+		require.NotEqual(t, "crm", call.name)
+	}
+}
+
+func TestBatchRoleEditPage(t *testing.T) {
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(".."))
+	t.Cleanup(func() { _ = os.Chdir(cwd) })
+	response := httptest.NewRecorder()
+	RolesHandler(response, httptest.NewRequest("GET", batchBase+"/roles/a-role/edit", nil))
+	require.Equal(t, 200, response.Code)
+	for _, value := range []string{`data-role-id="a-role"`, `href="` + batchBase + `/roles"`, `href="` + batchBase + `/crm_config/edit"`, `id="delete-role"`, `id="btn-show-batch"`, `id="batch-notifications"`, `batch.js`, `role_edit.js`} {
+		require.Contains(t, response.Body.String(), value)
+	}
+	require.NotContains(t, response.Body.String(), `href="/cib/live/`)
+}

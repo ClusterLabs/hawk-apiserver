@@ -3,6 +3,8 @@
 class ACLOverview {
     constructor({ kind, column, rows, flash }) {
         this.kind = kind;
+        this.base = statusCIBBase();
+        this.api = window.batchConfig ? `${window.batchConfig.api}/acl` : "/api/cib/acl";
         this.notifications = document.getElementById("roles-notifications");
         this.warning = document.getElementById("roles-acl-warning");
         this.warningDismissed = false;
@@ -14,7 +16,7 @@ class ACLOverview {
             columns: [["id", column]],
             operations: record => this.operations(record),
             pageSize: 50,
-            url: `/api/cib/acl/${kind}`,
+            url: `${this.api}/${kind}`,
             rows: data => {
                 if (!data.supported) throw new Error("ACL is not supported by the cluster");
                 this.warning.hidden = data.enabled || this.warningDismissed;
@@ -27,10 +29,13 @@ class ACLOverview {
             this.notify(message);
         }
         this.table.load();
-        pollClusterStatus(() => this.table.load());
+        if (window.hawkBatch) {
+            window.updateClusterStatus = () => this.table.load();
+            window.hawkBatch.start();
+        } else pollClusterStatus(() => this.table.load());
         document.getElementById("monitoringMenu").classList.remove("in");
         document.getElementById("configurationMenu").classList.add("in");
-        document.querySelector(`a[href="/cib/live/${kind}"]`).setAttribute("aria-current", "page");
+        document.querySelector(`a[href="${this.base}/${kind}"]`).setAttribute("aria-current", "page");
     }
 
     notify(message, danger = false) {
@@ -44,7 +49,7 @@ class ACLOverview {
     operations(record) {
         const group = configElement("div", undefined, "btn-group");
         group.setAttribute("role", "group");
-        const path = `/cib/live/${this.kind}/${encodeURIComponent(record.id)}`;
+        const path = `${this.base}/${this.kind}/${encodeURIComponent(record.id)}`;
         const edit = configElement("a", undefined, "edit btn btn-default btn-xs");
         edit.href = `${path}/edit`;
         edit.title = "Edit";
@@ -62,7 +67,7 @@ class ACLOverview {
             new DeletePopup(record.id, async () => {
                 deleting = true;
                 try {
-                    const result = await configJSON(`/api/cib/acl/${this.kind}/delete`, {
+                    const result = await configJSON(`${this.api}/${this.kind}/delete`, {
                         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: record.id }),
                     });
                     this.notify(result.message);
