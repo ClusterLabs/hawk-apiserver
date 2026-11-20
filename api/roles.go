@@ -187,7 +187,11 @@ func RolesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.URL.Path != "/cib/live/roles" && r.URL.Path != "/cib/live/roles/" {
+	base := "/cib/live"
+	if strings.HasPrefix(r.URL.Path, batchBase+"/") {
+		base = batchBase
+	}
+	if r.URL.Path != base+"/roles" && r.URL.Path != base+"/roles/" {
 		if Routehandler != nil {
 			Routehandler.ServeHTTP(w, r)
 		} else {
@@ -204,7 +208,12 @@ func RolesHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
-	renderTemplate(w, "roles", map[string]any{"Title": "Roles"})
+	data := map[string]any{"Title": "Roles", "CIBBase": base}
+	if base == batchBase {
+		data["BatchMode"] = true
+		data["BatchConfig"] = map[string]string{"base": batchBase, "api": batchAPI, "id": batchID}
+	}
+	renderTemplate(w, "roles", data)
 }
 func RolesListHandler(w http.ResponseWriter, r *http.Request) {
 	serveRolesList(w, r, runClusterConfigCommand)

@@ -328,6 +328,8 @@ func main() {
 	mux.HandleFunc("/api/cib/acl/users/delete", authMiddleware(api.UserDeleteHandler))
 	mux.HandleFunc("/api/cib/acl/users/create", authMiddleware(api.UserCreateHandler))
 	mux.HandleFunc("/api/cib/acl/user", authMiddleware(api.UserEditHandler))
+	mux.HandleFunc("/cib/hacluster/roles", authMiddleware(api.RolesHandler))
+	mux.HandleFunc("/cib/hacluster/roles/", authMiddleware(api.RolesHandler))
 	mux.HandleFunc("/cib/live/roles", authMiddleware(api.RolesHandler))
 	mux.HandleFunc("/cib/live/roles/", authMiddleware(api.RolesHandler))
 	mux.HandleFunc("/api/cib/acl/roles", authMiddleware(api.RolesListHandler))
