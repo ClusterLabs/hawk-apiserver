@@ -1,48 +1,55 @@
-body {
-  background-color: #062c43;
-  color: #fff;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  margin: 0;
-  font-family: "Segoe UI", sans-serif; }
-
-.login-container {
-  background-color: #083d5b;
-  padding: 40px;
-  border-radius: 10px;
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
-  width: 300px;
-  text-align: center; }
-  .login-container img {
-    max-width: 100px;
-    margin-bottom: 20px; }
-  .login-container h1 {
-    font-size: 1.5em;
-    margin-bottom: 20px;
-    color: #00c081; }
-  .login-container input {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 15px;
-    border: none;
-    border-radius: 5px;
-    font-size: 1em; }
-  .login-container button {
-    width: 100%;
-    padding: 10px;
-    background-color: #00c081;
-    border: none;
-    border-radius: 5px;
-    font-weight: bold;
-    cursor: pointer; }
-    .login-container button:hover {
-      background-color: #00a06b; }
-
-.error {
-  color: #ff6b6b;
-  margin-bottom: 15px;
-  font-size: 0.9em; }
-
-/*# sourceMappingURL=login.css.map */
+/* Based on Hawk's authentication layout; all assets are served by Go. */
+@font-face { font-family: Roboto; font-style: normal; font-weight: 300; font-display: swap; src: url('/static/fonts/roboto-v15-latin-300.woff2') format('woff2'); }
+@font-face { font-family: Roboto; font-style: normal; font-weight: 400; font-display: swap; src: url('/static/fonts/roboto-v15-latin-regular.woff2') format('woff2'); }
+@font-face { font-family: LoginIcons; font-style: normal; font-weight: 400; font-display: block; src: url('/static/fonts/fontawesome-webfont.woff2') format('woff2'); }
+* { box-sizing: border-box; }
+html { position: relative; min-height: 100%; min-width: 300px; }
+body { margin: 0 0 100px; background: #013157; color: #ccc; font-family: Roboto, sans-serif; font-size: 14px; line-height: 20px; -webkit-font-smoothing: antialiased; }
+.login-container { margin: 0 auto; padding: 0 15px; }
+.login-header { height: 60px; background: #01233e; }
+.login-header > .login-container { height: 100%; display: flex; align-items: center; justify-content: space-between; }
+.login-brand { display: block; line-height: 0; }
+.login-brand img { width: 160px; height: 23px; }
+.login-language { background: none; color: #ccc; border: 0; padding: 6px 12px; font: inherit; opacity: 1; }
+.caret { display: inline-block; width: 0; height: 0; margin-left: 2px; vertical-align: middle; border-top: 4px solid #00c081; border-right: 4px solid transparent; border-left: 4px solid transparent; }
+.login-content { padding-top: 140px; }
+.login-row { display: flex; margin: 0 -15px; }
+.login-introduction { width: 50%; padding: 0 15px; }
+.login-introduction h2 { margin: 0 0 50px; color: #00c081; font-size: 52px; font-weight: 300; line-height: 1.1; }
+.login-introduction h2 span { display: block; font-size: 40px; }
+.login-introduction p { margin: 0 0 10px; font-size: 16px; line-height: 1.42857143; }
+.login-signin { width: 33.33333333%; margin-left: 8.33333333%; padding: 0 15px; }
+.login-signin h1 { margin: 0 0 10px; font-size: 30px; line-height: 33px; font-weight: 300; color: #fff; }
+#new_session { margin: 25px 0 30px; }
+.form-group { margin-bottom: 15px; }
+.form-control { display: block; width: 100%; height: 34px; padding: 6px 12px; font: inherit; color: #fff; background: #002644; border: 1px solid #02477e; border-radius: 4px; box-shadow: inset 0 1px 1px rgba(0,0,0,.075); }
+.form-control::placeholder { color: #999; opacity: 1; }
+.form-control:focus { border-color: #66afe9; outline: 0; box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102,175,233,.6); }
+.form-control:autofill { box-shadow: 0 0 0 1000px #002644 inset; -webkit-text-fill-color: #fff; }
+.login-submit { display: block; width: 100%; height: 34px; padding: 6px 12px; font: inherit; color: #fff; background: #00c081; border: 1px solid #089e5f; border-radius: 4px; cursor: pointer; }
+.login-submit:hover, .login-submit:focus-visible { background: #008d5f; border-color: #057345; }
+.login-error { color: #ff6969; border: 1px solid #d35353; border-radius: 4px; padding: 15px; margin: 20px 0 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.login-footer { position: absolute; bottom: 0; width: 100%; padding-top: 20px; }
+.login-footer-content { display: flex; justify-content: space-between; align-items: flex-start; }
+.login-links { display: flex; gap: 10px; margin-bottom: 7px; }
+.login-links a { color: #6a6a6a; text-decoration: none; }
+.login-icon { display: inline-block; font-family: LoginIcons; font-size: 28px; line-height: 25px; }
+.github::before { content: '\f09b'; }
+.circle { width: 25px; height: 25px; text-align: center; background: #6a6a6a; color: #013157; border-radius: 50%; font-size: 14px; }
+.book::before { content: '\f02d'; }
+.guide::before { content: '\f1ea'; }
+.login-links a:hover, .login-links a:focus-visible { color: #00c081; }
+.login-links a:hover .circle, .login-links a:focus-visible .circle { background: #00c081; }
+.login-copyright { color: #999; }
+.login-logo { width: 75px; height: 36px; }
+.login-bottom-line { height: 12px; margin-top: 12px; background: #00c081; }
+@media (min-width: 768px) { .login-container { width: 750px; } }
+@media (min-width: 992px) { .login-container { width: 970px; } }
+@media (min-width: 1200px) { .login-container { width: 1170px; } }
+@media (max-width: 767px) {
+  .login-content { padding-top: 60px; padding-bottom: 30px; }
+  .login-row { display: block; }
+  .login-introduction { display: none; }
+  .login-signin { width: 100%; max-width: 420px; margin: 0 auto; }
+}

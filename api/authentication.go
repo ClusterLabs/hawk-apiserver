@@ -316,7 +316,7 @@ func (a *Authentication) loginPage(w http.ResponseWriter, r *http.Request, statu
 	http.SetCookie(w, &http.Cookie{Name: loginCookie, Value: token, Path: "/", MaxAge: 600, HttpOnly: true, Secure: r.TLS != nil, SameSite: http.SameSiteLaxMode})
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
-	if err := tmpl.Execute(w, map[string]string{"Error": message, "Username": username, "Token": token, "ReturnTo": authReturnTo(next)}); err != nil {
+	if err := tmpl.Execute(w, map[string]string{"Error": message, "Username": username, "Token": token, "ReturnTo": authReturnTo(next), "Year": a.now().Format("2006")}); err != nil {
 		log.Printf("[auth] Login template: %v", err)
 	}
 }

@@ -1,12 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>SUSE Hawk: Log In</title><link rel="stylesheet" href="/static/login.css"></head>
-<body><main class="login-container">
-<img src="/static/img/white.png" alt="SUSE Hawk"><h1>Log In</h1>
-{{ if .Error }}<p class="error" role="alert">{{ .Error }}</p>{{ end }}
-<form id="new_session" action="/login" method="post">
-<input type="hidden" name="authenticity_token" value="{{ .Token }}"><input type="hidden" name="return_to" value="{{ .ReturnTo }}">
-<label for="session_username">Username</label><input id="session_username" name="session[username]" value="{{ .Username }}" autocomplete="username" required autofocus>
-<label for="session_password">Password</label><input id="session_password" name="session[password]" type="password" autocomplete="current-password" required>
-<button name="commit" type="submit">Login</button>
-</form></main></body></html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SUSE Hawk: Log In</title>
+  <link rel="stylesheet" href="/static/login.css">
+</head>
+<body>
+  <header class="login-header">
+    <div class="login-container">
+      <a class="login-brand" href="/"><img src="/static/img/white.png" alt="SUSE Hawk"></a>
+      <button class="login-language" type="button" aria-label="Language: English" disabled>English <span class="caret" aria-hidden="true"></span></button>
+    </div>
+  </header>
+  <main class="login-container login-content">
+    <div class="login-row">
+      <section class="login-introduction" aria-label="SUSE High Availability">
+        <h2>SUSE <span>High Availability</span></h2>
+        <p>Hawk simplifies the management and configuration of High Availability clusters, making it easy to eliminate downtime and maximizing service availability.</p>
+      </section>
+      <section class="login-signin" aria-labelledby="signin-title">
+        <h1 id="signin-title">Sign in</h1>
+        {{ if .Error }}<p class="login-error" role="alert">{{ .Error }}</p>{{ end }}
+        <form id="new_session" action="/login" method="post">
+          <input type="hidden" name="authenticity_token" value="{{ .Token }}">
+          <input type="hidden" name="return_to" value="{{ .ReturnTo }}">
+          <div class="form-group"><label class="sr-only" for="session_username">Username</label><input class="form-control" id="session_username" name="session[username]" value="{{ .Username }}" placeholder="Username" autocomplete="username" required autofocus></div>
+          <div class="form-group"><label class="sr-only" for="session_password">Password</label><input class="form-control" id="session_password" name="session[password]" type="password" placeholder="Password" autocomplete="current-password" required></div>
+          <button class="login-submit" name="commit" type="submit">Login</button>
+        </form>
+      </section>
+    </div>
+  </main>
+  <footer class="login-footer">
+    <div class="login-container login-footer-content">
+      <div>
+        <nav class="login-links" aria-label="Hawk resources">
+          <a href="https://github.com/ClusterLabs/hawk" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><span class="login-icon github" aria-hidden="true"></span></a>
+          <a href="http://hawk-ui.github.io/" target="_blank" rel="noopener noreferrer" aria-label="Hawk website"><span class="login-icon circle book" aria-hidden="true"></span></a>
+          <a href="http://hawk-guide.readthedocs.io/en/latest/" target="_blank" rel="noopener noreferrer" aria-label="Hawk documentation"><span class="login-icon circle guide" aria-hidden="true"></span></a>
+        </nav>
+        <div class="login-copyright">Copyright &copy; 2009-{{ .Year }} SUSE, LLC</div>
+      </div>
+      <img class="login-logo" src="/static/img/suse-white.png" alt="SUSE, LLC">
+    </div>
+    <div class="login-bottom-line"></div>
+  </footer>
+</body>
+</html>
