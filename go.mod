@@ -4,9 +4,9 @@ go 1.21
 
 require (
 	github.com/ClusterLabs/go-pacemaker v0.0.0-20260609131737-256130b189e0
+	github.com/pmezard/go-difflib v1.0.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.11.0
-	github.com/pmezard/go-difflib v1.0.0
 )
 
 require (

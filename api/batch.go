@@ -263,6 +263,11 @@ func (b *batchBackend) api(w http.ResponseWriter, r *http.Request) {
 	}
 	methods["resource/rename"] = "POST"
 	methods["resource/delete"] = "POST"
+	for _, kind := range configCollections {
+		methods["config/list/"+kind] = "GET"
+	}
+	methods["config/rename"] = "POST"
+	methods["config/delete"] = "POST"
 	method, ok := methods[operation]
 	if !ok {
 		http.NotFound(w, r)
@@ -288,6 +293,17 @@ func (b *batchBackend) api(w http.ResponseWriter, r *http.Request) {
 	}
 	if strings.HasPrefix(operation, "resource/") && operation != "resource/rename" && operation != "resource/delete" {
 		b.primitiveFields(w, r, ctx, operation)
+		return
+	}
+	if strings.HasPrefix(operation, "config/") {
+		run := func(ctx context.Context, name string, args []string, input string) ([]byte, error) {
+			return b.run(ctx, false, name, args, input)
+		}
+		if strings.HasPrefix(operation, "config/list/") {
+			serveConfigRows(w, r, ctx, strings.TrimPrefix(operation, "config/list/"), run)
+		} else {
+			configAction(w, r, ctx, operation == "config/rename", run)
+		}
 		return
 	}
 	switch operation {

@@ -43,6 +43,11 @@ func readFencingEdit(ctx context.Context, run clusterConfigCommand) (fencingEdit
 	if err != nil {
 		return state, err
 	}
+	return fencingEditFromXML(data)
+}
+
+func fencingEditFromXML(data []byte) (fencingEditState, error) {
+	state := fencingEditState{Fencing: []fencingLevel{}, Devices: []string{}}
 	var doc struct {
 		Configuration struct {
 			Topology  *fencingTopologyXML `xml:"fencing-topology"`

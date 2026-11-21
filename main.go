@@ -247,6 +247,13 @@ func main() {
 	mux.HandleFunc("/cib/live/fencing/edit", authMiddleware(api.FencingEditHandler))
 	mux.HandleFunc("/cib/live/fencing/edit/", authMiddleware(api.FencingEditHandler))
 	mux.HandleFunc("/api/cib/fencing/fetch", authMiddleware(api.FencingFetchHandler))
+	for _, base := range []string{"/cib/live", "/cib/hacluster"} {
+		for _, kind := range []string{"resources", "constraints", "nodes", "tags", "alerts", "fencing"} {
+			mux.HandleFunc(base+"/"+kind+".json", authMiddleware(api.ConfigListHandler))
+		}
+	}
+	mux.HandleFunc("/api/cib/config/rename", authMiddleware(api.ConfigActionHandler))
+	mux.HandleFunc("/api/cib/config/delete", authMiddleware(api.ConfigActionHandler))
 	mux.HandleFunc("/cib/hacluster/config/edit", authMiddleware(api.ConfigEditHandler))
 	mux.HandleFunc("/cib/hacluster/config/edit/", authMiddleware(api.ConfigEditHandler))
 	mux.HandleFunc("/cib/live/config/edit", authMiddleware(api.ConfigEditHandler))

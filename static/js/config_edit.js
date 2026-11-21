@@ -2,7 +2,7 @@
 
 const configBase = statusCIBBase();
 const configTables = new Map();
-let configAuthenticityToken;
+const configAPI = configBase === "/cib/live" ? "/api/cib/config" : `/api/batch/${configBase.split("/")[2]}/config`;
 
 function configNotification(message, danger = false) {
     const alert = document.createElement("x-alert");
@@ -18,42 +18,12 @@ if (configFlash) {
     configNotification(configFlash);
 }
 
-// Rename forms continue to use the existing Rails endpoint.
-async function openConfigRenameModal(url) {
-    try {
-        const response = await fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest", Accept: "text/html" }, cache: "no-store" });
-        if (!response.ok || response.status === 204) throw new Error("Unable to open this operation.");
-        const parsed = new DOMParser().parseFromString(await response.text(), "text/html");
-        parsed.querySelectorAll("script").forEach(script => script.remove());
-        const content = configElement("div");
-        content.append(...parsed.body.childNodes);
-        const popup = new Popup();
-        popup._appendModalContentChild(content);
-        content.querySelectorAll('[data-dismiss="modal"]').forEach(button => button.addEventListener("click", () => popup.close()));
-        const form = content.querySelector("form");
-        if (!form) { popup.close(); throw new Error("Invalid rename form."); }
-        configAuthenticityToken = form.querySelector('[name="authenticity_token"]')?.value || configAuthenticityToken;
-        const input = form.querySelector('[name="to"]');
-        input.required = true;
-        input.focus();
-        form.addEventListener("submit", async event => {
-            event.preventDefault();
-            const submit = form.querySelector('[type="submit"]');
-            if (submit.disabled || !form.reportValidity()) return;
-            submit.disabled = true;
-            try {
-                const result = await configJSON(form.action, { method: "POST", body: new URLSearchParams(new FormData(form)) });
-                popup.close();
-                configNotification(result.message || "Renamed successfully.");
-                await refreshConfigTables();
-            } catch (error) {
-                let notice = content.querySelector(".config-modal-error");
-                if (!notice) { notice = configElement("div", "", "alert alert-danger config-modal-error"); form.prepend(notice); }
-                notice.textContent = error.message;
-                submit.disabled = false;
-            }
-        });
-    } catch (error) { configNotification(error.message, true); }
+function openConfigRenameModal(url, kind, row) {
+    const label = { resources: "Resource", constraints: "Constraint", tags: "Tag", alerts: "Alert" }[kind];
+    new RenamePopup(row.id, url, (result, error) => {
+        configNotification(error ? error.message : result.message || "Renamed successfully.", Boolean(error));
+        if (!error) refreshConfigTables();
+    }, label);
 }
 
 function configObjectRoutes(kind, row) {
@@ -67,7 +37,7 @@ function configObjectRoutes(kind, row) {
     }
     const base = `${configBase}/${collection}/${id}`;
     const renameCollection = kind === "constraints" ? "constraints" : "resources";
-    return { edit: `${base}/edit`, remove: base, rename: `${configBase}/${renameCollection}/${id}/edit_name?source=edit` };
+    return { edit: row.editable === false ? null : `${base}/edit`, remove: base, rename: `${configBase}/${renameCollection}/${id}/edit_name?source=edit` };
 }
 
 function configOperations(kind, row) {
@@ -81,22 +51,18 @@ function configOperations(kind, row) {
         link.title = title;
         link.setAttribute("aria-label", `${title} ${row.id || row.name}`);
         link.append(configElement("i", undefined, `fa fa-${icon}`));
-        if (operation === "rename") link.addEventListener("click", event => { event.preventDefault(); openConfigRenameModal(link.href); });
+        if (operation === "rename") link.addEventListener("click", event => { event.preventDefault(); openConfigRenameModal(`${configAPI}/rename?kind=${kind}`, kind, row); });
         if (operation === "remove") link.addEventListener("click", async event => {
             event.preventDefault();
             if (link.getAttribute("aria-disabled") === "true") return;
             new DeletePopup(row.id, async () => {
                 link.setAttribute("aria-disabled", "true");
                 try {
-                    // Reuse Rails' session token rather than bypassing its CSRF checks.
-                    if (!configAuthenticityToken) {
-                        const response = await fetch(routes.rename, { headers: { "X-Requested-With": "XMLHttpRequest", Accept: "text/html" }, cache: "no-store" });
-                        if (!response.ok) throw new Error("Unable to prepare deletion.");
-                        const document = new DOMParser().parseFromString(await response.text(), "text/html");
-                        configAuthenticityToken = document.querySelector('[name="authenticity_token"]')?.value;
-                        if (!configAuthenticityToken) throw new Error("Unable to retrieve the configuration session token. Reload the page and retry.");
-                    }
-                    const result = await configJSON(link.href, { method: "POST", body: new URLSearchParams({ _method: "delete", authenticity_token: configAuthenticityToken }) });
+                    const result = await configJSON(`${configAPI}/delete?kind=${kind}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ id: row.id }),
+                    });
                     configNotification(result.message || "Deleted successfully.");
                     await refreshConfigTables();
                 } catch (error) { configNotification(error.message, true); }
