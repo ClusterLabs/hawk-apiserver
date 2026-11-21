@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// Keep the existing status JSON endpoint available to Ruby-backed consumers.
+// Select the configuration representation requested by the client.
 func configurationFormat(r *http.Request) string {
 	if strings.HasSuffix(r.URL.Path, ".xml") || r.URL.Query().Get("format") == "xml" {
 		return "xml"

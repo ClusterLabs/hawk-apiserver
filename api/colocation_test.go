@@ -176,7 +176,7 @@ func TestColocationEditTemplate(t *testing.T) {
 		require.Contains(t, body.String(), value)
 	}
 	response := httptest.NewRecorder()
-	ColocationRubyHandler(response, httptest.NewRequest("POST", "/cib/live/colocations/colocation34/edit", nil))
+	ColocationEditHandler(response, httptest.NewRequest("POST", "/cib/live/colocations/colocation34/edit", nil))
 	require.Equal(t, 405, response.Code)
 }
 
@@ -287,7 +287,7 @@ func TestBatchColocationEditPage(t *testing.T) {
 	require.NoError(t, os.Chdir(".."))
 	t.Cleanup(func() { _ = os.Chdir(cwd) })
 	response := httptest.NewRecorder()
-	ColocationRubyHandler(response, httptest.NewRequest("GET", batchBase+"/colocations/colo1/edit?flash=created", nil))
+	ColocationEditHandler(response, httptest.NewRequest("GET", batchBase+"/colocations/colo1/edit?flash=created", nil))
 	require.Equal(t, 200, response.Code)
 	for _, value := range []string{`data-colocation-id="colo1"`, `data-api-base="` + batchAPI + `/colocation"`, `readonly`, `>Apply</button>`, `id="revert-colocation-button"`, `href="` + batchBase + `/config/edit#constraints"`, `/static/js/batch.js`} {
 		require.Contains(t, response.Body.String(), value)

@@ -3,19 +3,21 @@ class RenamePopup extends Popup {
     #newID;
     #okBtn;
     #api;
+    #onComplete;
 
-    constructor(resourceID, api = "/api/cib/resource/rename") {
+    constructor(resourceID, api = "/api/cib/resource/rename", onComplete = null, label = "Resource") {
         super();
 
         this.#resourceID = resourceID;
         this.#api = api;
+        this.#onComplete = onComplete;
 
         // Header (no |x|-close button)
         const header = document.createElement("div");
         header.className = "modal-header";
         const title = document.createElement("h3");
         title.className = "modal-title";
-        title.textContent = "Rename Resource";
+        title.textContent = `Rename ${label}`;
         header.appendChild(title);
         this._appendModalContentChild(header);
 
@@ -95,16 +97,27 @@ class RenamePopup extends Popup {
             .then(async res => {
                 if (!res.ok) {
                     const text = await res.text();
-                    throw new Error(text || "Unknown error");
+                    let message = text;
+                    try {
+                        const result = JSON.parse(text);
+                        message = result.error || result.message || text;
+                    } catch { /* Existing editor endpoints may return plain text. */ }
+                    throw new Error(message || `Request failed (${res.status}).`);
                 }
-                return res.json();
+                const result = await res.json();
+                if (result.error || result.success === false) {
+                    throw new Error(result.error || result.message || `Request failed (${res.status}).`);
+                }
+                return result;
             })
-            .then(() => {
+            .then(result => {
+                if (this.#onComplete) { this.#onComplete(result, null); return; }
                 const url = this.#editPageURL(newID);
                 url.searchParams.set("flash", "renamed");
                 window.location.assign(url);
             })
             .catch(err => {
+                if (this.#onComplete) { this.#onComplete(null, err); return; }
                 console.error("Rename failed:", err);
                 const msg = `Failed to rename ${oldID} -> ${newID}: ${err.message}`;
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"net/http/httptest"
 	"os"
 	"reflect"
@@ -129,18 +128,13 @@ func TestBatchCreationAndPageScope(t *testing.T) {
 	require.Contains(t, live.Body.String(), `href="/dashboard"`)
 	require.NotContains(t, live.Body.String(), "Batch Mode Active")
 }
-func TestBatchPreservesRubyStatusJSON(t *testing.T) {
+func TestBatchLegacyStatusJSONIsUnavailable(t *testing.T) {
 	backend, _ := batchTestBackend(t)
-	previous := Routehandler
-	t.Cleanup(func() { Routehandler = previous })
-	Routehandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, "json", r.URL.Query().Get("format"))
-		_, _ = w.Write([]byte(`{"ruby":true}`))
-	})
 	response := httptest.NewRecorder()
 	backend.page(response, httptest.NewRequest("GET", batchBase+"?format=json", nil))
-	require.JSONEq(t, `{"ruby":true}`, response.Body.String())
+	require.Equal(t, 404, response.Code)
 }
+
 func TestBatchSimulationAndReportsStayScoped(t *testing.T) {
 	backend, calls := batchTestBackend(t)
 	response := batchTestRequest(backend, "POST", "simulate", `{"injections":["node n1 offline","op monitor:10000 r1 7 n1","ticket t1 grant"]}`)

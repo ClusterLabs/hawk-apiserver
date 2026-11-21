@@ -16,7 +16,7 @@ import (
 	"github.com/ClusterLabs/hawk-apiserver/internal"
 )
 
-var Routehandler http.Handler // set from main
+var Routehandler http.Handler // Native monitor/404 fallback, set from main; never Rails.
 
 func renderTemplate(w http.ResponseWriter, name string, data map[string]any) {
 	if data == nil {

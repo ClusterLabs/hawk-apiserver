@@ -103,7 +103,7 @@ func readOrderEdit(ctx context.Context, id string, run clusterConfigCommand) (or
 func OrderEditHandler(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 	if len(parts) != 5 || parts[0] != "cib" || (parts[1] != "live" && parts[1] != batchID) || parts[2] != "orders" || parts[4] != "edit" {
-		OrderRubyHandler(w, r)
+		resourceFallback(w, r)
 		return
 	}
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {

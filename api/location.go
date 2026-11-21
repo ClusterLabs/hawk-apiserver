@@ -247,10 +247,10 @@ func saveLocation(w http.ResponseWriter, r *http.Request, location locationCreat
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "redirect": base + "/locations/" + url.PathEscape(location.ID) + "/edit?flash=created"})
 }
-func LocationRubyHandler(w http.ResponseWriter, r *http.Request) {
+func LocationEditHandler(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 	if len(parts) != 5 || parts[0] != "cib" || (parts[1] != "live" && parts[1] != batchID) || parts[2] != "locations" || parts[4] != "edit" {
-		resourceRubyHandler(w, r, "Constraint")
+		resourceFallback(w, r)
 		return
 	}
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {

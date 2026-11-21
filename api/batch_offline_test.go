@@ -121,6 +121,20 @@ func TestBatchOfflineSmoke(t *testing.T) {
 	require.Equal(t, original, unchanged)
 	require.NotEmpty(t, backend.artifacts.Summary)
 	require.NotEmpty(t, backend.artifacts.Graph)
+	// Exercise the overview's native mutations with real crmsh, confined to
+	// the same disposable shadow file used by the simulation checks above.
+	renamed := batchTestRequest(backend, "POST", "config/rename?kind=resources", `{"oldID":"hawk-batch-proof","newID":"hawk-overview-proof"}`)
+	require.Equal(t, 200, renamed.Code, renamed.Body.String())
+	listed := batchTestRequest(backend, "GET", "config/list/resources", "")
+	require.Equal(t, 200, listed.Code, listed.Body.String())
+	require.Contains(t, listed.Body.String(), `"id":"hawk-overview-proof"`)
+	deleted := batchTestRequest(backend, "POST", "config/delete?kind=resources", `{"id":"hawk-overview-proof"}`)
+	require.Equal(t, 200, deleted.Code, deleted.Body.String())
+	listed = batchTestRequest(backend, "GET", "config/list/resources", "")
+	require.NotContains(t, listed.Body.String(), `"id":"hawk-overview-proof"`)
+	unchanged, err = os.ReadFile(liveFile)
+	require.NoError(t, err)
+	require.Equal(t, original, unchanged)
 }
 func reflectStrings(a, b []string) bool { return strings.Join(a, "\x00") == strings.Join(b, "\x00") }
 

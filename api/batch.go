@@ -64,8 +64,8 @@ func batchEnvironment(parent []string, live bool) []string {
 	return env
 }
 
-// Ruby's batch CIB belongs to hacluster. Use the same OS account so both
-// implementations can continue editing it without root-owned replacement files.
+// Keep the batch CIB owned by hacluster, including when a development server
+// runs as root, so normal service execution can continue editing it.
 func batchCredential() (*syscall.Credential, error) {
 	if os.Geteuid() != 0 {
 		return nil, nil
@@ -213,9 +213,9 @@ func (b *batchBackend) page(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
-	// Ruby editors still consume Ruby's status JSON. Do not change its schema.
+	// The legacy status representation is not a native batch endpoint.
 	if r.URL.Query().Get("format") == "json" || strings.Contains(r.Header.Get("Accept"), "application/json") {
-		Routehandler.ServeHTTP(w, r)
+		http.NotFound(w, r)
 		return
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
@@ -263,6 +263,11 @@ func (b *batchBackend) api(w http.ResponseWriter, r *http.Request) {
 	}
 	methods["resource/rename"] = "POST"
 	methods["resource/delete"] = "POST"
+	for _, kind := range configCollections {
+		methods["config/list/"+kind] = "GET"
+	}
+	methods["config/rename"] = "POST"
+	methods["config/delete"] = "POST"
 	method, ok := methods[operation]
 	if !ok {
 		http.NotFound(w, r)
@@ -288,6 +293,17 @@ func (b *batchBackend) api(w http.ResponseWriter, r *http.Request) {
 	}
 	if strings.HasPrefix(operation, "resource/") && operation != "resource/rename" && operation != "resource/delete" {
 		b.primitiveFields(w, r, ctx, operation)
+		return
+	}
+	if strings.HasPrefix(operation, "config/") {
+		run := func(ctx context.Context, name string, args []string, input string) ([]byte, error) {
+			return b.run(ctx, false, name, args, input)
+		}
+		if strings.HasPrefix(operation, "config/list/") {
+			serveConfigRows(w, r, ctx, strings.TrimPrefix(operation, "config/list/"), run)
+		} else {
+			configAction(w, r, ctx, operation == "config/rename", run)
+		}
 		return
 	}
 	switch operation {

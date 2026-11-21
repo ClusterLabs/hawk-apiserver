@@ -45,12 +45,13 @@ func fatalSyntaxError(js string, err error) {
 
 // Config is the internal representation of the configuration file.
 type Config struct {
-	Listen   string        `json:"listen"`
-	Port     int           `json:"port"`
-	Key      string        `json:"key"`
-	Cert     string        `json:"cert"`
-	LogLevel string        `json:"loglevel"`
-	Route    []ConfigRoute `json:"route"`
+	SessionDirectory string        `json:"session_directory"`
+	Listen           string        `json:"listen"`
+	Port             int           `json:"port"`
+	Key              string        `json:"key"`
+	Cert             string        `json:"cert"`
+	LogLevel         string        `json:"loglevel"`
+	Route            []ConfigRoute `json:"route"`
 }
 
 // ConfigRoute is used in the configuration to map routes to handlers.
@@ -93,14 +94,16 @@ func InitConfig(version string) Config {
 	})
 
 	config := Config{
-		Listen:   "0.0.0.0",
-		Port:     17630,
-		Key:      "/etc/hawk/hawk.key",
-		Cert:     "/etc/hawk/hawk.pem",
-		LogLevel: "info",
-		Route:    []ConfigRoute{},
+		SessionDirectory: "/var/lib/hawk/go-sessions",
+		Listen:           "0.0.0.0",
+		Port:             17630,
+		Key:              "/etc/hawk/hawk.key",
+		Cert:             "/etc/hawk/hawk.pem",
+		LogLevel:         "info",
+		Route:            []ConfigRoute{},
 	}
 
+	sessions := flag.String("session-dir", config.SessionDirectory, "Directory for Go authentication sessions")
 	listen := flag.String("listen", config.Listen, "Address to listen to")
 	port := flag.Int("port", config.Port, "Port to listen to")
 	key := flag.String("key", config.Key, "TLS key file")
@@ -114,6 +117,11 @@ func InitConfig(version string) Config {
 		parseConfigFile(*cfgfile, &config)
 	}
 
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "session-dir" {
+			config.SessionDirectory = *sessions
+		}
+	})
 	if *listen != "0.0.0.0" {
 		config.Listen = *listen
 	}

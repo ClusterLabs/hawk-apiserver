@@ -157,5 +157,3 @@ func saveAlert(w http.ResponseWriter, r *http.Request, alert alertCreate, run fu
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "redirect": base + "/alerts/" + url.PathEscape(alert.ID) + "/edit?flash=created"})
 }
-
-func AlertRubyHandler(w http.ResponseWriter, r *http.Request) { resourceRubyHandler(w, r, "Alert") }
