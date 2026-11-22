@@ -37,14 +37,16 @@ Passwords are sent to the helper through stdin and are never stored in sessions.
 
 Go owns the `hawk_go_session` cookie and a separate private session directory,
 `/var/lib/hawk/go-sessions` by default. The Go service account must be able to
-own and create/write this directory with mode 0700. Override it with `-session-dir` or
-`session_directory` in the JSON configuration. Separate deployments can use
-separate directories. Existing Rails logins are not imported; sign into Go again.
+own and create/write this directory with mode 0700. Override it with `-session-dir`.
+Separate deployments can use separate directories. Existing Rails logins are
+not imported; sign into Go again.
 
-The listener/TLS settings still come from the existing command-line arguments
-and JSON configuration. Legacy `file` and `proxy` routes in installed Hawk
-configuration are ignored by the native server. `/monitor` and `/monitor.json`
-are handled in Go, and assets come from this project's `/static/` directory.
+Listener, TLS and session settings come from command-line arguments. The Go
+server no longer accepts `-config` or reads `/etc/hawk/server.json`. `/monitor`
+and `/monitor.json` are handled in Go. Templates and static assets are read
+relative to the working directory: use the repository root for development,
+or `/usr/share/hawk` when running the installed binary. Remove `-config` from
+existing service commands before deploying this version.
 No service units, `/etc/sysconfig/hawk`, certificates, or firewall settings are
 changed by this code.
 
@@ -90,9 +92,9 @@ make
 
 4) Start:
 ```
-./hawk-apiserver -key /etc/hawk/hawk.key -cert /etc/hawk/hawk.pem -port 7631 -config /etc/hawk/server.json
+./hawk-apiserver -key /etc/hawk/hawk.key -cert /etc/hawk/hawk.pem -port 7631
 ```
-The `/etc/hawk/hawk.key`, `/etc/hawk/hawk.pem`, and `/etc/hawk/server.json` are created by `crm cluster init ...`
+The TLS files `/etc/hawk/hawk.key` and `/etc/hawk/hawk.pem` are created by `crm cluster init ...`.
 Don't use the port `7630`, because it's already bound to the default `hawk.service` .
 
 5) Open `https://127.0.0.1:7631`, use the default credentials. User: `hacluster`, Password: `linux`.
@@ -130,8 +132,7 @@ code . --user-data-dir=".vscode" --no-sandbox
             "args": [
                 "-key", "/etc/hawk/hawk.key",
                 "-cert", "/etc/hawk/hawk.pem",
-                "-port", "7631",
-                "-config", "/etc/hawk/server.json"
+                "-port", "7631"
             ]
         }
     ]

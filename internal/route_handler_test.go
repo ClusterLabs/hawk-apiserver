@@ -7,8 +7,11 @@ import (
 )
 
 func TestRouteHandler(t *testing.T) {
-	config := Config{}
-	parseConfigFile("../config.json.example", &config)
+	target := "unix:///tmp/hawk-route-handler-test.sock"
+	config := Config{Route: []ConfigRoute{
+		{Handler: "monitor", Path: "/monitor"},
+		{Handler: "proxy", Path: "/", Target: &target},
+	}}
 	routeHandler := NewRouteHandler(&config)
 	assert.NotNil(t, routeHandler)
 
