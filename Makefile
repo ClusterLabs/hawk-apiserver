@@ -7,6 +7,8 @@ LIBDIR ?= $(PREFIX)/lib
 SHAREDIR ?= $(PREFIX)/share
 TEMPLATEDIR ?= $(SHAREDIR)/hawk/templates
 STATICDIR ?= $(SHAREDIR)/hawk/static
+HAWKBINDIR ?= $(SHAREDIR)/hawk/bin
+SYSTEMDUNITDIR ?= $(LIBDIR)/systemd/system
 
 default: build test
 build: tools
@@ -21,20 +23,22 @@ tools/common.h: tools/common.h.in Makefile
 	    -e 's|@SBINDIR@|$(SBINDIR)|g' \
 	    -e 's|@WITHIN_VAGRANT@|0|g' $< > $@
 
-tools/hawk_chkpwd: tools/hawk_chkpwd.c tools/common.h
+tools/hawk-apiserver_chkpwd: tools/hawk_chkpwd.c tools/common.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -fpie -pie $(LDFLAGS) -o $@ $< $(LDLIBS) -lpam
 
-tools: tools/hawk_chkpwd
+tools: tools/hawk-apiserver_chkpwd
 
 install: tools
 	install -D -m 0755 hawk-apiserver "$(DESTDIR)$(SBINDIR)/hawk-apiserver"
-	install -D -o root -g haclient -m 4750 tools/hawk_chkpwd "$(DESTDIR)$(SBINDIR)/hawk_chkpwd"
+	install -D -o root -g haclient -m 4750 tools/hawk-apiserver_chkpwd "$(DESTDIR)$(SBINDIR)/hawk-apiserver_chkpwd"
+	install -D -m 0755 tools/generate-ssl-certificate "$(DESTDIR)$(HAWKBINDIR)/generate-ssl-certificate"
+	install -D -m 0644 tools/hawk-apiserver.service "$(DESTDIR)$(SYSTEMDUNITDIR)/hawk-apiserver.service"
 	install -d "$(DESTDIR)$(TEMPLATEDIR)"
 	install -m 0644 templates/* "$(DESTDIR)$(TEMPLATEDIR)/"
 	install -d "$(DESTDIR)$(STATICDIR)"
 	cp -R static/* "$(DESTDIR)$(STATICDIR)/"
 
 clean:
-	rm -f hawk-apiserver tools/hawk_chkpwd tools/common.h
+	rm -f hawk-apiserver tools/hawk-apiserver_chkpwd tools/common.h
 
 .PHONY: default build test tools install clean

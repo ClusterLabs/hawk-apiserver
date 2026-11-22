@@ -19,5 +19,5 @@ hawk-apiserver
 __debug_bin*
 
 # Generated PAM helper and header
-/tools/hawk_chkpwd
+/tools/hawk-apiserver_chkpwd
 /tools/common.h

@@ -1,0 +1,24 @@
+[Unit]
+Description=HA Web Konsole
+After=network.target
+
+[Service]
+Type=simple
+User=hacluster
+Group=haclient
+WorkingDirectory=/usr/share/hawk
+Restart=always
+RestartSec=5
+Environment="HAWK_ENV=production"
+Environment="HAWK_PORT=7630" "HAWK_KEY=/etc/hawk/hawk.key" "HAWK_CERT=/etc/hawk/hawk.pem"
+EnvironmentFile=-/etc/sysconfig/hawk
+StateDirectory=hawk/go-sessions
+StateDirectoryMode=0700
+
+# Run ExecStartPre with root-permissions
+PermissionsStartOnly=true
+ExecStartPre=/usr/share/hawk/bin/generate-ssl-certificate
+ExecStart=/usr/sbin/hawk-apiserver -key ${HAWK_KEY} -cert ${HAWK_CERT} -port ${HAWK_PORT}
+
+[Install]
+WantedBy=multi-user.target

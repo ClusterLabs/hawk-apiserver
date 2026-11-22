@@ -276,7 +276,7 @@ main(int argc, char *argv[])
 	 * Get the program name
 	 */
 	if (argc == 0)
-		program_name = "hawk_chkpwd";
+		program_name = "hawk-apiserver_chkpwd";
 	else if ((program_name = strrchr(argv[0], '/')) != NULL)
 		program_name++;
 	else

@@ -24,7 +24,7 @@ There are also custom JavaScript classes in static/js/classes designed to simpli
 
 Go and Rails separation
 =======================
-The Go server authenticates directly through `/usr/sbin/hawk_chkpwd passwd <user>`.
+The Go server authenticates directly through `/usr/sbin/hawk-apiserver_chkpwd passwd <user>`.
 It does not contact Puma, use Rails session cookies/secrets, or fall back to Rails.
 The PAM helper is built from the original Hawk C sources in `tools/`; no PAM
 or cluster settings are changed by this separation.
@@ -101,15 +101,36 @@ Don't use the port `7630`, because it's already bound to the default `hawk.servi
 
 Building the authentication helper
 ==================================
-`make` also builds `tools/hawk_chkpwd` from the unchanged C source and
+`make` also builds `tools/hawk-apiserver_chkpwd` from the C source and
 `common.h.in` copied from Hawk. The helper links against PAM; `make tools`
 builds it separately. Its original license is included in `tools/COPYING`.
 
 Run `make install` as root to install the helper as
-`/usr/sbin/hawk_chkpwd`, owned by `root:haclient` with mode `4750`, matching
-Hawk's installation. The `haclient` group must already exist. `DESTDIR`
+`/usr/sbin/hawk-apiserver_chkpwd`, owned by `root:haclient` with mode `4750`, using
+the same permissions as Hawk's helper. The `haclient` group must already exist. `DESTDIR`
 and `PREFIX` are supported for staged installations. `make clean` removes
 the generated binaries and header.
+
+`make install` also installs `tools/generate-ssl-certificate` into
+`/usr/share/hawk/bin/`. Run it as root before starting the service to
+create missing TLS files. The script is copied from Hawk. It reads
+`HAWK_KEY` and `HAWK_CERT`, with the original `/etc/ssl/certs/hawk.key`
+and `/etc/ssl/certs/hawk.pem` defaults. It retains Hawk's certificate
+handling and permissions. Generation output is written to
+`/usr/share/hawk/log/certificate.log`.
+
+Systemd service
+===============
+`make install` installs `tools/hawk-apiserver.service` as
+`/usr/lib/systemd/system/hawk-apiserver.service`. Override `SYSTEMDUNITDIR`
+when packaging for a different systemd unit directory.
+
+The service runs as `hacluster:haclient` from `/usr/share/hawk`, generates
+missing certificates as root, and reads `/etc/sysconfig/hawk` for the
+port and TLS paths, with defaults provided by the unit. Go creates its
+private session directory; `hacluster` must be able to write to its parent.
+It requires no Ruby backend. Both Hawk services default to port `7630`;
+configure different ports before running them simultaneously.
 
 How to debug?
 =============
