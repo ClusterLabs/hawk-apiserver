@@ -17,3 +17,7 @@
 config.json
 hawk-apiserver
 __debug_bin*
+
+# Generated PAM helper and header
+/tools/hawk_chkpwd
+/tools/common.h

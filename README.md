@@ -26,8 +26,8 @@ Go and Rails separation
 =======================
 The Go server authenticates directly through `/usr/sbin/hawk_chkpwd passwd <user>`.
 It does not contact Puma, use Rails session cookies/secrets, or fall back to Rails.
-The PAM helper remains a shared system executable; no PAM or cluster settings are
-changed by this separation.
+The PAM helper is built from the original Hawk C sources in `tools/`; no PAM
+or cluster settings are changed by this separation.
 
 `/login`, `/login.json`, `/logout`, and `/logout.json` are native Go endpoints.
 The HTML login keeps the existing `session[username]` and `session[password]`
@@ -79,7 +79,7 @@ How to build?
 
 2) Install necessary dependencies:
 ```
-zypper in make git go golang-packaging libpacemaker-devel libqb-devel libxml2-devel
+zypper in make gcc git go golang-packaging pam-devel libpacemaker-devel libqb-devel libxml2-devel
 ```
 
 3) Build:
@@ -98,6 +98,18 @@ The TLS files `/etc/hawk/hawk.key` and `/etc/hawk/hawk.pem` are created by `crm 
 Don't use the port `7630`, because it's already bound to the default `hawk.service` .
 
 5) Open `https://127.0.0.1:7631`, use the default credentials. User: `hacluster`, Password: `linux`.
+
+Building the authentication helper
+==================================
+`make` also builds `tools/hawk_chkpwd` from the unchanged C source and
+`common.h.in` copied from Hawk. The helper links against PAM; `make tools`
+builds it separately. Its original license is included in `tools/COPYING`.
+
+Run `make install` as root to install the helper as
+`/usr/sbin/hawk_chkpwd`, owned by `root:haclient` with mode `4750`, matching
+Hawk's installation. The `haclient` group must already exist. `DESTDIR`
+and `PREFIX` are supported for staged installations. `make clean` removes
+the generated binaries and header.
 
 How to debug?
 =============

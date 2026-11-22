@@ -1,0 +1,22 @@
+/*
+ * Copyright (c) 2011-2013 SUSE LLC, All Rights Reserved.
+ * See COPYING for license.
+ *
+ * Author: Tim Serong <tserong@suse.com>
+ *
+ */
+
+#ifndef _HAWK_DEFS_H
+#define _HAWK_DEFS_H
+
+const char * const VAGRANT = "vagrant";
+const char * const HACLUSTER = "hacluster";
+const char * const HACLIENT = "haclient";
+
+#define LIBDIR "@LIBDIR@"
+#define BINDIR "@BINDIR@"
+#define SBINDIR "@SBINDIR@"
+
+#define WITHIN_VAGRANT @WITHIN_VAGRANT@
+
+#endif /* HAWK_DEFS_H */
