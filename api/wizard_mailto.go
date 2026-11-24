@@ -121,6 +121,7 @@ func runNestedWizardCommand(ctx context.Context, name, operation string, params 
 	if err != nil {
 		return nil, err
 	}
+	recordWizardCommand(name, operation, params)
 	return runWizardProcess(cmd)
 }
 

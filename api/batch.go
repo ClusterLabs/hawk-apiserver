@@ -129,6 +129,7 @@ func runBatchCommand(ctx context.Context, live bool, name string, args []string,
 		}
 		cmd.Env = append(env, "HOME="+account.HomeDir)
 	}
+	recordClusterCommand(name, args, input, !live)
 	cmd.Stdin = strings.NewReader(input)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr

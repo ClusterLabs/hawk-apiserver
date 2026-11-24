@@ -156,6 +156,8 @@ func main() {
 	})
 	mux.HandleFunc("/cib/hacluster/commands", authMiddleware(api.CommandsHandler))
 	mux.HandleFunc("/cib/hacluster/commands/", authMiddleware(api.CommandsHandler))
+	mux.HandleFunc("/cib/live/commands.json", authMiddleware(api.CommandsJSONHandler))
+	mux.HandleFunc("/cib/hacluster/commands.json", authMiddleware(api.CommandsJSONHandler))
 	mux.HandleFunc("/cib/live/commands", authMiddleware(api.CommandsHandler))
 	mux.HandleFunc("/cib/live/commands/", authMiddleware(api.CommandsHandler))
 	mux.HandleFunc("/cib/hacluster/orders/new", authMiddleware(api.OrderNewHandler))

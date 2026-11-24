@@ -2,8 +2,7 @@ package api
 
 import "net/http"
 
-// CommandsHandler serves the command log UI. Its legacy commands.json source
-// is unavailable until a native command-log data endpoint is implemented.
+// CommandsHandler serves the shared live and batch command log UI.
 func CommandsHandler(w http.ResponseWriter, r *http.Request) {
 	base := "/cib/live"
 	switch r.URL.Path {

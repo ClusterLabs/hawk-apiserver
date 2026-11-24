@@ -5,7 +5,6 @@ async function loadCommands() {
     const error = document.getElementById("commands-error");
 
     try {
-        // Keep the Rails command log as the source of truth during the UI port.
         const response = await fetch(container.dataset.source, {
             headers: { Accept: "application/json" },
             cache: "no-store",

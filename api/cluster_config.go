@@ -18,6 +18,7 @@ type clusterConfigCommand func(context.Context, string, []string, string) ([]byt
 
 func runClusterConfigCommand(ctx context.Context, name string, args []string, input string) ([]byte, error) {
 	cmd := exec.CommandContext(ctx, name, args...)
+	recordClusterCommand(name, args, input, false)
 	cmd.Stdin = strings.NewReader(input)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr

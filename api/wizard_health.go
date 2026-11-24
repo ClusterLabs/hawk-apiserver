@@ -56,6 +56,7 @@ func runHealthCommand(ctx context.Context, operation string) (out []byte, err er
 	if err != nil {
 		return nil, err
 	}
+	recordWizardCommand("health", operation, map[string]any{})
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	out, err = cmd.Output()

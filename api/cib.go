@@ -79,7 +79,7 @@ type CIB struct {
 }
 
 func GetCIB() (CIB, int, error) {
-	cmd := exec.Command("cibadmin", "-Ql")
+	cmd := loggedClusterCommand("cibadmin", "-Ql")
 	output, err := cmd.Output()
 	if err != nil {
 		pacemakerRC := 0
@@ -521,7 +521,7 @@ func enrichCloneMetaAttributesWithCibValues(metadata *FullPrimitive_CrmResourceM
 	// Query the clone itself because meta_attributes is optional. Querying the
 	// child element directly makes cibadmin fail for valid clones without one.
 	queryXPath := fmt.Sprintf("/cib/configuration/resources/clone[@id='%s']", cloneID)
-	cmd := exec.Command("cibadmin", "-Q", "--xpath", queryXPath)
+	cmd := loggedClusterCommand("cibadmin", "-Q", "--xpath", queryXPath)
 	out, err := cmd.Output()
 	if err != nil {
 		log.Printf("[enrichCloneMetaAttributesWithCibValues] cibadmin -Q error: %v", err)
@@ -548,7 +548,7 @@ func enrichCloneMetaAttributesWithCibValues(metadata *FullPrimitive_CrmResourceM
 }
 
 func enrichPrimitiveMetadataWithCibValues(metadata *FullPrimitive_CrmResourceMetadata, resourceID string) error {
-	return enrichPrimitiveMetadataUsing(metadata, resourceID, func(name string, args []string) ([]byte, error) { return exec.Command(name, args...).Output() })
+	return enrichPrimitiveMetadataUsing(metadata, resourceID, func(name string, args []string) ([]byte, error) { return loggedClusterCommand(name, args...).Output() })
 }
 func enrichPrimitiveMetadataUsing(metadata *FullPrimitive_CrmResourceMetadata, resourceID string, run func(string, []string) ([]byte, error)) error {
 	// New primitives use agent defaults without querying a nonexistent CIB object.
@@ -1013,7 +1013,7 @@ func updateOperation(operation Operation, resourceID string) error {
 	queryXPath := fmt.Sprintf("//primitive[@id='%s']", resourceID)
 
 	var stderr bytes.Buffer
-	cmd := exec.Command("cibadmin", "--modify", "--xpath", queryXPath, "--xml-text", xmlStr)
+	cmd := loggedClusterCommand("cibadmin", "--modify", "--xpath", queryXPath, "--xml-text", xmlStr)
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("%w: %s", err, stderr.String())
@@ -1028,7 +1028,7 @@ func deleteOperation(opID string, resourceID string, removeParent bool) ([]byte,
 	} else {
 		queryXPath = fmt.Sprintf("//primitive[@id='%s']/operations/op[@id='%s']", resourceID, opID)
 	}
-	cmd := exec.Command("cibadmin", "--delete", "--xpath", queryXPath)
+	cmd := loggedClusterCommand("cibadmin", "--delete", "--xpath", queryXPath)
 	return cmd.CombinedOutput()
 }
 
@@ -1046,7 +1046,7 @@ func updateNvpair(nvpair Nvpair, section string, resourceID string, resourceElem
 	xmlStr = fmt.Sprintf("<%s id=\"%s\"><%s id=\"%s-%s\">%s</%s></%s>", resourceElement, resourceID, section, resourceID, section, xmlStr, section, resourceElement)
 
 	queryXPath := fmt.Sprintf("//%s[@id='%s']", resourceElement, resourceID) // what about //*[@id='some-id']
-	cmd := exec.Command("cibadmin", "--modify", "--xpath", queryXPath, "--xml-text", xmlStr)
+	cmd := loggedClusterCommand("cibadmin", "--modify", "--xpath", queryXPath, "--xml-text", xmlStr)
 	/* TODO!!! if it fails, check that the id is unique.
 	     * I have noticed a bug that id might start with a wrong primitive name like here
 		<resources>
@@ -1082,7 +1082,7 @@ func deleteNvpair(cibAttributeID string, section string, resourceID string, remo
 	} else {
 		queryXPath = fmt.Sprintf("//nvpair[@id='%s']", cibAttributeID)
 	}
-	cmd := exec.Command("cibadmin", "--delete", "--xpath", queryXPath)
+	cmd := loggedClusterCommand("cibadmin", "--delete", "--xpath", queryXPath)
 	return cmd.CombinedOutput()
 }
 
@@ -1159,7 +1159,7 @@ func PrimitiveUpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 1. Query current XML
 	queryXPath := fmt.Sprintf("//primitive[@id='%s']", frontendPrimitive.ID)
-	cmd := exec.Command("cibadmin", "-Q", "--xpath", queryXPath)
+	cmd := loggedClusterCommand("cibadmin", "-Q", "--xpath", queryXPath)
 	out, err := cmd.Output()
 	if err != nil {
 		http.Error(w, "Failed to query primitive XML", http.StatusInternalServerError)
@@ -1288,7 +1288,7 @@ func ResourceRenameHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cmd := exec.Command("/usr/sbin/crm", "-D", "plain", "configure", "rename", renameID.OldID, renameID.NewID)
+	cmd := loggedClusterCommand("/usr/sbin/crm", "-D", "plain", "configure", "rename", renameID.OldID, renameID.NewID)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
