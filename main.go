@@ -146,6 +146,8 @@ func main() {
 	mux.HandleFunc("/cib/live/wizards/mailto/", authMiddleware(api.MailtoWizardHandler))
 	mux.HandleFunc("/cib/live/wizards/health", authMiddleware(api.HealthWizardHandler))
 	mux.HandleFunc("/cib/live/wizards/health/", authMiddleware(api.HealthWizardHandler))
+	mux.HandleFunc("/cib/hacluster/wizards", authMiddleware(api.WizardsHandler))
+	mux.HandleFunc("/cib/hacluster/wizards/", authMiddleware(api.WizardsHandler))
 	mux.HandleFunc("/cib/live/wizards", authMiddleware(api.WizardsHandler))
 	mux.HandleFunc("/cib/live/wizards/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/cib/live/wizards/" {
