@@ -55,7 +55,7 @@ func rememberEncryptedWizardValues(w http.ResponseWriter, r *http.Request, name 
 		return
 	}
 	encrypted := databaseStateCipher.Seal(nonce, nonce, data, []byte(name))
-	http.SetCookie(w, &http.Cookie{Name: "hawk_wizard_" + name, Value: base64.RawURLEncoding.EncodeToString(encrypted), Path: "/cib/live/wizards/" + name, MaxAge: 3600, HttpOnly: true, Secure: r.TLS != nil, SameSite: http.SameSiteLaxMode})
+	http.SetCookie(w, &http.Cookie{Name: "hawk_wizard_" + name, Value: base64.RawURLEncoding.EncodeToString(encrypted), Path: wizardCIBBase(r) + "/wizards/" + name, MaxAge: 3600, HttpOnly: true, Secure: r.TLS != nil, SameSite: http.SameSiteLaxMode})
 }
 func recalledDatabaseValues(r *http.Request) wizardParams {
 	params := wizardParams{}

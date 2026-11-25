@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -151,7 +152,7 @@ func loggedClusterCommand(name string, args ...string) *exec.Cmd {
 }
 
 // Ruby records the equivalent script-run command, rather than the JSON transport.
-func recordWizardCommand(name, operation string, params any) {
+func recordWizardCommand(ctx context.Context, name, operation string, params any) {
 	if operation != "run" {
 		return
 	}
@@ -181,7 +182,7 @@ func recordWizardCommand(name, operation string, params any) {
 		}
 	}
 	add("", values)
-	if err = (commandLog{root: commandLogRoot}).append(false, strings.Join(args, " ")); err != nil {
+	if err = (commandLog{root: commandLogRoot}).append(wizardIsBatch(ctx), strings.Join(args, " ")); err != nil {
 		log.Printf("[commands] Unable to record wizard command: %v", err)
 	}
 }

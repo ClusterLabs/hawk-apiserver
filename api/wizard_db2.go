@@ -260,7 +260,8 @@ func serveDB2Wizard(w http.ResponseWriter, r *http.Request, run db2Command) {
 	serveNestedWizard(w, r, run, resourceWizardConfig{Name: "db2", Title: "DB2"})
 }
 func serveNestedWizard(w http.ResponseWriter, r *http.Request, run db2Command, config resourceWizardConfig) {
-	base := "/cib/live/wizards/" + config.Name
+	r = wizardRequest(r)
+	base := wizardCIBBase(r) + "/wizards/" + config.Name
 	path := strings.TrimSuffix(r.URL.Path, "/")
 	if path == base+"/submit" {
 		submitNestedWizard(w, r, run, config)
@@ -307,7 +308,7 @@ func serveNestedWizard(w http.ResponseWriter, r *http.Request, run db2Command, c
 		pa, _ := json.Marshal(params)
 		data["ParamsJSON"] = string(pa)
 	}
-	renderTemplate(w, "wizard_db2", data)
+	renderWizardTemplate(w, r, "wizard_db2", data)
 }
 func submitDB2Wizard(w http.ResponseWriter, r *http.Request, run db2Command) {
 	submitNestedWizard(w, r, run, resourceWizardConfig{Name: "db2", Title: "DB2"})

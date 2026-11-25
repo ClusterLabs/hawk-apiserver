@@ -42,6 +42,7 @@ func healthScriptCommand(ctx context.Context, operation string) (*exec.Cmd, erro
 	data, _ := json.Marshal(args)
 	quoted := "script json \"" + strings.NewReplacer("\\", "\\\\", "\"", "\\\"").Replace(string(data)) + "\"\n"
 	cmd := exec.CommandContext(ctx, "/usr/sbin/crm", "-f", "/dev/stdin")
+	cmd.Env = batchEnvironment(cmd.Environ(), !wizardIsBatch(ctx))
 	cmd.Stdin = strings.NewReader(quoted)
 	return cmd, nil
 }
@@ -56,7 +57,7 @@ func runHealthCommand(ctx context.Context, operation string) (out []byte, err er
 	if err != nil {
 		return nil, err
 	}
-	recordWizardCommand("health", operation, map[string]any{})
+	recordWizardCommand(ctx, "health", operation, map[string]any{})
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	out, err = cmd.Output()
@@ -139,11 +140,12 @@ func HealthWizardHandler(w http.ResponseWriter, r *http.Request) {
 	serveHealthWizard(w, r, runHealthCommand)
 }
 func serveHealthWizard(w http.ResponseWriter, r *http.Request, run healthCommand) {
-	if r.URL.Path == "/cib/live/wizards/health/submit" || r.URL.Path == "/cib/live/wizards/health/submit/" {
+	r = wizardRequest(r)
+	if r.URL.Path == wizardCIBBase(r)+"/wizards/health/submit" || r.URL.Path == wizardCIBBase(r)+"/wizards/health/submit/" {
 		submitHealthWizard(w, r, run)
 		return
 	}
-	if r.URL.Path != "/cib/live/wizards/health" && r.URL.Path != "/cib/live/wizards/health/" {
+	if r.URL.Path != wizardCIBBase(r)+"/wizards/health" && r.URL.Path != wizardCIBBase(r)+"/wizards/health/" {
 		http.NotFound(w, r)
 		return
 	}
@@ -173,7 +175,7 @@ func serveHealthWizard(w http.ResponseWriter, r *http.Request, run healthCommand
 		data["Actions"] = result.Actions
 		data["Errors"] = result.Errors
 	}
-	renderTemplate(w, "wizard_health", data)
+	renderWizardTemplate(w, r, "wizard_health", data)
 }
 
 func submitHealthWizard(w http.ResponseWriter, r *http.Request, run healthCommand) {

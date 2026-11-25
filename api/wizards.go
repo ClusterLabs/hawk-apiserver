@@ -183,7 +183,7 @@ func WizardsHandler(w http.ResponseWriter, r *http.Request) {
 	if base == batchBase {
 		for i := range categories {
 			for j := range categories[i].Wizards {
-				categories[i].Wizards[j].Disabled = true
+				categories[i].Wizards[j].Href = strings.Replace(categories[i].Wizards[j].Href, "/cib/live", batchBase, 1)
 			}
 		}
 		data["BatchMode"] = true

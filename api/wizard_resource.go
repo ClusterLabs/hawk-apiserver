@@ -77,7 +77,8 @@ func validateResourceWizardParams(params wizardParams, definition resourceWizard
 type resourceWizardConfig struct{ Name, Title string }
 
 func serveResourceWizard(w http.ResponseWriter, r *http.Request, run resourceWizardCommand, config resourceWizardConfig) {
-	base := "/cib/live/wizards/" + config.Name
+	r = wizardRequest(r)
+	base := wizardCIBBase(r) + "/wizards/" + config.Name
 	if r.URL.Path == base+"/submit" || r.URL.Path == base+"/submit/" {
 		submitResourceWizard(w, r, run, config)
 		return
@@ -132,7 +133,7 @@ func serveResourceWizard(w http.ResponseWriter, r *http.Request, run resourceWiz
 		pa, _ := json.Marshal(params)
 		data["ParamsJSON"] = string(pa)
 	}
-	renderTemplate(w, "wizard_resource", data)
+	renderWizardTemplate(w, r, "wizard_resource", data)
 }
 func submitResourceWizard(w http.ResponseWriter, r *http.Request, run resourceWizardCommand, config resourceWizardConfig) {
 	if r.Method != http.MethodPost {

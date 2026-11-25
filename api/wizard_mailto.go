@@ -103,6 +103,7 @@ func nestedWizardScriptCommand(ctx context.Context, name, operation string, para
 	}
 	quoted := "script json \"" + strings.NewReplacer("\\", "\\\\", "\"", "\\\"").Replace(string(data)) + "\"\n"
 	cmd := exec.CommandContext(ctx, "/usr/sbin/crm", "-f", "/dev/stdin")
+	cmd.Env = batchEnvironment(cmd.Environ(), !wizardIsBatch(ctx))
 	cmd.Stdin = strings.NewReader(quoted)
 	return cmd, nil
 }
@@ -121,7 +122,7 @@ func runNestedWizardCommand(ctx context.Context, name, operation string, params 
 	if err != nil {
 		return nil, err
 	}
-	recordWizardCommand(name, operation, params)
+	recordWizardCommand(ctx, name, operation, params)
 	return runWizardProcess(cmd)
 }
 
@@ -174,7 +175,7 @@ func rememberWizardValues(w http.ResponseWriter, r *http.Request, name string, p
 	if len(data) > 2500 {
 		return
 	}
-	http.SetCookie(w, &http.Cookie{Name: "hawk_wizard_" + strings.ReplaceAll(name, "-", "_"), Value: base64.RawURLEncoding.EncodeToString(data), Path: "/cib/live/wizards/" + name, MaxAge: 3600, HttpOnly: true, Secure: r.TLS != nil, SameSite: http.SameSiteLaxMode})
+	http.SetCookie(w, &http.Cookie{Name: "hawk_wizard_" + strings.ReplaceAll(name, "-", "_"), Value: base64.RawURLEncoding.EncodeToString(data), Path: wizardCIBBase(r) + "/wizards/" + name, MaxAge: 3600, HttpOnly: true, Secure: r.TLS != nil, SameSite: http.SameSiteLaxMode})
 }
 func recalledMailto(r *http.Request) mailtoParams { return recalledWizardValues(r, "mailto") }
 func recalledWizardValues(r *http.Request, name string) wizardParams {
@@ -197,11 +198,12 @@ func MailtoWizardHandler(w http.ResponseWriter, r *http.Request) {
 	serveMailtoWizard(w, r, runMailtoCommand)
 }
 func serveMailtoWizard(w http.ResponseWriter, r *http.Request, run mailtoCommand) {
-	if r.URL.Path == "/cib/live/wizards/mailto/submit" || r.URL.Path == "/cib/live/wizards/mailto/submit/" {
+	r = wizardRequest(r)
+	if r.URL.Path == wizardCIBBase(r)+"/wizards/mailto/submit" || r.URL.Path == wizardCIBBase(r)+"/wizards/mailto/submit/" {
 		submitMailtoWizard(w, r, run)
 		return
 	}
-	if r.URL.Path != "/cib/live/wizards/mailto" && r.URL.Path != "/cib/live/wizards/mailto/" {
+	if r.URL.Path != wizardCIBBase(r)+"/wizards/mailto" && r.URL.Path != wizardCIBBase(r)+"/wizards/mailto/" {
 		http.NotFound(w, r)
 		return
 	}
@@ -247,7 +249,7 @@ func serveMailtoWizard(w http.ResponseWriter, r *http.Request, run mailtoCommand
 		pa, _ := json.Marshal(params)
 		data["ParamsJSON"] = string(pa)
 	}
-	renderTemplate(w, "wizard_mailto", data)
+	renderWizardTemplate(w, r, "wizard_mailto", data)
 }
 
 func submitMailtoWizard(w http.ResponseWriter, r *http.Request, run mailtoCommand) {
