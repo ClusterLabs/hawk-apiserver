@@ -358,15 +358,7 @@ class HawkTestDriver:
         '''
         print("TEST: test_set_stonith_maintenance: Placing fencing-sbd|stonith-sbd in maintenance")
 
-        # try to find the old RSC_ROWS for 10 seconds (Ruby hawk)
-        # if none --> search for RSC_ROWS_NEW (Go hawk)
-        if self.find_element(By.XPATH, Xpath.RSC_ROWS, 20):
-            totalrows = len(self.driver.find_elements(By.XPATH, Xpath.RSC_ROWS))
-            if not totalrows:
-                totalrows = 1
-            self.check_and_click_by_xpath(Error.FENCING_ERR, [Xpath.DROP_DOWN_FORMAT.format(totalrows),
-                                                              Xpath.FENCING_MAINT_ON, Xpath.COMMIT_BTN_DANGER])
-        elif self.find_element(By.XPATH, Xpath.RSC_ROWS_NEW):
+        if self.find_element(By.XPATH, Xpath.RSC_ROWS_NEW):
             totalrows = len(self.driver.find_elements(By.XPATH, Xpath.RSC_ROWS_NEW))
             if not totalrows:
                 totalrows = 1
@@ -671,17 +663,7 @@ class HawkTestDriver:
         copy_btn = None
 
         time.sleep(BIG_TIMEOUT)
-        if self.find_element(By.XPATH, Xpath.RSC_ROWS, 20):
-            # First, click on Edit
-            time.sleep(2)
-            self.check_and_click_by_xpath(Error.COOL_PRIMITIVE_ERR, [Xpath.DROP_DOWN_FORMAT.format(resource_number_from_top),
-                                                                     Xpath.COOL_PRIMITIVE_EDIT])
-
-            # Second, copy the cool_primitive into dum_primitive
-            time.sleep(2) # to redirect
-            copy_btn = self.find_element(By.LINK_TEXT, "Copy") # search for '<a>Copy</a>' (Ruby hawk),
-
-        elif self.find_element(By.XPATH, Xpath.RSC_ROWS_NEW):
+        if self.find_element(By.XPATH, Xpath.RSC_ROWS_NEW):
             # First, click on Edit
             time.sleep(2)
             self.check_and_click_by_xpath(Error.COOL_PRIMITIVE_ERR, [Xpath.DROP_DOWN_FORMAT_NEW.format(resource_number_from_top),
@@ -726,30 +708,7 @@ class HawkTestDriver:
         resource_number_from_top = 2 # 1. cool_primitive, 2. dum_primitive, 3. fencing-sbd|stonith-sbd
         input_elem = None
 
-        if self.find_element(By.XPATH, Xpath.RSC_ROWS, 20):
-            # First, stop the cool_primitive
-            time.sleep(2)
-            self.check_and_click_by_xpath(Error.DUM_PRIMITIVE_ERR,[Xpath.STOP_PRIMITIVE_FORMAT.format(resource_number_from_top),
-                                                                    Xpath.COMMIT_BTN_DANGER])
-
-            # Second, click on Edit
-            time.sleep(BIG_TIMEOUT)
-            self.check_and_click_by_xpath(Error.DUM_PRIMITIVE_ERR, [Xpath.DROP_DOWN_FORMAT.format(resource_number_from_top),
-                                                                     Xpath.DUM_PRIMITIVE_EDIT])
-
-            # Third, rename the cool_primitive to dum_primitive
-            time.sleep(BIG_TIMEOUT) # wait the redirect finishes
-            # search for '<a>Rename</a>' (Ruby hawk),
-            rename_btn = self.find_element(By.LINK_TEXT, "Rename")
-            if not rename_btn:
-                print("ERROR: Couldn't find Rename button")
-                return False
-            rename_btn.click()
-
-            # search for '<input id="to">' (Ruby hawk),
-            input_elem = self.find_element(By.ID, "to")
-
-        elif self.find_element(By.XPATH, Xpath.RSC_ROWS_NEW):
+        if self.find_element(By.XPATH, Xpath.RSC_ROWS_NEW):
             # First, stop the cool_primitive
             time.sleep(2)
             self.check_and_click_by_xpath(Error.DUM_PRIMITIVE_ERR,[Xpath.STOP_PRIMITIVE_FORMAT.format(resource_number_from_top),
@@ -805,7 +764,7 @@ class HawkTestDriver:
         resource_number_from_top = 2 # 1. cool_primitive, 2. dummy_primitive, 3. fencing-sbd|stonith-sbd
 
         time.sleep(BIG_TIMEOUT)
-        if self.find_element(By.XPATH, Xpath.RSC_ROWS, 20) or self.find_element(By.XPATH, Xpath.RSC_ROWS_NEW):
+        if self.find_element(By.XPATH, Xpath.RSC_ROWS_NEW):
             # First, click on edit
             time.sleep(2)
             self.check_and_click_by_xpath(Error.DUMMY_PRIMITIVE_ERR, [
@@ -916,47 +875,39 @@ class HawkTestDriver:
             return False
         elem.send_keys(clone)
 
-        elem = self.find_element(By.XPATH, Xpath.CLONE_CHILD, 20)
-        if elem: # --> old ruby hawk
-            elem.click()
-            self.check_and_click_by_xpath(f"while adding clone [{clone}]",
-                                            [Xpath.OPT_FENCING, Xpath.TARGET_ROLE_FORMAT.format('clone'),
-                                            Xpath.TARGET_ROLE_STARTED])
+        selections = (
+            ('x-select[id="child-resource-xselect"]',
+                'select[name="clone[child]"]',
+                'option[value*="fencing-sbd"], option[value*="stonith-sbd"]',
+                '<x-select id="child-resource-xselect">',
+                "'fencing-sbd' option"),
+            ('x-kvgroup[id="kvgroup-meta_attributes"]',
+                'select[name="clone[meta][target-role]"]',
+                'option[value*="topped"]',
+                "<x-kvgroup id='kvgroup-meta_attributes'>",
+                'Stop option'),
+        )
 
-        else: # --> new go hawk
-            selections = (
-                ('x-select[id="child-resource-xselect"]',
-                 'select[name="clone[child]"]',
-                 'option[value*="fencing-sbd"], option[value*="stonith-sbd"]',
-                 '<x-select id="child-resource-xselect">',
-                 "'fencing-sbd' option"),
-                ('x-kvgroup[id="kvgroup-meta_attributes"]',
-                 'select[name="clone[meta][target-role]"]',
-                 'option[value*="topped"]',
-                 "<x-kvgroup id='kvgroup-meta_attributes'>",
-                 'Stop option'),
-            )
+        for host_selector, select_selector, option_selector, host_name, option_name in selections:
+            host = self.find_element(By.CSS_SELECTOR, host_selector)
+            if not host:
+                print(f"ERROR: Couldn't find {host_name}")
+                self.test_status = False
+                return False
 
-            for host_selector, select_selector, option_selector, host_name, option_name in selections:
-                host = self.find_element(By.CSS_SELECTOR, host_selector)
-                if not host:
-                    print(f"ERROR: Couldn't find {host_name}")
-                    self.test_status = False
-                    return False
+            select = host.shadow_root.find_element(By.CSS_SELECTOR, select_selector)
+            if not select:
+                print(f"ERROR: Couldn't find {option_name}")
+                self.test_status = False
+                return False
+            select.click()
 
-                select = host.shadow_root.find_element(By.CSS_SELECTOR, select_selector)
-                if not select:
-                    print(f"ERROR: Couldn't find {option_name}")
-                    self.test_status = False
-                    return False
-                select.click()
-
-                option = select.find_element(By.CSS_SELECTOR, option_selector)
-                if not option:
-                    print(f"ERROR: Couldn't find {option_name}")
-                    self.test_status = False
-                    return False
-                option.click()
+            option = select.find_element(By.CSS_SELECTOR, option_selector)
+            if not option:
+                print(f"ERROR: Couldn't find {option_name}")
+                self.test_status = False
+                return False
+            option.click()
 
         elem = self.find_element(By.XPATH, Xpath.RSC_OK_SUBMIT)
         if not elem:
