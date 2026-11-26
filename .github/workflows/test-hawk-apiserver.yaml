@@ -1,4 +1,4 @@
-name: e2e_test for hawk on tumbleweed
+name: e2e_test for hawk on Tumbleweed and Leap
 on:
   push:
     branches:
@@ -31,9 +31,20 @@ jobs:
           name: hawk-examiner-image
           path: hawk-examiner.tar
 
-  test_tumbleweed:
+  test_hawk:
+    name: Test on ${{ matrix.name }}
     runs-on: ubuntu-latest
     needs: build_examiner
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Tumbleweed
+            distro: tumbleweed
+          - name: Leap 16.0
+            distro: leap160
+          - name: Leap 16.1
+            distro: leap161
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
@@ -47,9 +58,9 @@ jobs:
         run: |
           docker load -i hawk-examiner.tar
 
-      - name: Build hawk-node Tumbleweed image
+      - name: Build hawk-node ${{ matrix.name }} image
         run: |
-          docker build -t hawk-node -f .github/docker/hawk-node.tumbleweed/Dockerfile .github/docker/hawk-node.tumbleweed/
+          docker build -t hawk-node -f .github/docker/hawk-node.${{ matrix.distro }}/Dockerfile .github/docker/hawk-node.${{ matrix.distro }}/
 
       - name: Start cluster nodes in containers
         run: |
