@@ -15,15 +15,11 @@ jobs:
   build_examiner:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out hawk e2e tests
+      - name: Check out repository code
         uses: actions/checkout@v4
-        with:
-          repository: ClusterLabs/hawk
-          path: hawk-upstream
-          sparse-checkout: e2e_test
       - name: Build hawk-examiner image
         run: |
-          docker build -t hawk-examiner -f hawk-upstream/e2e_test/Dockerfile hawk-upstream/e2e_test
+          docker build -t hawk-examiner -f e2e_test/Dockerfile e2e_test
 
       - name: Export hawk-examiner image
         run: |
@@ -59,7 +55,7 @@ jobs:
         run: |
           docker run -d --privileged -h node1 --name node1 --add-host node1:${IP_NODE1} --add-host node2:${IP_NODE2} hawk-node
 
-      - name: Copy hawk to the nodes
+      - name: Copy hawk-apiserver to the node
         run: |
           docker cp "$GITHUB_WORKSPACE" node1:/
 
@@ -74,14 +70,20 @@ jobs:
       - name: Install hawk-apiserver in the nodes
         run: |
           docker exec -i node1 bash -c "cd hawk-apiserver && make install"
+          docker exec node1 install -d -o hacluster -g haclient -m 0750 /var/lib/hawk /var/lib/hawk/tmp
+          docker exec node1 systemctl daemon-reload
 
       - name: Initialize container on the node1
         run: |
           docker exec node1 crm cluster init -n cluster2 -y
 
-      - name: Check status of hawk
+      - name: Start hawk-apiserver
         run: |
-          docker exec node1 systemctl status hawk hawk-backend
+          docker exec node1 systemctl enable --now hawk-apiserver.service
+
+      - name: Check status of hawk-apiserver
+        run: |
+          docker exec node1 systemctl status --no-pager hawk-apiserver.service
 
       - name: Create a stonith-sbd device
         run: |

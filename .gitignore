@@ -17,6 +17,7 @@
 config.json
 hawk-apiserver
 __debug_bin*
+.debug-sessions/
 
 # Generated PAM helper and header
 /tools/hawk-apiserver_chkpwd
