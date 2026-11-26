@@ -1,11 +1,11 @@
 FROM docker.io/opensuse/tumbleweed
 
-# install deps (hawk2 will pull all the gems, but uglifier)
-# libglue-devel is for stonith:external/ssh params hostlist
+# Build and runtime dependencies for the standalone Go server and cluster tests.
 RUN zypper -n refresh \
  && zypper -n install --no-recommends \
-      systemd openssh-server \
-      make gcc go pam-devel libpacemaker-devel libqb-devel libxml2-devel hawk2 nodejs git \
+      systemd openssh-server iproute2 \
+      make gcc go pam-devel libpacemaker-devel libqb-devel libxml2-devel git \
+      pacemaker corosync crmsh resource-agents openssl sudo sbd graphviz \
  && zypper -n clean -a
 
 # allow root password login (specifically for the tests)
@@ -22,7 +22,5 @@ RUN passwd -u root || true && echo -e "linux\nlinux" | passwd root
 
 # start sshd under systemd (`crm cluster init` will start it later anyway)
 RUN systemctl enable sshd
-
-ENV GEM_HOME=/usr/libexec/hawk/vendor/
 
 CMD ["/usr/lib/systemd/systemd", "--system"]

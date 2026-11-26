@@ -7,7 +7,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"os/exec"
 )
 
 type NameValue struct {
@@ -96,7 +95,7 @@ func parseIDandAgent(w http.ResponseWriter, r *http.Request) (string, string) {
 func fetchShortPrimitiveFromCib(ResourceID string) (Primitive, error) {
 	// 1. Query current XML
 	queryXPath := fmt.Sprintf("//primitive[@id='%s']", ResourceID)
-	cmd := exec.Command("cibadmin", "-Q", "--xpath", queryXPath)
+	cmd := loggedClusterCommand("cibadmin", "-Q", "--xpath", queryXPath)
 	out, err := cmd.Output()
 	if err != nil {
 		log.Printf("[fetchShortPrimitiveFromCib] cibadmin -Q error: %v", err)
@@ -116,7 +115,7 @@ func fetchShortPrimitiveFromCib(ResourceID string) (Primitive, error) {
 func fetchCloneFromCib(CloneID string) (Clone, error) {
 	// 1. Query current XML
 	queryXPath := fmt.Sprintf("//clone[@id='%s']", CloneID)
-	cmd := exec.Command("cibadmin", "-Q", "--xpath", queryXPath)
+	cmd := loggedClusterCommand("cibadmin", "-Q", "--xpath", queryXPath)
 	out, err := cmd.Output()
 	if err != nil {
 		log.Printf("[fetchCloneFromCib] cibadmin -Q error: %v", err)
@@ -495,7 +494,7 @@ func SubmitResourceUtilizations(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if utilFound == false {
-			cmd := exec.Command("crm", "resource", "utilization", thisResource.ID, "delete", utilizations.Name)
+			cmd := loggedClusterCommand("crm", "resource", "utilization", thisResource.ID, "delete", utilizations.Name)
 			_, err := cmd.Output()
 			if err != nil {
 				http.Error(w, "Failed to set utilization", http.StatusInternalServerError)
@@ -507,7 +506,7 @@ func SubmitResourceUtilizations(w http.ResponseWriter, r *http.Request) {
 
 	// 2. Add + Update attributes
 	for _, frontendNvpair := range frontendNode.Nvpairs {
-		cmd := exec.Command("crm", "resource", "utilization", thisResource.ID, "set", frontendNvpair.Name, frontendNvpair.Value)
+		cmd := loggedClusterCommand("crm", "resource", "utilization", thisResource.ID, "set", frontendNvpair.Name, frontendNvpair.Value)
 		_, err := cmd.Output()
 		if err != nil {
 			http.Error(w, "Failed to set utilization", http.StatusInternalServerError)
@@ -600,7 +599,7 @@ func SubmitNodeAttributes(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if utilFound == false {
-			cmd := exec.Command("crm", "node", "attribute", thisNode.Uname, "delete", attributes.Name)
+			cmd := loggedClusterCommand("crm", "node", "attribute", thisNode.Uname, "delete", attributes.Name)
 			_, err := cmd.Output()
 			if err != nil {
 				http.Error(w, "Failed to set utilization", http.StatusInternalServerError)
@@ -612,7 +611,7 @@ func SubmitNodeAttributes(w http.ResponseWriter, r *http.Request) {
 
 	// 2. Add + Update attributes
 	for _, frontendNvpair := range frontendNode.Nvpairs {
-		cmd := exec.Command("crm", "node", "attribute", thisNode.Uname, "set", frontendNvpair.Name, frontendNvpair.Value)
+		cmd := loggedClusterCommand("crm", "node", "attribute", thisNode.Uname, "set", frontendNvpair.Name, frontendNvpair.Value)
 		_, err := cmd.Output()
 		if err != nil {
 			http.Error(w, "Failed to set utilization", http.StatusInternalServerError)
@@ -705,7 +704,7 @@ func SubmitNodeUtilizations(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if utilFound == false {
-			cmd := exec.Command("crm", "node", "utilization", thisNode.Uname, "delete", utilization.Name)
+			cmd := loggedClusterCommand("crm", "node", "utilization", thisNode.Uname, "delete", utilization.Name)
 			_, err := cmd.Output()
 			if err != nil {
 				http.Error(w, "Failed to set utilization", http.StatusInternalServerError)
@@ -717,7 +716,7 @@ func SubmitNodeUtilizations(w http.ResponseWriter, r *http.Request) {
 
 	// 2. Add + Update utilizations
 	for _, frontendNvpair := range frontendNode.Nvpairs {
-		cmd := exec.Command("crm", "node", "utilization", thisNode.Uname, "set", frontendNvpair.Name, frontendNvpair.Value)
+		cmd := loggedClusterCommand("crm", "node", "utilization", thisNode.Uname, "set", frontendNvpair.Name, frontendNvpair.Value)
 		_, err := cmd.Output()
 		if err != nil {
 			http.Error(w, "Failed to set utilization", http.StatusInternalServerError)

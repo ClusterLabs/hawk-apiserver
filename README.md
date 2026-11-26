@@ -24,10 +24,10 @@ There are also custom JavaScript classes in static/js/classes designed to simpli
 
 Go and Rails separation
 =======================
-The Go server authenticates directly through `/usr/sbin/hawk_chkpwd passwd <user>`.
+The Go server authenticates directly through `/usr/sbin/hawk-apiserver_chkpwd passwd <user>`.
 It does not contact Puma, use Rails session cookies/secrets, or fall back to Rails.
-The PAM helper remains a shared system executable; no PAM or cluster settings are
-changed by this separation.
+The PAM helper is built from the original Hawk C sources in `tools/`; no PAM
+or cluster settings are changed by this separation.
 
 `/login`, `/login.json`, `/logout`, and `/logout.json` are native Go endpoints.
 The HTML login keeps the existing `session[username]` and `session[password]`
@@ -37,14 +37,16 @@ Passwords are sent to the helper through stdin and are never stored in sessions.
 
 Go owns the `hawk_go_session` cookie and a separate private session directory,
 `/var/lib/hawk/go-sessions` by default. The Go service account must be able to
-own and create/write this directory with mode 0700. Override it with `-session-dir` or
-`session_directory` in the JSON configuration. Separate deployments can use
-separate directories. Existing Rails logins are not imported; sign into Go again.
+own and create/write this directory with mode 0700. Override it with `-session-dir`.
+Separate deployments can use separate directories. Existing Rails logins are
+not imported; sign into Go again.
 
-The listener/TLS settings still come from the existing command-line arguments
-and JSON configuration. Legacy `file` and `proxy` routes in installed Hawk
-configuration are ignored by the native server. `/monitor` and `/monitor.json`
-are handled in Go, and assets come from this project's `/static/` directory.
+Listener, TLS and session settings come from command-line arguments. The Go
+server no longer accepts `-config` or reads `/etc/hawk/server.json`. `/monitor`
+and `/monitor.json` are handled in Go. Templates and static assets are read
+relative to the working directory: use the repository root for development,
+or `/usr/share/hawk` when running the installed binary. Remove `-config` from
+existing service commands before deploying this version.
 No service units, `/etc/sysconfig/hawk`, certificates, or firewall settings are
 changed by this code.
 
@@ -77,7 +79,7 @@ How to build?
 
 2) Install necessary dependencies:
 ```
-zypper in make git go golang-packaging libpacemaker-devel libqb-devel libxml2-devel
+zypper in make gcc git go golang-packaging pam-devel libpacemaker-devel libqb-devel libxml2-devel
 ```
 
 3) Build:
@@ -90,12 +92,45 @@ make
 
 4) Start:
 ```
-./hawk-apiserver -key /etc/hawk/hawk.key -cert /etc/hawk/hawk.pem -port 7631 -config /etc/hawk/server.json
+./hawk-apiserver -key /etc/hawk/hawk.key -cert /etc/hawk/hawk.pem -port 7631
 ```
-The `/etc/hawk/hawk.key`, `/etc/hawk/hawk.pem`, and `/etc/hawk/server.json` are created by `crm cluster init ...`
+The TLS files `/etc/hawk/hawk.key` and `/etc/hawk/hawk.pem` are created by `crm cluster init ...`.
 Don't use the port `7630`, because it's already bound to the default `hawk.service` .
 
 5) Open `https://127.0.0.1:7631`, use the default credentials. User: `hacluster`, Password: `linux`.
+
+Building the authentication helper
+==================================
+`make` also builds `tools/hawk-apiserver_chkpwd` from the C source and
+`common.h.in` copied from Hawk. The helper links against PAM; `make tools`
+builds it separately. Its original license is included in `tools/COPYING`.
+
+Run `make install` as root to install the helper as
+`/usr/sbin/hawk-apiserver_chkpwd`, owned by `root:haclient` with mode `4750`, using
+the same permissions as Hawk's helper. The `haclient` group must already exist. `DESTDIR`
+and `PREFIX` are supported for staged installations. `make clean` removes
+the generated binaries and header.
+
+`make install` also installs `tools/generate-ssl-certificate` into
+`/usr/share/hawk/bin/`. Run it as root before starting the service to
+create missing TLS files. The script is copied from Hawk. It reads
+`HAWK_KEY` and `HAWK_CERT`, with the original `/etc/ssl/certs/hawk.key`
+and `/etc/ssl/certs/hawk.pem` defaults. It retains Hawk's certificate
+handling and permissions. Generation output is written to
+`/usr/share/hawk/log/certificate.log`.
+
+Systemd service
+===============
+`make install` installs `tools/hawk-apiserver.service` as
+`/usr/lib/systemd/system/hawk-apiserver.service`. Override `SYSTEMDUNITDIR`
+when packaging for a different systemd unit directory.
+
+The service runs as `hacluster:haclient` from `/usr/share/hawk`, generates
+missing certificates as root, and reads `/etc/sysconfig/hawk` for the
+port and TLS paths, with defaults provided by the unit. Go creates its
+private session directory; `hacluster` must be able to write to its parent.
+It requires no Ruby backend. Both Hawk services default to port `7630`;
+configure different ports before running them simultaneously.
 
 How to debug?
 =============
@@ -130,8 +165,7 @@ code . --user-data-dir=".vscode" --no-sandbox
             "args": [
                 "-key", "/etc/hawk/hawk.key",
                 "-cert", "/etc/hawk/hawk.pem",
-                "-port", "7631",
-                "-config", "/etc/hawk/server.json"
+                "-port", "7631"
             ]
         }
     ]

@@ -3,18 +3,23 @@ package api
 import (
 	"bufio"
 	"bytes"
-	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
-	"os/exec"
 	"regexp"
 	"sort"
 	"strings"
 	"unicode"
 )
+
+// The menu is fixed at build time; installed crmsh scripts only supply the
+// individual wizard forms and execution, not the available navigation entries.
+//
+//go:embed wizard_catalog.jsonl
+var wizardCatalog []byte
 
 type wizardSummary struct {
 	Name      string          `json:"name"`
@@ -71,6 +76,9 @@ func wizardCategories(data []byte) ([]wizardCategory, error) {
 				continue
 			}
 		}
+		if category == "stonith" {
+			category = "fencing"
+		}
 		category = strings.NewReplacer("/", " ", "\\", " ", ":", " ").Replace(category)
 		description := strings.ReplaceAll(wizardDescription(summary.Longdesc), "\r\n", "\n")
 		paragraphs := []string{}
@@ -109,7 +117,7 @@ func wizardCategories(data []byte) ([]wizardCategory, error) {
 			words[j] = string(letters)
 		}
 		title = strings.Join(words, " ")
-		if name == "sap" || name == "nfs" {
+		if name == "sap" || name == "nfs" || name == "fencing" {
 			title = strings.ToUpper(name)
 		}
 		if name == "wizard" {
@@ -151,22 +159,13 @@ func wizardCategories(data []byte) ([]wizardCategory, error) {
 	return categories, nil
 }
 
-func listWizards(ctx context.Context) ([]byte, error) {
-	// Match CrmScript.run: crmsh parses a quoted JSON command document.
-	cmd := exec.CommandContext(ctx, "/usr/sbin/crm", "-f", "/dev/stdin")
-	cmd.Stdin = strings.NewReader(`script json "[\"list\"]"` + "\n")
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	out, err := cmd.Output()
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", strings.TrimSpace(stderr.String()), err)
-	}
-	return out, nil
-}
-
-func WizardsHandler(w http.ResponseWriter, r *http.Request) { serveWizards(w, r, listWizards) }
-func serveWizards(w http.ResponseWriter, r *http.Request, list func(context.Context) ([]byte, error)) {
-	if r.URL.Path != "/cib/live/wizards" && r.URL.Path != "/cib/live/wizards/" {
+func WizardsHandler(w http.ResponseWriter, r *http.Request) {
+	base := "/cib/live"
+	switch r.URL.Path {
+	case "/cib/live/wizards", "/cib/live/wizards/":
+	case batchBase + "/wizards", batchBase + "/wizards/":
+		base = batchBase
+	default:
 		http.NotFound(w, r)
 		return
 	}
@@ -175,15 +174,20 @@ func serveWizards(w http.ResponseWriter, r *http.Request, list func(context.Cont
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
-	data, err := list(r.Context())
+	categories, err := wizardCategories(wizardCatalog)
 	if err != nil {
 		http.Error(w, "Unable to load wizards: "+err.Error(), 500)
 		return
 	}
-	categories, err := wizardCategories(data)
-	if err != nil {
-		http.Error(w, "Unable to load wizards: "+err.Error(), 500)
-		return
+	data := map[string]any{"Title": "Use a wizard", "Categories": categories, "CIBBase": base}
+	if base == batchBase {
+		for i := range categories {
+			for j := range categories[i].Wizards {
+				categories[i].Wizards[j].Href = strings.Replace(categories[i].Wizards[j].Href, "/cib/live", batchBase, 1)
+			}
+		}
+		data["BatchMode"] = true
+		data["BatchConfig"] = map[string]string{"base": batchBase, "api": batchAPI, "id": batchID}
 	}
-	renderTemplate(w, "wizards", map[string]any{"Title": "Use a wizard", "Categories": categories})
+	renderTemplate(w, "wizards", data)
 }

@@ -176,6 +176,7 @@ func groupCreateArgs(group groupCreate) []string {
 }
 
 func runGroupCommand(ctx context.Context, args ...string) error {
+	recordClusterCommand("/usr/sbin/crm", args, "", false)
 	cmd := exec.CommandContext(ctx, "/usr/sbin/crm", args...)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr

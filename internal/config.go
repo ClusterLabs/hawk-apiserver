@@ -1,49 +1,13 @@
 package internal
 
 import (
-	"encoding/json"
 	"flag"
-	"io/ioutil"
 	"os"
-	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
 
-type offsetContext struct {
-	start int
-	end   int
-	line  int
-	pos   int
-}
-
-func contextAtOffset(str string, offset int64) offsetContext {
-	start, end := strings.LastIndex(str[:offset], "\n")+1, len(str)
-	if idx := strings.Index(str[start:], "\n"); idx >= 0 {
-		end = start + idx
-	}
-	line, pos := strings.Count(str[:start], "\n"), int(offset)-start-1
-	return offsetContext{
-		start: start,
-		end:   end,
-		line:  line,
-		pos:   pos,
-	}
-}
-
-func fatalSyntaxError(js string, err error) {
-	syntax, ok := err.(*json.SyntaxError)
-	if !ok {
-		log.Fatal(err)
-		return
-	}
-	ctx := contextAtOffset(js, syntax.Offset)
-	log.Printf("Error in line %d: %s", ctx.line, err)
-	log.Printf("%s", js[ctx.start:ctx.end])
-	log.Fatalf("%s^", strings.Repeat(" ", ctx.pos))
-}
-
-// Config is the internal representation of the configuration file.
+// Config holds runtime command-line settings and internal route definitions.
 type Config struct {
 	SessionDirectory string        `json:"session_directory"`
 	Listen           string        `json:"listen"`
@@ -69,24 +33,7 @@ type ConfigRoute struct {
 	Target  *string `json:"target"`
 }
 
-// parseConfigFile is a configuration file parser.
-//
-// The configuration file format is described in
-// config.json.example and README.md.
-func parseConfigFile(cfgfile string, target *Config) {
-	log.Printf("Reading %v...", cfgfile)
-	raw, err := ioutil.ReadFile(cfgfile)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-	err = json.Unmarshal(raw, target)
-	if err != nil {
-		fatalSyntaxError(string(raw), err)
-	}
-}
-
-// InitConfig initialize the configuration
+// InitConfig initializes runtime settings from command-line flags.
 func InitConfig(version string) Config {
 	log.SetFormatter(&log.TextFormatter{
 		DisableTimestamp: true,
@@ -103,40 +50,15 @@ func InitConfig(version string) Config {
 		Route:            []ConfigRoute{},
 	}
 
-	sessions := flag.String("session-dir", config.SessionDirectory, "Directory for Go authentication sessions")
-	listen := flag.String("listen", config.Listen, "Address to listen to")
-	port := flag.Int("port", config.Port, "Port to listen to")
-	key := flag.String("key", config.Key, "TLS key file")
-	cert := flag.String("cert", config.Cert, "TLS cert file")
-	loglevel := flag.String("loglevel", config.LogLevel, "Log level (debug|info|warning|error|fatal|panic)")
-	cfgfile := flag.String("config", "", "Configuration file")
+	flag.StringVar(&config.SessionDirectory, "session-dir", config.SessionDirectory, "Directory for Go authentication sessions")
+	flag.StringVar(&config.Listen, "listen", config.Listen, "Address to listen to")
+	flag.IntVar(&config.Port, "port", config.Port, "Port to listen to")
+	flag.StringVar(&config.Key, "key", config.Key, "TLS key file")
+	flag.StringVar(&config.Cert, "cert", config.Cert, "TLS cert file")
+	flag.StringVar(&config.LogLevel, "loglevel", config.LogLevel, "Log level (debug|info|warning|error|fatal|panic)")
 	versionFlag := flag.Bool("version", false, "show version of hawk-apiserver")
 	flag.Parse()
 
-	if *cfgfile != "" {
-		parseConfigFile(*cfgfile, &config)
-	}
-
-	flag.Visit(func(f *flag.Flag) {
-		if f.Name == "session-dir" {
-			config.SessionDirectory = *sessions
-		}
-	})
-	if *listen != "0.0.0.0" {
-		config.Listen = *listen
-	}
-	if *port != 17630 {
-		config.Port = *port
-	}
-	if *key != "/etc/hawk/hawk.key" {
-		config.Key = *key
-	}
-	if *cert != "/etc/hawk/hawk.pem" {
-		config.Cert = *cert
-	}
-	if *loglevel != "info" {
-		config.LogLevel = *loglevel
-	}
 	if *versionFlag == true {
 		log.Infof("hawk-apiserver version: %s", version)
 		os.Exit(0)

@@ -62,4 +62,6 @@ wizardForm.querySelector('[data-confirm]').addEventListener("click", event => {
 wizardForm.querySelector(".previous.disabled")?.addEventListener("click", event => event.preventDefault());
 document.getElementById("monitoringMenu").classList.remove("in");
 document.getElementById("configurationMenu").classList.add("in");
-document.querySelector('a[href="/cib/live/wizards"]').setAttribute("aria-current", "page");
+const wizardMenuBase = window.location.pathname.startsWith("/cib/hacluster/") ? "/cib/hacluster" : "/cib/live";
+document.querySelector(`a[href="${wizardMenuBase}/wizards"]`)?.setAttribute("aria-current", "page");
+if (window.hawkBatch) window.hawkBatch.start();

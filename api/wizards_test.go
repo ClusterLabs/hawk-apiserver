@@ -2,10 +2,11 @@ package api
 
 import (
 	"bytes"
-	"context"
-	"fmt"
+	"html"
 	"html/template"
 	"net/http/httptest"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -64,13 +65,10 @@ func TestWizardsHandler(t *testing.T) {
 		{"GET", "/cib/live/wizards/test", 404},
 	} {
 		response := httptest.NewRecorder()
-		serveWizards(response, httptest.NewRequest(tt.method, tt.path, nil), func(context.Context) ([]byte, error) { t.Fatal("unexpected command"); return nil, nil })
+		WizardsHandler(response, httptest.NewRequest(tt.method, tt.path, nil))
 		require.Equal(t, tt.status, response.Code)
 	}
-	response := httptest.NewRecorder()
-	serveWizards(response, httptest.NewRequest("GET", "/cib/live/wizards", nil), func(context.Context) ([]byte, error) { return nil, fmt.Errorf("crmsh unavailable") })
-	require.Equal(t, 500, response.Code)
-	require.Contains(t, response.Body.String(), "Unable to load wizards")
+
 }
 
 func TestFenceVirshFollowsLegacyLibvirt(t *testing.T) {
@@ -79,6 +77,8 @@ func TestFenceVirshFollowsLegacyLibvirt(t *testing.T) {
 {"name":"sbd","category":"stonith","shortdesc":"SBD"}`))
 	require.NoError(t, err)
 	require.Len(t, categories, 1)
+	require.Equal(t, "FENCING", categories[0].Title)
+	require.Equal(t, "fencing", categories[0].ID)
 	items := categories[0].Wizards
 	require.Len(t, items, 5)
 	require.Equal(t, "libvirt", items[0].Name)
@@ -97,6 +97,8 @@ func TestDeprecatedVMwareDisabledAndRESTListed(t *testing.T) {
 	categories, err := wizardCategories([]byte(`{"name":"vmware","category":"stonith","shortdesc":"Fencing using vCenter / ESX Server"}`))
 	require.NoError(t, err)
 	require.Len(t, categories, 1)
+	require.Equal(t, "FENCING", categories[0].Title)
+	require.Equal(t, "fencing", categories[0].ID)
 	items := categories[0].Wizards
 	require.Len(t, items, 2)
 	require.True(t, items[0].Disabled)
@@ -110,4 +112,98 @@ func TestDeprecatedVMwareDisabledAndRESTListed(t *testing.T) {
 	require.Contains(t, body.String(), `aria-disabled="true"`)
 	require.NotContains(t, body.String(), `href="/cib/live/wizards/vmware"`)
 	require.Contains(t, body.String(), `href="/cib/live/wizards/fence-vmware-rest"`)
+}
+
+func TestFixedWizardCatalog(t *testing.T) {
+	// The list is available even if crmsh cannot be executed on this machine.
+	t.Setenv("PATH", t.TempDir())
+	categories, err := wizardCategories(wizardCatalog)
+	require.NoError(t, err)
+	var names []string
+	helpIDs := map[string]bool{}
+	for _, category := range categories {
+		require.NotEqual(t, "Stonith", category.Title)
+		for _, wizard := range category.Wizards {
+			names = append(names, wizard.Name)
+			require.NotEmpty(t, wizard.Title)
+			require.NotEmpty(t, wizard.Paragraphs, wizard.Name)
+			require.False(t, helpIDs[wizard.HelpID], wizard.HelpID)
+			helpIDs[wizard.HelpID] = true
+		}
+	}
+	require.ElementsMatch(t, []string{
+		"health", "mailto", "virtual-ip", "database", "db2", "db2-hadr", "oracle",
+		"drbd", "filesystem", "gfs2", "lvm-drbd", "raid-lvm", "exportfs", "nfsserver", "nfsserver-lvm-drbd",
+		"sap-as", "sap-ci", "sap-db", "sap-simple-stack", "sap-simple-stack-plus",
+		"apache", "haproxy", "nginx", "libvirt", "fence-virsh", "sbd", "vmware", "fence-vmware-rest", "cryptctl",
+	}, names)
+}
+
+func TestWizardsHandlerWithoutCRM(t *testing.T) {
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(".."))
+	t.Cleanup(func() { _ = os.Chdir(cwd) })
+	t.Setenv("PATH", t.TempDir())
+	for _, path := range []string{"/cib/live/wizards", "/cib/live/wizards/"} {
+		response := httptest.NewRecorder()
+		WizardsHandler(response, httptest.NewRequest("GET", path, nil))
+		require.Equal(t, 200, response.Code)
+		require.Contains(t, response.Body.String(), `id="fencing"`)
+		require.Contains(t, response.Body.String(), `FENCING`)
+		require.NotContains(t, response.Body.String(), `id="stonith"`)
+		require.Contains(t, response.Body.String(), `href="/cib/live/wizards/fence-virsh"`)
+		require.Contains(t, response.Body.String(), `href="/cib/live/wizards/sap-simple-stack-plus"`)
+		require.NotContains(t, response.Body.String(), `href="/cib/live/wizards/libvirt"`)
+	}
+}
+
+func TestBatchWizardsMenu(t *testing.T) {
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(".."))
+	t.Cleanup(func() { _ = os.Chdir(cwd) })
+	t.Setenv("PATH", t.TempDir())
+	categories, err := wizardCategories(wizardCatalog)
+	require.NoError(t, err)
+	count := 0
+	for _, category := range categories {
+		count += len(category.Wizards)
+	}
+	for _, path := range []string{batchBase + "/wizards", batchBase + "/wizards/"} {
+		response := httptest.NewRecorder()
+		WizardsHandler(response, httptest.NewRequest("GET", path, nil))
+		require.Equal(t, 200, response.Code)
+		body := response.Body.String()
+		require.Equal(t, 2, strings.Count(body, `aria-disabled="true"`))
+		require.Equal(t, count-2, strings.Count(body, `class="wizard-link"`))
+		require.Contains(t, body, `href="/cib/hacluster/wizards/health"`)
+		require.NotContains(t, body, `href="/cib/live/wizards/health"`)
+		require.Contains(t, body, `id="fencing"`)
+		require.Contains(t, body, `data-wizard-help=`)
+		require.Contains(t, body, `id="btn-show-batch"`)
+		require.Contains(t, body, `/static/js/batch.js`)
+		for _, category := range categories {
+			for _, wizard := range category.Wizards {
+				require.Contains(t, html.UnescapeString(body), wizard.Title)
+			}
+		}
+	}
+	// Rendering batch must not disable a subsequent live request.
+	response := httptest.NewRecorder()
+	WizardsHandler(response, httptest.NewRequest("GET", "/cib/live/wizards", nil))
+	require.Contains(t, response.Body.String(), `href="/cib/live/wizards/health"`)
+	require.NotContains(t, response.Body.String(), `id="btn-show-batch"`)
+	for _, tc := range []struct {
+		method, path string
+		status       int
+	}{
+		{"POST", batchBase + "/wizards", 405},
+		{"GET", batchBase + "/wizards/health", 404},
+		{"POST", batchBase + "/wizards/health/submit", 404},
+	} {
+		response := httptest.NewRecorder()
+		WizardsHandler(response, httptest.NewRequest(tc.method, tc.path, nil))
+		require.Equal(t, tc.status, response.Code)
+	}
 }

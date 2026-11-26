@@ -37,4 +37,7 @@ document.querySelectorAll("[data-wizard-help]").forEach(link => {
 });
 document.getElementById("monitoringMenu").classList.remove("in");
 document.getElementById("configurationMenu").classList.add("in");
-document.querySelector('a[href="/cib/live/wizards"]').setAttribute("aria-current", "page");
+const wizardsMenuPath = window.location.pathname.replace(/\/$/, "");
+document.querySelector(`a[href="${wizardsMenuPath}"]`)?.setAttribute("aria-current", "page");
+
+if (window.hawkBatch) window.hawkBatch.start();

@@ -269,7 +269,7 @@ func (a *Authentication) Login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	// The existing hawk_chkpwd helper has a 64-byte password buffer. Reject
+	// The existing hawk-apiserver_chkpwd helper has a 64-byte password buffer. Reject
 	// longer input rather than silently authenticating a truncated password.
 	if strings.TrimSpace(username) == "" || len(username) > 256 || strings.ContainsAny(username, "\x00\r\n") || password == "" || strings.ContainsRune(password, 0) || len(password) > 63 {
 		a.loginFailure(w, r, jsonRequest, username, next)

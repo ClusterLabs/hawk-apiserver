@@ -2,9 +2,17 @@
 <link rel="stylesheet" href="/static/css/primitive_edit.css">
 <link rel="stylesheet" href="/static/css/resource_types.css">
 <link rel="stylesheet" href="/static/css/wizards.css">
+{{ if .BatchMode }}
+<script src="/static/js/classes/XAlert.js"></script>
+<script src="/static/js/classes/ConfirmActionPopup.js"></script>
+<link rel="stylesheet" href="/static/css/highlight.css">
+<script src="/static/js/vendor/highlight.js" defer></script>
+<script src="/static/js/batch.js" defer></script>
+{{ end }}
 <script src="/static/js/wizards.js" defer></script>
 <div class="edit-layout resource-types wizards">
   <div class="edit-left">
+    {{ if .BatchMode }}<div id="batch-notifications" role="status" aria-live="polite"></div>{{ end }}
     <h1><i class="fa fa-magic" aria-hidden="true"></i> Wizards</h1>
     <ul class="nav nav-pills nav-stacked resource-type-list wizard-categories nav-bighelp nav-topspace">
       {{ range .Categories }}

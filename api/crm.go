@@ -88,7 +88,7 @@ type CrmRscNode struct {
 }
 
 func GetCrmStatus() (CrmStatus, int, error) {
-	cmd := exec.Command("crm", "status", "--as-xml")
+	cmd := loggedClusterCommand("crm", "status", "--as-xml")
 
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
@@ -166,7 +166,7 @@ func RaClassesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cmd := exec.Command("/usr/sbin/crm", "ra", "classes")
+	cmd := loggedClusterCommand("/usr/sbin/crm", "ra", "classes")
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
@@ -225,7 +225,7 @@ func RaClassesHandler(w http.ResponseWriter, r *http.Request) {
 func getRaAgents(raClass string, raProvider string) ([]string, error) {
 	var cmd *exec.Cmd
 	// when stonith or systemd classes --> raProvider is empty
-	cmd = exec.Command("/usr/sbin/crm", "ra", "list", raClass, raProvider)
+	cmd = loggedClusterCommand("/usr/sbin/crm", "ra", "list", raClass, raProvider)
 
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
@@ -323,7 +323,7 @@ func NodeClearstateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func crmExecute(w http.ResponseWriter, crmArgs []string, successMessage string) {
-	cmd := exec.Command("/usr/sbin/crm", crmArgs...)
+	cmd := loggedClusterCommand("/usr/sbin/crm", crmArgs...)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
@@ -687,7 +687,7 @@ func FetchCrmStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func FetchPrimitiveClasses(w http.ResponseWriter, r *http.Request) {
-	cmd := exec.Command("crm", "ra", "classes")
+	cmd := loggedClusterCommand("crm", "ra", "classes")
 	out, err := cmd.Output()
 	if err != nil {
 		http.Error(w, "Failed to run 'crm ra classes'", http.StatusInternalServerError)
@@ -741,7 +741,7 @@ func FetchPrimitiveProviders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cmd := exec.Command("crm", "ra", "classes")
+	cmd := loggedClusterCommand("crm", "ra", "classes")
 	out, err := cmd.Output()
 	if err != nil {
 		http.Error(w, "Failed to run 'crm ra classes'", http.StatusInternalServerError)
@@ -789,7 +789,7 @@ func FetchPrimitiveTypes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cmd := exec.Command("crm", "ra", "list", input.Class, input.Provider)
+	cmd := loggedClusterCommand("crm", "ra", "list", input.Class, input.Provider)
 	out, err := cmd.Output()
 	if err != nil {
 		log.Printf("[FetchResourceTypes] crm ra list error: %v", err)

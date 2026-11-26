@@ -10,7 +10,7 @@ import (
 // AuthenticatePassword uses the existing privileged PAM helper directly. The
 // password travels through stdin, never argv, a shell, or the Rails process.
 func AuthenticatePassword(ctx context.Context, username, password string) error {
-	return authenticatePasswordUsing(ctx, "/usr/sbin/hawk_chkpwd", username, password)
+	return authenticatePasswordUsing(ctx, "/usr/sbin/hawk-apiserver_chkpwd", username, password)
 }
 
 func authenticatePasswordUsing(ctx context.Context, helper, username, password string) error {
