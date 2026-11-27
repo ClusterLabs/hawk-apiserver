@@ -136,6 +136,11 @@ function toggleResourceDetails(toggleLink) {
         : "glyphicon glyphicon-minus icon-minus";
 }
 
+function isPromotedRole(role) {
+    const normalizedRole = role?.toLowerCase();
+    return normalizedRole === "promoted" || normalizedRole === CLONE_PROMOTED;
+}
+
 function generateResourceBtnGroup(role, targetRole, isClone, name, type, active
     , isMaintenance, isManaged, nodeNames, constraintsExist, cibResource, objectType = "primitive"
 ) {
@@ -206,7 +211,7 @@ function generateResourceBtnGroup(role, targetRole, isClone, name, type, active
         </a>
     </li>`;
 
-    const isPromoted = (targetRole || "").toLowerCase() === CLONE_PROMOTED;
+    const isPromoted = isPromotedRole(targetRole);
 
     const btnGroup = document.createElement("div");
     btnGroup.className = "btn-group";
@@ -379,19 +384,20 @@ function generateResourceRow(role, targetRole, name, location, type, active, mai
 
     const circleIcon = document.createElement("i");
     circleIcon.title = role;
+    const normalizedRole = role?.toLowerCase();
     const isMaintenance = maintenance === true || maintenance === "true";
     const isUnmanaged = managed === false || managed === "false";
     if (isMaintenance) {
         circleIcon.className = "fa fa-wrench fa-lg text-info";
     } else if(isUnmanaged) {
         circleIcon.className = "fa fa-exclamation-triangle fa-lg text-warning";
-    } else if (role?.toLowerCase().includes("start")) {
+    } else if (normalizedRole?.includes("start")) {
         circleIcon.className = "fa fa-circle fa-lg text-success text-online";
-    } else if (role?.toLowerCase().includes("master")) {
+    } else if (isPromotedRole(role)) {
         circleIcon.className = "fa fa-circle fa-lg text-info";
-    } else if (role?.toLowerCase().includes("slave")) {
+    } else if (normalizedRole === "unpromoted" || normalizedRole === CLONE_DEMOTED) {
         circleIcon.className = "fa-regular fa-circle-dot fa-lg text-success text-online";
-    } else if (role?.toLowerCase().includes("stop")) {
+    } else if (normalizedRole?.includes("stop")) {
         circleIcon.className = "fa fa-minus-circle fa-lg text-danger";
     } else {
         circleIcon.className = "fa fa-question fa-lg text-warning";
@@ -558,13 +564,13 @@ function populateResourcesTab(crmResources, clones, nodeNames, cibResources, gro
         if (isClone) {
             for (const cloneResource of cloneResources) {
                 let bold = false;
-                if (resourceTargetRole.toLowerCase() != CLONE_PROMOTED) {
+                if (!isPromotedRole(resourceTargetRole)) {
                     if (cloneResource.TargetRole == "") {
                         resourceTargetRole = cloneResource.Role;
                     } else {
                         resourceTargetRole = cloneResource.TargetRole;
                     }
-                    if (resourceTargetRole.toLowerCase() == CLONE_PROMOTED)
+                    if (isPromotedRole(resourceTargetRole))
                         bold = true;
                 }
                 for (const node of cloneResource.Nodes ?? []) {
